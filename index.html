@@ -66,12 +66,68 @@
             </div>
         </section>
 
+        <section class="release-notes">
+            <div class="container">
+                <h2 class="section-title">Release Notes</h2>
+
+                <div class="release-block">
+                    <div class="release-header">
+                        <span class="release-version">Pre-Alpha v0.1</span>
+                        <span class="release-date">20.12.2024</span>
+                    </div>
+                    <ul class="release-list">
+                        <li>Market Overview виджет</li>
+                        <li>Обновлена иконка и название приложения (CryptoHeim)</li>
+                        <li>Кнопка обратной связи через Telegram</li>
+                        <li>Оптимизация сетевых запросов и параллельное выполнение</li>
+                        <li>Lazy evaluation для обработки данных</li>
+                        <li>Исправлена агрегация объемов для BTC</li>
+                        <li>Обновлены таймфреймы</li>
+                        <li>Исправлены краши</li>
+                        <li>Prometheus + Grafana</li>
+                        <li>Метрики активных пользователей</li>
+                        <li>Подготовка для Google Play</li>
+                        <li>Signed AAB bundle</li>
+                        <li>Развернут на GitHub Pages</li>
+                        <li>Privacy Policy</li>
+                        <li>Исправления ошибок (502, 500, SQL, Celery)</li>
+                        <li>Оптимизация производительности (Redis, Bybit API)</li>
+                        <li>Telegram бот (настройки, скрипты)</li>
+                        <li>Мониторинг (Grafana, Prometheus)</li>
+                        <li>Улучшения данных (VIX/SP500, Fear & Greed Index)</li>
+                        <li>Документация (API, деплой, интеграции)</li>
+                        <li>Инструменты и скрипты</li>
+                        <li>Инфраструктура</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
         <footer>
             <div class="container">
                 <p>CryptoHeim © 2025. All rights reserved.</p>
             </div>
         </footer>
     </div>
+
+    <!-- Modal for Google Play notification -->
+    <div id="playStoreModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <h2 class="modal-title">Скоро в Google Play!</h2>
+            <p class="modal-text">Приложение еще не опубликовано в Google Play Store, но мы работаем над этим. Скоро оно
+                будет доступно для скачивания!</p>
+            <p class="modal-subtext">А пока вы можете скачать APK-файл напрямую 👇</p>
+            <button id="closeModal" class="modal-btn">Понятно</button>
+        </div>
+    </div>
+
+    <script src="./src/scripts/main.js"></script>
 </body>
 
 </html>
