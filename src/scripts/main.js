@@ -49,6 +49,8 @@ function startRefreshTimer() {
 /**
  * BLOCK 2: News Summary
  */
+let newsTimer = null;
+
 async function renderNewsBlock() {
     const container = document.getElementById('news-content');
     if (!container) return;
@@ -61,31 +63,45 @@ async function renderNewsBlock() {
         }
 
         const date = new Date(news.timestamp * 1000).toLocaleString();
-        
-        // Split by paragraphs and clean up
         const paragraphs = news.summary
             .split('\n')
             .map(p => p.trim())
-            .filter(p => p.length > 0);
+            .filter(p => p.length > 20); // Only keeping meaningful paragraphs
 
-        const tickerItems = paragraphs.map(p => `<div class="ticker-item">${p}</div>`).join('');
+        const faderHtml = paragraphs.map((p, i) => `
+            <div class="fader-item ${i === 0 ? 'active' : ''}">${p}</div>
+        `).join('');
 
         container.innerHTML = `
-            <div class="news-ticker-container">
-                <div class="news-ticker-track">
-                    ${tickerItems}
-                    ${tickerItems} <!-- Duplicate for seamless loop -->
-                </div>
+            <div class="news-fader" id="news-fader">
+                ${faderHtml}
             </div>
-            <div class="news-footer" style="margin-top: 0.5rem; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+            <div class="news-footer" style="margin-top: auto; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
                 <span>${date}</span>
                 <span>AI Agent: ${news.model_used || 'GPT'}</span>
             </div>
         `;
+
+        startNewsSlideshow(paragraphs.length);
     } catch (e) {
         console.error("Error rendering news:", e);
         container.innerHTML = '<p class="error">Failed to load news.</p>';
     }
+}
+
+function startNewsSlideshow(count) {
+    if (newsTimer) clearInterval(newsTimer);
+    if (count <= 1) return;
+
+    let currentIndex = 0;
+    newsTimer = setInterval(() => {
+        const items = document.querySelectorAll('#news-fader .fader-item');
+        if (!items.length) return;
+
+        items[currentIndex].classList.remove('active');
+        currentIndex = (currentIndex + 1) % count;
+        items[currentIndex].classList.add('active');
+    }, 15000); // 15 seconds per paragraph for better readability
 }
 
 /**
@@ -221,11 +237,11 @@ async function renderMarketScan() {
                 <div class="breadth-stats">
                     <div class="stat-item">
                         <span class="stat-label">Mood: ${breadth.mood}</span>
-                        <span class="stat-value" style="font-size: 1rem;">Above SMA50: ${(breadth.above_sma_50_percent * 100).toFixed(0)}%</span>
+                        <span class="stat-value" style="font-size: 1rem;">Above SMA50: ${breadth.above_sma_50_percent.toFixed(0)}%</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">EMA21</span>
-                        <span class="stat-value" style="font-size: 1rem;">${(breadth.above_ema_21_percent * 100).toFixed(0)}%</span>
+                        <span class="stat-value" style="font-size: 1rem;">${breadth.above_ema_21_percent.toFixed(0)}%</span>
                     </div>
                 </div>
             </div>

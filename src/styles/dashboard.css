@@ -1,35 +1,94 @@
-/* Dashboard Layout & Components */
-.dashboard {
-    padding: 3rem 0;
-    position: relative;
-    z-index: 2;
+.streaming-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #080808;
 }
 
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+.dashboard-header {
+    flex: 0 0 70px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    background: rgba(10, 10, 10, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
     gap: 1rem;
 }
 
-.wide-card {
+.mini-logo {
+    height: 40px;
+}
+
+.header-titles h1 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.header-titles p {
+    font-size: 0.7rem;
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.btn-mini-back {
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.btn-mini-back:hover {
+    color: var(--accent-highlight);
+}
+
+.dashboard.streaming-view {
+    flex: 1;
+    padding: 1rem;
+    overflow: hidden;
+}
+
+.container-full {
+    height: 100%;
+    width: 100%;
+}
+
+.streaming-grid {
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1.2fr 1fr;
+    gap: 1rem;
+}
+
+#forecast-block {
     grid-column: 1 / -1;
 }
 
-@media (min-width: 1024px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .wide-card {
-        grid-column: 1 / -1;
-    }
+.dashboard-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
 }
 
-@media (min-width: 1400px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
 
 /* Premium Card Aesthetics (Glassmorphism + Dark Mode) */
 .dashboard-card {
@@ -243,35 +302,39 @@
     text-align: center;
 }
 
-/* News Ticker (Live News Effect) */
-.news-ticker-container {
-    height: 120px;
-    overflow: hidden;
+/* News Fader (Slideshow Transition) */
+.news-fader {
+    flex: 1;
     position: relative;
-    mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-}
-
-.news-ticker-track {
+    overflow: hidden;
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    animation: ticker-scroll 60s linear infinite;
+    align-items: center;
 }
 
-.news-ticker-track:hover {
-    animation-play-state: paused;
-}
-
-.ticker-item {
-    font-size: 0.9rem;
-    line-height: 1.6;
+.fader-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.1rem;
+    line-height: 1.7;
     color: var(--text-main);
+    pointer-events: none;
 }
 
-@keyframes ticker-scroll {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-50%); }
+.fader-item.active {
+    opacity: 1;
+    transform: translateY(0);
+    position: relative;
+    pointer-events: auto;
+}
+
+.news-footer {
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    padding-top: 0.5rem;
 }
 
 /* Coin Icons */
