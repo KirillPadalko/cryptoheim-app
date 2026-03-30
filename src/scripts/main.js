@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initDashboard() {
     await renderAssetsBlock();
+    await renderMarketForecast();
 
     await renderNewsBlock();
     await renderMarketScan();
@@ -45,6 +46,84 @@ async function renderNewsBlock() {
     } catch (e) {
         console.error("Error rendering news:", e);
         container.innerHTML = '<p class="error">Failed to load news.</p>';
+    }
+}
+
+/**
+ * AI Market Forecast
+ */
+async function renderMarketForecast() {
+    const container = document.getElementById('forecast-content');
+    if (!container) return;
+
+    try {
+        const lang = navigator.language.substring(0, 2) || 'en';
+        const data = await API.getMarketForecast(lang);
+        if (!data || !data.forecast) {
+            container.innerHTML = '<p class="text-muted">Forecast unavailable.</p>';
+            return;
+        }
+
+        const f = data.forecast;
+        
+        let signalsHtml = '';
+        if (f.top_signals && f.top_signals.length > 0) {
+            const renderSignalBadge = (signalStr) => {
+                const s = String(signalStr).toLowerCase();
+                if (s.includes('buy')) return 'change-up';
+                if (s.includes('sell')) return 'change-down';
+                return 'text-muted';
+            };
+
+            const signalCards = f.top_signals.map(s => `
+                <div class="signal-card" style="background: rgba(255,255,255,0.02); padding: 1.2rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0; position: relative;">
+                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                        <span style="font-family: var(--font-mono); font-weight: bold; font-size: 1.2rem; color: var(--text-main);">${s.symbol}</span>
+                        <span class="signal-badge ${renderSignalBadge(s.signal)}" style="padding: 0.2rem 0.6rem; font-size: 0.8rem; text-transform: uppercase; font-family: var(--font-mono); border: 1px solid currentColor;">${s.signal}</span>
+                    </div>
+                    <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; margin: 0; font-family: var(--font-mono);">${s.reason}</p>
+                </div>
+            `).join('');
+            
+            signalsHtml = `
+                <div class="forecast-section" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase;">Top Signals</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                        ${signalCards}
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = `
+            <div class="news-meta" style="margin-bottom: 1.5rem;">
+                <span class="news-date">${new Date(data.timestamp).toLocaleString()}</span>
+                <span class="news-model" style="margin-left: 1rem; color: var(--accent-highlight); border: 1px solid var(--accent-highlight); padding: 0.2rem 0.5rem; font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Model: ${data.model_used}</span>
+            </div>
+            
+            <div class="forecast-grid" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="forecast-section">
+                    <h4 style="margin-bottom: 0.8rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase;">Market State</h4>
+                    <p style="color: var(--text-main); line-height: 1.7; font-size: 1.05rem;">${f.market_state}</p>
+                </div>
+                
+                <div class="forecast-section" style="border-left: 2px solid var(--accent-highlight); padding-left: 1rem;">
+                    <h4 style="margin-bottom: 0.8rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase;">Short-Term Forecast</h4>
+                    <p style="color: var(--text-main); line-height: 1.7; font-size: 1.05rem;">${f.forecast}</p>
+                </div>
+                
+                ${signalsHtml}
+
+                <div class="forecast-section" style="margin-top: 1rem; background: rgba(255, 68, 0, 0.05); border-left: 2px solid var(--accent-alert); padding: 1.5rem;">
+                    <h4 style="margin-bottom: 0.8rem; color: var(--accent-alert); font-family: var(--font-mono); text-transform: uppercase;">Risks & Warnings</h4>
+                    <p style="color: var(--text-main); line-height: 1.6; font-size: 1rem; margin: 0;">${f.risks}</p>
+                </div>
+            </div>
+        `;
+
+    } catch (e) {
+        console.error("Error rendering forecast:", e);
+        container.innerHTML = '<p class="error">Failed to load market forecast.</p>';
     }
 }
 

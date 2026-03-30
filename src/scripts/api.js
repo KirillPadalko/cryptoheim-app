@@ -33,5 +33,6 @@ export const API = {
     getDominanceStreamgraph: () => fetchApi("/market-stats/dominance-streamgraph"),
     getTetherDominance: (timeframe = "90d") => fetchApi(`/market-stats/tether-dominance?timeframe=${timeframe}`),
     getMarketStats: () => fetchApi("/market-stats"),
-    getMarketStatChart: (statId, limit = 30) => fetchApi(`/market-stats/${statId}/chart?limit=${limit}`)
+    getMarketStatChart: (statId, limit = 30) => fetchApi(`/market-stats/${statId}/chart?limit=${limit}`),
+    getMarketForecast: (lang = 'en') => fetchApi(`/market-forecast?lang=${lang}`)
 };
