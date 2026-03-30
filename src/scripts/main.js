@@ -1,18 +1,49 @@
 import { API } from './api.js';
 
+const REFRESH_INTERVAL_SEC = 300; // 5 minutes
+let timeRemaining = REFRESH_INTERVAL_SEC;
+
 document.addEventListener('DOMContentLoaded', () => {
-    initDashboard();
+    startDashboard();
 });
 
-async function initDashboard() {
-    await renderAssetsBlock();
-    await renderMarketForecast();
+async function startDashboard() {
+    await updateDashboardData();
+    startRefreshTimer();
+}
 
-    await renderNewsBlock();
-    await renderMarketScan();
-    await renderSentiment();
-    await renderDominance();
-    await renderGlobalMarkets();
+async function updateDashboardData() {
+    // Parallel fetch for speed
+    await Promise.all([
+        renderMarketForecast(),
+        renderNewsBlock(),
+        renderMarketScan(),
+        renderSentiment()
+    ]);
+}
+
+function startRefreshTimer() {
+    const timerText = document.getElementById('refresh-timer');
+    const progressBar = document.getElementById('timer-progress-bar');
+    
+    if (!timerText || !progressBar) return;
+
+    setInterval(() => {
+        timeRemaining--;
+
+        if (timeRemaining <= 0) {
+            timeRemaining = REFRESH_INTERVAL_SEC;
+            updateDashboardData();
+        }
+
+        // Update UI
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        const progressPercent = (timeRemaining / REFRESH_INTERVAL_SEC) * 100;
+        progressBar.style.width = `${progressPercent}%`;
+    }, 1000);
 }
 
 /**

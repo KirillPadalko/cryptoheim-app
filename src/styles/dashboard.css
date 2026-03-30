@@ -7,8 +7,8 @@
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
 }
 
 .wide-card {
@@ -28,16 +28,6 @@
 @media (min-width: 1400px) {
     .dashboard-grid {
         grid-template-columns: repeat(3, 1fr);
-    }
-
-    #assets-block {
-        grid-column: 1 / -1;
-        /* Assets full width for carousel */
-    }
-
-    #dominance-block {
-        grid-column: span 2;
-        /* Dominance chart wider */
     }
 }
 
@@ -399,4 +389,58 @@
     height: 100%;
     border-radius: 4px;
     transition: width 1s ease-out;
+}
+
+/* Refresh Timer UI */
+.refresh-timer-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    position: relative;
+    overflow: hidden;
+}
+
+.timer-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.timer-value {
+    font-weight: 700;
+    color: var(--accent-highlight);
+    font-size: 0.9rem;
+    min-width: 45px;
+}
+
+.timer-progress-bg {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.timer-progress-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--accent-highlight);
+    transition: width 1s linear;
+}
+
+@media (max-width: 768px) {
+    .dashboard-card {
+        padding: 1rem;
+    }
+    
+    .card-header {
+        margin-bottom: 1rem;
+    }
 }
