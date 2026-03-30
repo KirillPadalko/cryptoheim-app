@@ -54,24 +54,32 @@ async function renderNewsBlock() {
     if (!container) return;
 
     try {
-        const news = await API.getLatestNews();
-        if (!news) {
+        const news = await API.getLatestNews("en");
+        if (!news || !news.summary) {
             container.innerHTML = '<p class="text-muted">No news available.</p>';
             return;
         }
 
         const date = new Date(news.timestamp * 1000).toLocaleString();
+        
+        // Split by paragraphs and clean up
+        const paragraphs = news.summary
+            .split('\n')
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+
+        const tickerItems = paragraphs.map(p => `<div class="ticker-item">${p}</div>`).join('');
 
         container.innerHTML = `
-            <div class="news-meta">
-                <span class="news-date">${date}</span>
-                <span class="news-model">${news.model_used || 'AI'}</span>
+            <div class="news-ticker-container">
+                <div class="news-ticker-track">
+                    ${tickerItems}
+                    ${tickerItems} <!-- Duplicate for seamless loop -->
+                </div>
             </div>
-            <div class="news-summary-text">
-                ${news.summary.replace(/\n\n/g, '<br><br>')}
-            </div>
-            <div class="news-sources">
-                <strong>Sources:</strong> ${news.sources ? news.sources.join(', ') : 'Various'}
+            <div class="news-footer" style="margin-top: 0.5rem; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+                <span>${date}</span>
+                <span>AI Agent: ${news.model_used || 'GPT'}</span>
             </div>
         `;
     } catch (e) {
@@ -174,48 +182,18 @@ async function renderMarketScan() {
 
         const { breadth, signals, top_movers } = scan;
 
-        // Breadth HTML
-        const breadthHtml = `
-            <div class="scan-section">
-                <h4>Market Breadth (Mood: ${breadth.mood})</h4>
-                <div class="breadth-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Above SMA 50</span>
-                        <span class="stat-value">${(breadth.above_sma_50_percent * 100).toFixed(1)}%</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Above EMA 21</span>
-                        <span class="stat-value">${(breadth.above_ema_21_percent * 100).toFixed(1)}%</span>
-                    </div>
-                </div>
-            </div>
-        `;
+        const cleanSymbol = (s) => s.replace('USDT', '');
+        const getIcon = (s) => `<img src="https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(s).toLowerCase()}.png" class="coin-icon" onerror="this.style.display='none'">`;
 
-        // Signals HTML
-        const renderSignalList = (title, list, colorClass) => {
-            if (!list || list.length === 0) return '';
-            return `<div class="signal-group">
-                <span class="signal-title">${title}:</span>
-                <span class="signal-coins ${colorClass}">${list.join(', ')}</span>
-            </div>`;
-        };
-
-        const signalsHtml = `
-            <div class="scan-section">
-                <h4>Trading Signals</h4>
-                ${renderSignalList('Oversold RSI', signals.oversold_rsi, 'change-up')}
-                ${renderSignalList('Overbought RSI', signals.overbought_rsi, 'change-down')}
-                ${renderSignalList('Bullish Momentum', signals.bullish_momentum, 'change-up')}
-                ${renderSignalList('Volatility Squeeze', signals.volatility_squeeze, 'text-muted')}
-            </div>
-        `;
-
-        // Top Movers HTML
+        // Top Movers HTML (NOW AT TOP)
         const renderMovers = (title, list, isGainer) => {
             if (!list || list.length === 0) return '';
             const items = list.map(m => `
                 <div class="mover-item">
-                    <span class="mover-symbol">${m.symbol}</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${getIcon(m.symbol)}
+                        <span class="mover-symbol">${cleanSymbol(m.symbol)}</span>
+                    </div>
                     <span class="mover-change ${isGainer ? 'change-up' : 'change-down'}">${isGainer ? '+' : ''}${m.daily_change_percent.toFixed(2)}%</span>
                 </div>
             `).join('');
@@ -229,8 +207,7 @@ async function renderMarketScan() {
         };
 
         const moversHtml = `
-            <div class="scan-section">
-                <h4>Top Movers</h4>
+            <div class="scan-section movers-section">
                 <div class="movers-grid">
                     ${renderMovers('Gainers', top_movers.gainers, true)}
                     ${renderMovers('Losers', top_movers.losers, false)}
@@ -238,7 +215,41 @@ async function renderMarketScan() {
             </div>
         `;
 
-        container.innerHTML = breadthHtml + signalsHtml + moversHtml;
+        // Breadth HTML
+        const breadthHtml = `
+            <div class="scan-section">
+                <div class="breadth-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Mood: ${breadth.mood}</span>
+                        <span class="stat-value" style="font-size: 1rem;">Above SMA50: ${(breadth.above_sma_50_percent * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">EMA21</span>
+                        <span class="stat-value" style="font-size: 1rem;">${(breadth.above_ema_21_percent * 100).toFixed(0)}%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Signals HTML
+        const renderSignalList = (title, list, colorClass) => {
+            if (!list || list.length === 0) return '';
+            return `<div class="signal-group">
+                <span class="signal-title" style="font-size: 0.75rem;">${title}:</span>
+                <span class="signal-coins ${colorClass}" style="font-size: 0.75rem;">${list.map(cleanSymbol).join(', ')}</span>
+            </div>`;
+        };
+
+        const signalsHtml = `
+            <div class="scan-section" style="margin-bottom: 0;">
+                <h4 style="font-size: 0.8rem; border: none; margin-bottom: 0.5rem;">Signals</h4>
+                ${renderSignalList('Oversold', signals.oversold_rsi, 'change-up')}
+                ${renderSignalList('Bullish', signals.bullish_momentum, 'change-up')}
+                ${renderSignalList('Volatility', signals.volatility_squeeze, 'text-muted')}
+            </div>
+        `;
+
+        container.innerHTML = moversHtml + breadthHtml + signalsHtml;
 
     } catch (e) {
         console.error("Error rendering scan:", e);
