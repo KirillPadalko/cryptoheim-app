@@ -72,18 +72,20 @@
 .streaming-grid {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     grid-auto-rows: min-content;
     gap: 1rem;
     padding-bottom: 2rem;
 }
 
-#forecast-block {
-    grid-column: 1 / 3;
+#bot-position-block {
+    grid-column: 1 / -1;
+    background: rgba(0, 255, 170, 0.03);
+    border: 1px solid rgba(0, 255, 170, 0.2);
 }
 
-#sentiment-block {
-    grid-column: 3 / 4;
+#forecast-block {
+    grid-column: 1 / -1;
 }
 
 #news-block {
@@ -92,10 +94,6 @@
 
 #market-scan-block {
     grid-column: 2 / 3;
-}
-
-#bot-position-block {
-    grid-column: 3 / 4;
 }
 
 .dashboard-card {
