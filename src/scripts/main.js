@@ -120,6 +120,8 @@ async function renderMarketForecast() {
         }
 
         const f = data.forecast;
+        const cleanSymbol = (sym) => sym.replace('USDT', '');
+        const getIcon = (sym) => `<img src="https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(sym).toLowerCase()}.png" class="coin-icon" onerror="this.style.display='none'" style="width: 16px; height: 16px; border-radius: 50%;">`;
         
         let signalsHtml = '';
         if (f.top_signals && f.top_signals.length > 0) {
@@ -131,19 +133,21 @@ async function renderMarketForecast() {
             };
 
             const signalCards = f.top_signals.map(s => `
-                <div class="signal-card" style="background: rgba(255,255,255,0.02); padding: 1.2rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0; position: relative;">
-                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-                        <span style="font-family: var(--font-mono); font-weight: bold; font-size: 1.2rem; color: var(--text-main);">${s.symbol}</span>
-                        <span class="signal-badge ${renderSignalBadge(s.signal)}" style="padding: 0.2rem 0.6rem; font-size: 0.8rem; text-transform: uppercase; font-family: var(--font-mono); border: 1px solid currentColor;">${s.signal}</span>
+                <div class="signal-card" style="background: rgba(255,255,255,0.02); padding: 0.75rem; border: 1px solid rgba(255,255,255,0.05); position: relative;">
+                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="display: flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-weight: bold; font-size: 0.9rem; color: var(--text-main);">
+                            ${getIcon(s.symbol)} ${cleanSymbol(s.symbol)}
+                        </span>
+                        <span class="signal-badge ${renderSignalBadge(s.signal)}" style="padding: 0.1rem 0.4rem; font-size: 0.7rem; text-transform: uppercase; font-family: var(--font-mono); border: 1px solid currentColor;">${s.signal}</span>
                     </div>
-                    <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.5; margin: 0; font-family: var(--font-mono);">${s.reason}</p>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0; font-family: var(--font-mono);">${s.reason}</p>
                 </div>
             `).join('');
             
             signalsHtml = `
-                <div class="forecast-section" style="margin-top: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase;">Top Signals</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                <div class="forecast-section" style="margin-top: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Top Signals</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
                         ${signalCards}
                     </div>
                 </div>
@@ -151,27 +155,28 @@ async function renderMarketForecast() {
         }
 
         container.innerHTML = `
-            <div class="news-meta" style="margin-bottom: 1.5rem;">
-                <span class="news-date">${new Date(data.timestamp).toLocaleString()}</span>
-                <span class="news-model" style="margin-left: 1rem; color: var(--accent-highlight); border: 1px solid var(--accent-highlight); padding: 0.2rem 0.5rem; font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Model: ${data.model_used}</span>
-            </div>
-            
-            <div class="forecast-grid" style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div class="forecast-section">
-                    <h4 style="margin-bottom: 0.8rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase;">Market State</h4>
-                    <p style="color: var(--text-main); line-height: 1.7; font-size: 1.05rem;">${f.market_state}</p>
+            <div class="forecast-grid" style="display: flex; flex-direction: column; gap: 1rem; padding: 0;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                    <div class="forecast-section" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem;">
+                        <h4 style="margin-bottom: 0.5rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Market State</h4>
+                        <p style="color: var(--text-main); line-height: 1.5; font-size: 0.8rem; margin: 0;">${f.market_state}</p>
+                    </div>
+                    
+                    <div class="forecast-section" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem;">
+                        <h4 style="margin-bottom: 0.5rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Short-Term Forecast</h4>
+                        <p style="color: var(--text-main); line-height: 1.5; font-size: 0.8rem; margin: 0;">${f.forecast}</p>
+                    </div>
                 </div>
-                
-                <div class="forecast-section" style="border-left: 2px solid var(--accent-highlight); padding-left: 1rem;">
-                    <h4 style="margin-bottom: 0.8rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase;">Short-Term Forecast</h4>
-                    <p style="color: var(--text-main); line-height: 1.7; font-size: 1.05rem;">${f.forecast}</p>
+
+                <div class="forecast-section" style="background: rgba(255, 68, 0, 0.05); border-left: 2px solid var(--accent-alert); padding: 0.75rem;">
+                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-alert); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Risks & Warnings</h4>
+                    <p style="color: var(--text-main); line-height: 1.4; font-size: 0.8rem; margin: 0;">${f.risks}</p>
                 </div>
                 
                 ${signalsHtml}
 
-                <div class="forecast-section" style="margin-top: 1rem; background: rgba(255, 68, 0, 0.05); border-left: 2px solid var(--accent-alert); padding: 1.5rem;">
-                    <h4 style="margin-bottom: 0.8rem; color: var(--accent-alert); font-family: var(--font-mono); text-transform: uppercase;">Risks & Warnings</h4>
-                    <p style="color: var(--text-main); line-height: 1.6; font-size: 1rem; margin: 0;">${f.risks}</p>
+                <div class="news-footer" style="display: flex; justify-content: flex-end; font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 0.5rem;">
+                    <span>AI Agent: ${data.model_used} | ${new Date(data.timestamp).toLocaleString()}</span>
                 </div>
             </div>
         `;
