@@ -27,8 +27,8 @@ async function fetchApi(endpoint) {
 export const API = {
     getAssets: () => fetchApi("/assets"),
     getSparklines: () => fetchApi("/klines/sparklines"),
-    getLatestNews: (lang = "en") => fetchApi(`/news/latest?lang=${lang}`),
-    getBotPositions: () => fetchApi("/trading/positions"),
+    getLatestNews: (lang = "ru") => fetchApi(`/news/latest?lang=${lang}`),
+    getBotPositions: () => fetchApi("/api/trading/positions"),
     getMarketScan: () => fetchApi("/analytics/market-scan"),
     getFearGreedIndex: () => fetchApi("/market-stats/fear-greed-index"),
     getAltcoinSeasonIndex: () => fetchApi("/market-stats/altcoin-season"),

@@ -50,14 +50,14 @@ function startRefreshTimer() {
 /**
  * BLOCK 2: News Summary
  */
-let newsTimer = null;
+let newsTimer = null; // Unused now but kept to avoid undefined errors if referenced elsewhere
 
 async function renderNewsBlock() {
     const container = document.getElementById('news-content');
     if (!container) return;
 
     try {
-        const news = await API.getLatestNews("en");
+        const news = await API.getLatestNews("ru");
         if (!news || !news.summary) {
             container.innerHTML = '<p class="text-muted">No news available.</p>';
             return;
@@ -69,40 +69,33 @@ async function renderNewsBlock() {
             .map(p => p.trim())
             .filter(p => p.length > 20); // Only keeping meaningful paragraphs
 
-        const faderHtml = paragraphs.map((p, i) => `
-            <div class="fader-item ${i === 0 ? 'active' : ''}">${p}</div>
+        const paragraphsHtml = paragraphs.map(p => `
+            <p style="margin-bottom: 0.75rem; color: var(--text-main); line-height: 1.5; font-size: 0.8rem; font-family: var(--font-mono);">${p}</p>
         `).join('');
 
         container.innerHTML = `
-            <div class="news-fader" id="news-fader">
-                ${faderHtml}
+            <div class="news-scrollable" style="flex: 1; overflow-y: auto; padding-right: 5px;">
+                ${paragraphsHtml}
             </div>
-            <div class="news-footer" style="margin-top: auto; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+            <div class="news-footer" style="padding-top: 0.5rem; margin-top: auto; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px dashed rgba(255,255,255,0.1);">
                 <span>${date}</span>
                 <span>AI Agent: ${news.model_used || 'GPT'}</span>
             </div>
         `;
 
-        startNewsSlideshow(paragraphs.length);
+        // Hide customized scrollbar
+        const scrollable = container.querySelector('.news-scrollable');
+        if(scrollable) {
+            scrollable.style.cssText += `
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255,255,255,0.1) transparent;
+            `;
+        }
+
     } catch (e) {
         console.error("Error rendering news:", e);
         container.innerHTML = '<p class="error">Failed to load news.</p>';
     }
-}
-
-function startNewsSlideshow(count) {
-    if (newsTimer) clearInterval(newsTimer);
-    if (count <= 1) return;
-
-    let currentIndex = 0;
-    newsTimer = setInterval(() => {
-        const items = document.querySelectorAll('#news-fader .fader-item');
-        if (!items.length) return;
-
-        items[currentIndex].classList.remove('active');
-        currentIndex = (currentIndex + 1) % count;
-        items[currentIndex].classList.add('active');
-    }, 15000); // 15 seconds per paragraph for better readability
 }
 
 /**
