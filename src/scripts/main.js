@@ -274,6 +274,42 @@ async function renderMarketScan() {
 
 
 /**
+ * Chart.js plugin for horizontal lines
+ */
+const drawHorizontalLinePlugin = {
+    id: 'horizontalLines',
+    beforeDraw(chart) {
+        if (!chart.options.plugins.horizontalLines) return;
+        const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
+        const lines = chart.options.plugins.horizontalLines.lines || [];
+        ctx.save();
+        lines.forEach(line => {
+            const yPos = y.getPixelForValue(line.value);
+            if (yPos >= top && yPos <= bottom) {
+                ctx.beginPath();
+                ctx.lineWidth = line.width || 1;
+                ctx.strokeStyle = line.color || '#fff';
+                ctx.setLineDash(line.dash || [5, 5]);
+                ctx.moveTo(left, yPos);
+                ctx.lineTo(right, yPos);
+                ctx.stroke();
+
+                if (line.text) {
+                    ctx.fillStyle = line.textColor || line.color;
+                    ctx.font = 'bold 11px monospace';
+                    ctx.fillText(line.text, left + 8, yPos - 6);
+                }
+            }
+        });
+        ctx.restore();
+    }
+};
+
+if (window.Chart) {
+    Chart.register(drawHorizontalLinePlugin);
+}
+
+/**
  * Trading Bot Position
  */
 async function renderBotPosition() {
@@ -295,51 +331,155 @@ async function renderBotPosition() {
             return;
         }
 
+        const cleanSymbol = (sym) => sym.replace('USDT', '');
+
+        // Fetch additional data in parallel
+        const [stats, klines, sparklinesObj] = await Promise.all([
+            API.getBotStats().catch(() => null),
+            API.getKlinesSummary(positions[0].symbol).catch(() => null),
+            API.getSparklines().catch(() => null) // Ensure sparklines is called correctly
+        ]);
+
+        let balanceChangeStr = '';
+        if (stats && stats.balance_history && stats.balance_history.length > 0) {
+            const first = stats.balance_history[0].equity;
+            const last = stats.balance_history[stats.balance_history.length - 1].equity;
+            const changePct = ((last - first) / first) * 100;
+            const isUp = changePct >= 0;
+            balanceChangeStr = `
+                <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.35rem 0.75rem; border-radius: 6px;">
+                    <span style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Bot PnL</span>
+                    <span class="${isUp ? 'change-up' : 'change-down'}" style="font-weight: bold; font-size: 0.95rem;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</span>
+                </div>`;
+        }
+
         const pos = positions[0]; // Display the first active position
         const isLong = pos.side.toLowerCase() === 'buy';
         const sideColor = isLong ? 'var(--accent-highlight)' : 'var(--accent-alert)';
         
-        const cleanSymbol = (sym) => sym.replace('USDT', '');
         const iconUrl = `https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(pos.symbol).toLowerCase()}.png`;
 
+        let currentPrice = null;
+        if (klines && klines.length > 0) currentPrice = klines[0].price;
+
         const formatPrice = (p) => {
+            if (!p) return '--';
             if (p < 0.01) return p.toFixed(5);
             if (p < 1) return p.toFixed(4);
             return p.toFixed(2);
         };
 
         container.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; font-family: var(--font-mono);">
+            <div style="display: flex; flex-direction: column; width: 100%; font-family: var(--font-mono); gap: 1.5rem;">
                 
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <img src="${iconUrl}" class="coin-icon" onerror="this.style.display='none'" style="width: 24px; height: 24px; border-radius: 50%;">
-                    <span style="font-weight: bold; font-size: 1.2rem; color: var(--text-main);">${cleanSymbol(pos.symbol)}</span>
-                    <span style="border: 1px solid ${sideColor}; color: ${sideColor}; padding: 0.1rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; margin-left: 0.5rem;">
-                        ${isLong ? 'LONG' : 'SHORT'}
-                    </span>
+                <!-- Headers & Stats Top Row -->
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <img src="${iconUrl}" class="coin-icon" onerror="this.style.display='none'" style="width: 36px; height: 36px; border-radius: 50%;">
+                        <div style="display: flex; flex-direction: column;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-weight: 800; font-size: 1.3rem; color: var(--text-main); line-height: 1;">${cleanSymbol(pos.symbol)}</span>
+                                <span style="background: ${isLong ? 'rgba(0, 230, 118, 0.1)' : 'rgba(255, 23, 68, 0.1)'}; border: 1px solid ${sideColor}; color: ${sideColor}; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">
+                                    ${isLong ? 'LONG' : 'SHORT'}
+                                </span>
+                            </div>
+                            <span style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.2rem; letter-spacing: 0.05em;">Live Trade Active</span>
+                        </div>
+                        <div style="margin-left: 1rem;">
+                            ${balanceChangeStr}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 2.5rem; align-items: center;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Size</span>
+                            <span style="color: var(--text-main); font-weight: 700; font-size: 1.1rem;">${pos.size.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="color: rgba(255,255,255,0.5); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Entry Price</span>
+                            <span style="color: rgba(255,255,255,0.9); font-weight: 700; font-size: 1.1rem;">$${formatPrice(pos.entry_price)}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="color: var(--accent-highlight); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8;">Take Profit</span>
+                            <span style="color: var(--accent-highlight); font-weight: 700; font-size: 1.1rem;">$${formatPrice(pos.tp_price)}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="color: var(--accent-alert); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.8;">Stop Loss</span>
+                            <span style="color: var(--accent-alert); font-weight: 700; font-size: 1.1rem;">$${formatPrice(pos.sl_price)}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 2rem; margin-left: -0.5rem;">
+                            <span style="color: #fff; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7;">Current Price</span>
+                            <span style="color: #fff; font-weight: 800; font-size: 1.25rem;">$${formatPrice(currentPrice)}</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 2.5rem;">
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase;">Size</span>
-                        <span style="color: var(--text-main); font-weight: bold; font-size: 1.05rem;">${pos.size.toFixed(2)}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase;">Entry</span>
-                        <span style="color: var(--text-main); font-weight: bold; font-size: 1.05rem;">$${formatPrice(pos.entry_price)}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="color: var(--accent-highlight); font-size: 0.65rem; text-transform: uppercase;">Take Profit</span>
-                        <span style="color: var(--accent-highlight); font-weight: bold; font-size: 1.05rem;">$${formatPrice(pos.tp_price)}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="color: var(--accent-alert); font-size: 0.65rem; text-transform: uppercase;">Stop Loss</span>
-                        <span style="color: var(--accent-alert); font-weight: bold; font-size: 1.05rem;">$${formatPrice(pos.sl_price)}</span>
-                    </div>
+                <!-- Big Chart Row -->
+                <div style="height: 140px; width: 100%; position: relative; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); padding: 0.5rem; box-sizing: border-box;">
+                    <canvas id="active-trade-chart-canvas"></canvas>
                 </div>
 
             </div>
         `;
+
+        // Render Sparkline with Entry/SL/TP lines
+        const sparklineData = sparklinesObj && sparklinesObj[pos.symbol] ? sparklinesObj[pos.symbol] : null;
+        if (sparklineData && sparklineData.length > 0) {
+            const ctx = document.getElementById('active-trade-chart-canvas').getContext('2d');
+            const sparkColor = sparklineData[sparklineData.length - 1] >= sparklineData[0] ? '#00E676' : '#FF1744';
+            
+            // Add a subtle gradient fill underneath the curve
+            const gradient = ctx.createLinearGradient(0, 0, 0, 140);
+            gradient.addColorStop(0, sparklineData[sparklineData.length - 1] >= sparklineData[0] ? 'rgba(0, 230, 118, 0.2)' : 'rgba(255, 23, 68, 0.2)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+            // Adjust bounds to ensure SL/TP/Entry lines are visible
+            const minBound = Math.min(...sparklineData, pos.entry_price, pos.tp_price, pos.sl_price);
+            const maxBound = Math.max(...sparklineData, pos.entry_price, pos.tp_price, pos.sl_price);
+            const padding = (maxBound - minBound) * 0.1 || minBound * 0.05;
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sparklineData.map((_, i) => i),
+                    datasets: [{
+                        data: sparklineData,
+                        borderColor: sparkColor,
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        tension: 0.3, // Smoother curve
+                        pointRadius: 0,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { enabled: false },
+                        horizontalLines: {
+                            lines: [
+                                { value: pos.entry_price, color: 'rgba(255,255,255,0.6)', text: 'ENTRY', dash: [4, 4], width: 1.5 },
+                                { value: pos.tp_price, color: 'rgba(0, 230, 118, 0.8)', text: 'TAKE PROFIT', dash: [3, 3], textColor: '#00E676', width: 1.5 },
+                                { value: pos.sl_price, color: 'rgba(255, 23, 68, 0.8)', text: 'STOP LOSS', dash: [3, 3], textColor: '#FF1744', width: 1.5 }
+                            ]
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            display: false, 
+                            min: minBound - padding, 
+                            max: maxBound + padding 
+                        }
+                    },
+                    layout: { padding: { left: 10, right: 10, top: 10, bottom: 5 } },
+                    animation: false
+                }
+            });
+        }
     } catch (e) {
         console.error("Error rendering bot position:", e);
         container.innerHTML = '<p class="error">Failed to load trade data.</p>';
