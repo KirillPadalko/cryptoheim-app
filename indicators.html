@@ -56,6 +56,13 @@
                 <div class="dashboard-grid streaming-grid">
                     <!-- Trading Bot Position Banner -->
                     <div class="dashboard-card" id="bot-position-block" style="padding: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span class="auto-update-badge" style="background: rgba(0, 255, 170, 0.1); color: var(--accent-highlight); animation: none; font-size: 0.7rem; padding: 0.2rem 0.5rem;">BOT</span>
+                                <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main); font-weight: 600;">Active Trades</h3>
+                            </div>
+                            <div id="bot-pnl-container"></div>
+                        </div>
                         <div class="position-content" id="position-content" style="flex: 1; width: 100%;">
                             <div class="loading-spinner" style="margin: 2rem auto; width: 24px; height: 24px;"></div>
                         </div>
