@@ -18,7 +18,8 @@ async function updateDashboardData() {
         renderMarketForecast(),
         renderNewsBlock(),
         renderMarketScan(),
-        renderSentiment()
+        renderSentiment(),
+        renderBotPosition()
     ]);
 }
 
@@ -318,6 +319,81 @@ async function renderSentiment() {
 
     } catch (e) {
         console.error("Error rendering sentiment:", e);
+    }
+}
+
+/**
+ * Trading Bot Position
+ */
+async function renderBotPosition() {
+    const container = document.getElementById('position-content');
+    if (!container) return;
+
+    try {
+        const positions = await API.getBotPositions();
+        if (!positions || positions.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; color: var(--text-muted); padding: 2rem 0; font-family: var(--font-mono);">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 0.5rem; opacity: 0.5;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <p>No Active Positions</p>
+                </div>`;
+            return;
+        }
+
+        const pos = positions[0]; // Display the first active position
+        const isLong = pos.side.toLowerCase() === 'buy';
+        const sideColor = isLong ? 'var(--accent-highlight)' : 'var(--accent-alert)';
+        
+        const cleanSymbol = (sym) => sym.replace('USDT', '');
+        const iconUrl = `https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(pos.symbol).toLowerCase()}.png`;
+
+        const formatPrice = (p) => {
+            if (p < 0.01) return p.toFixed(5);
+            if (p < 1) return p.toFixed(4);
+            return p.toFixed(2);
+        };
+
+        container.innerHTML = `
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); padding: 1rem; border-radius: 4px; display: flex; flex-direction: column; gap: 0.8rem; font-family: var(--font-mono);">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <img src="${iconUrl}" class="coin-icon" onerror="this.style.display='none'" style="width: 20px; height: 20px; border-radius: 50%;">
+                        <span style="font-weight: bold; font-size: 1.1rem; color: var(--text-main);">${cleanSymbol(pos.symbol)}</span>
+                    </div>
+                    <span style="border: 1px solid ${sideColor}; color: ${sideColor}; padding: 0.1rem 0.5rem; font-size: 0.75rem; text-transform: uppercase;">
+                        ${isLong ? 'LONG' : 'SHORT'}
+                    </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; font-size: 0.85rem;">
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Size</span>
+                        <div style="color: var(--text-main); font-weight: bold;">${pos.size.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Entry Price</span>
+                        <div style="color: var(--text-main); font-weight: bold;">$${formatPrice(pos.entry_price)}</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--accent-highlight); font-size: 0.7rem; text-transform: uppercase;">Take Profit</span>
+                        <div style="color: var(--accent-highlight); font-weight: bold;">$${formatPrice(pos.tp_price)}</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--accent-alert); font-size: 0.7rem; text-transform: uppercase;">Stop Loss</span>
+                        <div style="color: var(--accent-alert); font-weight: bold;">$${formatPrice(pos.sl_price)}</div>
+                    </div>
+                </div>
+
+            </div>
+        `;
+    } catch (e) {
+        console.error("Error rendering bot position:", e);
+        container.innerHTML = '<p class="error">Failed to load trade data.</p>';
     }
 }
 
