@@ -43,6 +43,34 @@
     font-family: var(--font-mono);
 }
 
+.lang-switcher {
+    display: flex;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    font-family: var(--font-mono);
+}
+
+.lang-btn {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    background: rgba(0,0,0,0.3);
+    color: #888;
+    transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+}
+
+.lang-btn.active {
+    background: var(--accent-highlight);
+    color: #000;
+}
+
 .header-right {
     display: flex;
     align-items: center;

@@ -4,6 +4,32 @@ const REFRESH_INTERVAL_SEC = 300; // 5 minutes
 let timeRemaining = REFRESH_INTERVAL_SEC;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Init Language State
+    window.appLang = localStorage.getItem('appLang') || 'ru';
+    
+    // 2. Setup Language Switcher UI
+    const langBtns = document.querySelectorAll('.lang-btn');
+    if (langBtns.length > 0) {
+        langBtns.forEach(btn => {
+            if (btn.dataset.lang === window.appLang) btn.classList.add('active');
+            else btn.classList.remove('active');
+            
+            btn.addEventListener('click', () => {
+                if (btn.dataset.lang === window.appLang) return;
+                
+                langBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                window.appLang = btn.dataset.lang;
+                localStorage.setItem('appLang', window.appLang);
+                
+                // Immediately refresh language-dependent blocks
+                renderNewsBlock();
+                renderMarketForecast();
+            });
+        });
+    }
+
     startDashboard();
 });
 
@@ -56,7 +82,8 @@ async function renderNewsBlock() {
     if (!container) return;
 
     try {
-        const news = await API.getLatestNews("ru");
+        const lang = window.appLang || 'ru';
+        const news = await API.getLatestNews(lang);
         if (!news || !news.summary) {
             container.innerHTML = '<p class="text-muted">No news available.</p>';
             return;
@@ -105,7 +132,7 @@ async function renderMarketForecast() {
     if (!container) return;
 
     try {
-        const lang = navigator.language.substring(0, 2) || 'en';
+        const lang = window.appLang || 'en';
         const data = await API.getMarketForecast(lang);
         if (!data || !data.forecast) {
             container.innerHTML = '<p class="text-muted">Forecast unavailable.</p>';
