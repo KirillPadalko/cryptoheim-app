@@ -4,7 +4,7 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://34.78.2.164',
+                target: 'https://mesh-online.org',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
             }
