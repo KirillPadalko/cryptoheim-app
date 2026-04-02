@@ -30,7 +30,12 @@ a { text-decoration: none; color: inherit; }
     z-index: 100;
 }
 
-.header-left, .header-right {
+.header-left {
+    display: flex;
+    align-items: stretch;
+}
+
+.header-right {
     display: flex;
     align-items: center;
 }
