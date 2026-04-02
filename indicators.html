@@ -5,16 +5,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="./src/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CryptoHeim Indicators</title>
+    <title>CryptHeim Live | Analytics Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
         rel="stylesheet">
 
     <!-- Direct CSS links for static usage -->
     <link rel="stylesheet" href="./src/styles/main.css">
-    <link rel="stylesheet" href="./src/styles/sections.css">
     <link rel="stylesheet" href="./src/styles/dashboard.css">
 
     <!-- Chart.js for data visualization -->
@@ -23,87 +22,173 @@
 </head>
 
 <body>
-    <div class="noise-overlay"></div>
     <div id="app" class="streaming-layout">
-        <!-- Compact Top Bar Header -->
+        <!-- HEADER -->
         <header class="dashboard-header">
             <div class="header-left">
-                <img src="./src/assets/logo.png" alt="Logo" class="mini-logo">
-                <div class="header-titles">
-                    <h1>CryptoHeim Live</h1>
-                    <p>Analytical Intelligence Dashboard</p>
-                </div>
-            </div>
-            <div class="header-right" style="display: flex; align-items: center; gap: 1rem;">
-                <div id="lang-switcher" class="lang-switcher">
-                    <div class="lang-btn" data-lang="en">EN</div>
-                    <div class="lang-btn" data-lang="ru">RU</div>
-                </div>
-                <div id="refresh-timer-container" class="refresh-timer-box">
-                    <span class="timer-label">Next Sweep:</span>
-                    <span id="refresh-timer" class="timer-value">--:--</span>
-                    <div class="timer-progress-bg">
-                        <div id="timer-progress-bar" class="timer-progress-fill"></div>
+                <div class="header-logo-box">
+                    <img src="./src/assets/logo.png" alt="Logo" class="mini-logo">
+                    <div class="header-titles">
+                        <h1>CRYPTHEIM LIVE</h1>
+                        <p>ANALYTICS & INTELLIGENCE DASHBOARD</p>
                     </div>
                 </div>
-                <a href="index.html" class="btn-mini-back">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m15 18-6-6 6-6" />
+            </div>
+            <div class="header-right">
+                <div class="status-live">
+                    <div class="status-indicator"></div>
+                    LIVE
+                </div>
+                <div id="lang-switcher" class="lang-switcher">
+                    <div class="lang-btn active" data-lang="en">EN</div>
+                    <div class="lang-btn" data-lang="ru">RU</div>
+                </div>
+                <div class="refresh-timer-box">
+                    <span class="timer-label">NEXT UPDATE</span>
+                    <span id="refresh-timer" class="timer-value">04:51</span>
+                </div>
+                <!-- Menu / Back placeholder -->
+                <a href="index.html" class="burger-menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
                     </svg>
                 </a>
             </div>
         </header>
 
-        <section class="dashboard streaming-view">
-            <div class="container-full">
-                <div class="dashboard-grid streaming-grid">
-                    <!-- Trading Bot Position Banner -->
-                    <div class="dashboard-card" id="bot-position-block" style="padding: 1.25rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 0.75rem; margin-bottom: 1rem;">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <span class="auto-update-badge" style="background: rgba(0, 255, 170, 0.1); color: var(--accent-highlight); animation: none; font-size: 0.7rem; padding: 0.2rem 0.5rem;">BOT</span>
-                                <h3 style="margin: 0; font-size: 1.05rem; color: var(--text-main); font-weight: 600;">Active Trades</h3>
-                            </div>
-                            <div id="bot-pnl-container"></div>
-                        </div>
-                        <div class="position-content" id="position-content" style="flex: 1; width: 100%;">
-                            <div class="loading-spinner" style="margin: 2rem auto; width: 24px; height: 24px;"></div>
-                        </div>
+        <!-- DECISION STRIP & NARRATIVE -->
+        <div class="decision-wrapper">
+            <div class="decision-strip" id="decision-strip">
+                <div class="decision-block">
+                    <div class="label">MARKET BIAS</div>
+                    <div class="value text-green" id="ds-bias">...</div>
+                    <div class="subtext">SHORT-TERM OUTLOOK</div>
+                </div>
+                <div class="decision-block">
+                    <div class="label">CONFIDENCE</div>
+                    <div class="value" id="ds-confidence">...</div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="ds-confidence-fill" style="width: 0%"></div>
                     </div>
-
-                    <!-- AI Market Forecast (Wider) -->
-                    <div class="dashboard-card wide-card" id="forecast-block">
-                        <div class="card-header">
-                            <h3>AI Market Forecast</h3>
-                            <span class="auto-update-badge">Live</span>
-                        </div>
-                        <div class="forecast-content" id="forecast-content">
-                            <div class="loading-spinner"></div>
-                        </div>
-                    </div>
-
-                    <!-- News Summary -->
-                    <div class="dashboard-card" id="news-block">
-                        <div class="card-header">
-                            <h3>News Summary</h3>
-                        </div>
-                        <div class="news-content" id="news-content"></div>
-                    </div>
-
-                    <!-- Market Scan -->
-                    <div class="dashboard-card" id="market-scan-block">
-                        <div class="card-header">
-                            <h3>Market Scan</h3>
-                        </div>
-                        <div class="scan-content" id="scan-content"></div>
-                    </div>
-
+                </div>
+                <div class="decision-block">
+                    <div class="label">FEAR & GREED</div>
+                    <div class="value text-red" id="ds-fng-val">...</div>
+                    <div class="subtext" id="ds-fng-label">...</div>
+                </div>
+                <div class="decision-block">
+                    <div class="label">TREND</div>
+                    <div class="value" id="ds-trend">...</div>
+                    <div class="subtext">POTENTIAL REVERSAL</div>
+                </div>
+                <div class="decision-block">
+                    <div class="label">BTC DOMINANCE</div>
+                    <div class="value" id="ds-btc-dom">...</div>
+                    <div class="subtext" id="ds-volatility">...</div>
+                </div>
+                <div class="decision-block primary-bias-block" id="ds-direction-block">
+                    <div class="label">BIAS: ...</div>
+                    <div class="subtext">waiting for signal</div>
                 </div>
             </div>
-        </section>
+            <div class="narrative-text" id="narrative-summary">
+                ...
+            </div>
+        </div>
+
+        <!-- 60/40 GRID -->
+        <main class="dashboard-grid">
+            
+            <!-- LEFT COLUMN (60%) -->
+            <div class="left-column">
+                
+                <!-- TOP SIGNALS -->
+                <div class="brutal-card">
+                    <div class="brutal-title">
+                        TOP SIGNALS <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">(PRIORITY)</span>
+                        <button style="border: var(--border-thick); background: #fff; padding: 5px 15px; font-weight: 800; cursor: pointer; font-family: var(--font-main);">SEE ALL</button>
+                    </div>
+                    <div class="signals-list" id="signals-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- RISK SCENARIO -->
+                <div class="risk-block" id="risk-block">
+                    <h3>WHAT CAN BREAK THIS SCENARIO?</h3>
+                    <div class="risk-text" id="risk-list" style="font-weight: 500; font-size: 0.9rem; line-height: 1.4;">
+                        Loading risks...
+                    </div>
+                </div>
+
+                <!-- LATEST NEWS -->
+                <div class="brutal-card">
+                    <div class="brutal-title">MARKET INTELLIGENCE <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); font-family: var(--font-mono);" id="news-time">Loading...</span></div>
+                    <div class="news-content" id="news-content" style="font-size: 0.95rem; line-height: 1.4; font-weight: 500; overflow-y: auto; max-height: 250px; padding-right: 10px; margin-top: 10px;">
+                        <!-- Populated by JS -->
+                        Awaiting intel...
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN (40%) -->
+            <div class="right-column">
+                
+                <!-- YOUR EXPOSURE & TABLE -->
+                <div class="brutal-card" style="padding: 0;">
+                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.5rem; border-bottom: none; margin-bottom: 0;">YOUR EXPOSURE</div>
+                    
+                    <div class="exposure-grid" id="exposure-grid" style="padding: 0 1.5rem 1rem;">
+                        <div class="exp-col">
+                            <div class="exp-label">PNL (ALL TIME)</div>
+                            <div class="exp-value text-green" id="exp-pnl">...</div>
+                        </div>
+                        <div class="exp-col">
+                            <div class="exp-label">NET BIAS</div>
+                            <div class="exp-value text-green" id="exp-net-bias">...</div>
+                        </div>
+                        <div class="exp-col">
+                            <div class="exp-label">EQUITY</div>
+                            <div class="exp-value" id="exp-equity">...</div>
+                        </div>
+                    </div>
+
+                    <div class="pos-table-wrapper" style="border-top: var(--border-thick);">
+                        <table class="pos-table" id="pos-table">
+                            <thead>
+                                <tr>
+                                    <th>ASSET</th>
+                                    <th>SIZE</th>
+                                    <th>ENTRY</th>
+                                    <th>PRICE</th>
+                                    <th>PNL</th>
+                                    <th>CHART</th>
+                                    <th>SL/TP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pos-table-body">
+                                <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ALLOCATION BAR -->
+                <div class="brutal-card" style="padding: 1rem 1.5rem;">
+                    <div style="font-size: 0.8rem; font-weight: 800; margin-bottom: 0.5rem; text-transform: uppercase;">Allocation</div>
+                    <div id="allocation-bar" style="display: flex; height: 32px; border: var(--border-thick); overflow: hidden; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: #fff;">
+                        <!-- populated by JS -->
+                    </div>
+                </div>
+
+                
+            </div>
+        </main>
     </div>
 
+    <!-- Scripts -->
     <script type="module" src="./src/scripts/main.js"></script>
 </body>
 

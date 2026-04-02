@@ -1,21 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
+
 :root {
-  --bg-dark: #050505;
-  --bg-card: #0A0A0A;
-  --text-main: #E0E0E0;
-  --text-muted: #666666;
+  --bg-main: #F5F5F5;
+  --bg-dark: #F5F5F5; /* Backwards compatibility */
+  --bg-card: #FFFFFF;
+  
+  --text-main: #000000;
+  --text-muted: #555555;
 
-  /* Neo-Grunge Accents */
-  --accent-primary: #f0f0f0;
-  /* Stark White */
-  --accent-highlight: #40E0D0;
-  /* Kept Turquoise for brand recognition but sharper usage */
-  --accent-alert: #FF4400;
-  /* Sharp Orange */
+  /* Semantic Colors */
+  --color-green: #00C853;
+  --color-red: #FF1744;
+  --color-yellow: #FFEA00;
+  --color-blue: #2962FF;
 
-  --border-sharp: 1px solid rgba(255, 255, 255, 0.15);
-  --border-highlight: 1px solid var(--accent-highlight);
+  --accent-highlight: #00C853;
+  --accent-alert: #FF1744;
+  
+  --border-thick: 3px solid #000000;
+  --border-thin: 1px solid #000000;
 
-  --font-main: 'Outfit', sans-serif;
+  --font-main: 'Space Grotesk', 'Montserrat', sans-serif;
   --font-mono: 'Space Mono', monospace;
 }
 
@@ -26,24 +31,11 @@
 }
 
 body {
-  background-color: var(--bg-dark);
+  background-color: var(--bg-main);
   color: var(--text-main);
   font-family: var(--font-main);
   overflow-x: hidden;
-  line-height: 1.6;
-  /* Increased for "lighter" feel */
-}
-
-.noise-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  line-height: 1.5;
 }
 
 #app {
@@ -58,4 +50,8 @@ body {
 img {
   max-width: 100%;
   display: block;
+}
+
+.noise-overlay {
+  display: none;
 }

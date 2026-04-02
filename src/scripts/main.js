@@ -4,10 +4,8 @@ const REFRESH_INTERVAL_SEC = 300; // 5 minutes
 let timeRemaining = REFRESH_INTERVAL_SEC;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Init Language State
-    window.appLang = localStorage.getItem('appLang') || 'ru';
+    window.appLang = localStorage.getItem('appLang') || 'en';
     
-    // 2. Setup Language Switcher UI
     const langBtns = document.querySelectorAll('.lang-btn');
     if (langBtns.length > 0) {
         langBtns.forEach(btn => {
@@ -16,16 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             btn.addEventListener('click', () => {
                 if (btn.dataset.lang === window.appLang) return;
-                
                 langBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
                 window.appLang = btn.dataset.lang;
                 localStorage.setItem('appLang', window.appLang);
-                
-                // Immediately refresh language-dependent blocks
-                renderNewsBlock();
-                renderMarketForecast();
+                updateDashboardData(); // Refresh all
             });
         });
     }
@@ -39,576 +32,441 @@ async function startDashboard() {
 }
 
 async function updateDashboardData() {
-    // Parallel fetch for speed
-    await Promise.all([
-        renderMarketForecast(),
-        renderNewsBlock(),
-        renderMarketScan(),
-        renderBotPosition()
+    await Promise.allSettled([
+        renderDecisionStrip(),
+        renderTopSignals(),
+        renderNarrativeEngine(),
+        renderLatestNews(),
+        renderExposureAndPositions()
     ]);
 }
 
 function startRefreshTimer() {
     const timerText = document.getElementById('refresh-timer');
-    const progressBar = document.getElementById('timer-progress-bar');
-    
-    if (!timerText || !progressBar) return;
-
+    if (!timerText) return;
     setInterval(() => {
         timeRemaining--;
-
         if (timeRemaining <= 0) {
             timeRemaining = REFRESH_INTERVAL_SEC;
             updateDashboardData();
         }
-
-        // Update UI
         const minutes = Math.floor(timeRemaining / 60);
         const seconds = timeRemaining % 60;
-        timerText.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
-        const progressPercent = (timeRemaining / REFRESH_INTERVAL_SEC) * 100;
-        progressBar.style.width = `${progressPercent}%`;
+        timerText.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }, 1000);
 }
 
-/**
- * BLOCK 2: News Summary
- */
-let newsTimer = null; // Unused now but kept to avoid undefined errors if referenced elsewhere
-
-async function renderNewsBlock() {
-    const container = document.getElementById('news-content');
-    if (!container) return;
-
-    try {
-        const lang = window.appLang || 'ru';
-        const news = await API.getLatestNews(lang);
-        if (!news || !news.summary) {
-            container.innerHTML = '<p class="text-muted">No news available.</p>';
-            return;
-        }
-
-        const date = new Date(news.timestamp * 1000).toLocaleString();
-        const paragraphs = news.summary
-            .split('\n')
-            .map(p => p.trim())
-            .filter(p => p.length > 20); // Only keeping meaningful paragraphs
-
-        const paragraphsHtml = paragraphs.map(p => `
-            <p style="margin-bottom: 0.75rem; color: var(--text-main); line-height: 1.5; font-size: 0.8rem; font-family: var(--font-mono);">${p}</p>
-        `).join('');
-
-        container.innerHTML = `
-            <div class="news-scrollable" style="flex: 1; overflow-y: auto; padding-right: 5px;">
-                ${paragraphsHtml}
-            </div>
-            <div class="news-footer" style="padding-top: 0.5rem; margin-top: auto; display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); border-top: 1px dashed rgba(255,255,255,0.1);">
-                <span>${date}</span>
-                <span>AI Agent: ${news.model_used || 'GPT'}</span>
-            </div>
-        `;
-
-        // Hide customized scrollbar
-        const scrollable = container.querySelector('.news-scrollable');
-        if(scrollable) {
-            scrollable.style.cssText += `
-                scrollbar-width: thin;
-                scrollbar-color: rgba(255,255,255,0.1) transparent;
-            `;
-        }
-
-    } catch (e) {
-        console.error("Error rendering news:", e);
-        container.innerHTML = '<p class="error">Failed to load news.</p>';
-    }
-}
-
-/**
- * AI Market Forecast
- */
-async function renderMarketForecast() {
-    const container = document.getElementById('forecast-content');
-    if (!container) return;
-
+// ----------------------------------------------------
+// DECISION STRIP
+// ----------------------------------------------------
+async function renderDecisionStrip() {
     try {
         const lang = window.appLang || 'en';
-        const data = await API.getMarketForecast(lang);
-        if (!data || !data.forecast) {
-            container.innerHTML = '<p class="text-muted">Forecast unavailable.</p>';
-            return;
-        }
-
-        const f = data.forecast;
-        const cleanSymbol = (sym) => sym.replace('USDT', '');
-        const getIcon = (sym) => `<img src="https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(sym).toLowerCase()}.png" class="coin-icon" onerror="this.style.display='none'" style="width: 16px; height: 16px; border-radius: 50%;">`;
         
-        let signalsHtml = '';
-        if (f.top_signals && f.top_signals.length > 0) {
-            const renderSignalBadge = (signalStr) => {
-                const s = String(signalStr).toLowerCase();
-                if (s.includes('buy')) return 'change-up';
-                if (s.includes('sell')) return 'change-down';
-                return 'text-muted';
-            };
-
-            const signalCards = f.top_signals.map(s => `
-                <div class="signal-card" style="background: rgba(255,255,255,0.02); padding: 0.75rem; border: 1px solid rgba(255,255,255,0.05); position: relative;">
-                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                        <span style="display: flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-weight: bold; font-size: 0.9rem; color: var(--text-main);">
-                            ${getIcon(s.symbol)} ${cleanSymbol(s.symbol)}
-                        </span>
-                        <span class="signal-badge ${renderSignalBadge(s.signal)}" style="padding: 0.1rem 0.4rem; font-size: 0.7rem; text-transform: uppercase; font-family: var(--font-mono); border: 1px solid currentColor;">${s.signal}</span>
-                    </div>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin: 0; font-family: var(--font-mono);">${s.reason}</p>
-                </div>
-            `).join('');
-            
-            signalsHtml = `
-                <div class="forecast-section" style="margin-top: 1rem;">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Top Signals</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
-                        ${signalCards}
-                    </div>
-                </div>
-            `;
-        }
-
-        container.innerHTML = `
-            <div class="forecast-grid" style="display: flex; flex-direction: column; gap: 1rem; padding: 0;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-                    <div class="forecast-section" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem;">
-                        <h4 style="margin-bottom: 0.5rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Market State</h4>
-                        <p style="color: var(--text-main); line-height: 1.5; font-size: 0.8rem; margin: 0;">${f.market_state}</p>
-                    </div>
-                    
-                    <div class="forecast-section" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); padding: 0.75rem;">
-                        <h4 style="margin-bottom: 0.5rem; color: var(--accent-highlight); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Short-Term Forecast</h4>
-                        <p style="color: var(--text-main); line-height: 1.5; font-size: 0.8rem; margin: 0;">${f.forecast}</p>
-                    </div>
-                </div>
-
-                <div class="forecast-section" style="background: rgba(255, 68, 0, 0.05); border-left: 2px solid var(--accent-alert); padding: 0.75rem;">
-                    <h4 style="margin-bottom: 0.5rem; color: var(--accent-alert); font-family: var(--font-mono); text-transform: uppercase; font-size: 0.8rem;">Risks & Warnings</h4>
-                    <p style="color: var(--text-main); line-height: 1.4; font-size: 0.8rem; margin: 0;">${f.risks}</p>
-                </div>
-                
-                ${signalsHtml}
-
-                <div class="news-footer" style="display: flex; justify-content: flex-end; font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 0.5rem;">
-                    <span>AI Agent: ${data.model_used} | ${new Date(data.timestamp).toLocaleString()}</span>
-                </div>
-            </div>
-        `;
-
-    } catch (e) {
-        console.error("Error rendering forecast:", e);
-        container.innerHTML = '<p class="error">Failed to load market forecast.</p>';
-    }
-}
-
-/**
- * BLOCK 3: Market Scan
- */
-async function renderMarketScan() {
-    const container = document.getElementById('scan-content');
-    if (!container) return;
-
-    try {
-        const scan = await API.getMarketScan();
-        if (!scan) {
-            container.innerHTML = '<p class="text-muted">Market scan unavailable.</p>';
-            return;
-        }
-
-        const { breadth, signals, top_movers } = scan;
-
-        const cleanSymbol = (s) => s.replace('USDT', '');
-        const getIcon = (s) => `<img src="https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(s).toLowerCase()}.png" class="coin-icon" onerror="this.style.display='none'">`;
-
-        // Top Movers HTML (NOW AT TOP)
-        const renderMovers = (title, list, isGainer) => {
-            if (!list || list.length === 0) return '';
-            const items = list.map(m => `
-                <div class="mover-item">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        ${getIcon(m.symbol)}
-                        <span class="mover-symbol">${cleanSymbol(m.symbol)}</span>
-                    </div>
-                    <span class="mover-change ${isGainer ? 'change-up' : 'change-down'}">${isGainer ? '+' : ''}${m.daily_change_percent.toFixed(2)}%</span>
-                </div>
-            `).join('');
-
-            return `
-                <div class="movers-column">
-                    <h5>${title}</h5>
-                    ${items}
-                </div>
-            `;
-        };
-
-        const moversHtml = `
-            <div class="scan-section movers-section">
-                <div class="movers-grid">
-                    ${renderMovers('Gainers', top_movers.gainers, true)}
-                    ${renderMovers('Losers', top_movers.losers, false)}
-                </div>
-            </div>
-        `;
-
-        // Breadth HTML
-        const breadthHtml = `
-            <div class="scan-section">
-                <div class="breadth-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Mood: ${breadth.mood}</span>
-                        <span class="stat-value" style="font-size: 1rem;">Above SMA50: ${breadth.above_sma_50_percent.toFixed(0)}%</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">EMA21</span>
-                        <span class="stat-value" style="font-size: 1rem;">${breadth.above_ema_21_percent.toFixed(0)}%</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Signals HTML
-        const renderSignalList = (title, list, colorClass) => {
-            if (!list || list.length === 0) return '';
-            return `<div class="signal-group">
-                <span class="signal-title" style="font-size: 0.75rem;">${title}:</span>
-                <span class="signal-coins ${colorClass}" style="font-size: 0.75rem;">${list.map(cleanSymbol).join(', ')}</span>
-            </div>`;
-        };
-
-        const signalsHtml = `
-            <div class="scan-section" style="margin-bottom: 0;">
-                <h4 style="font-size: 0.8rem; border: none; margin-bottom: 0.5rem;">Signals</h4>
-                ${renderSignalList('Oversold', signals.oversold_rsi, 'change-up')}
-                ${renderSignalList('Bullish', signals.bullish_momentum, 'change-up')}
-                ${renderSignalList('Volatility', signals.volatility_squeeze, 'text-muted')}
-            </div>
-        `;
-
-        container.innerHTML = moversHtml + breadthHtml + signalsHtml;
-
-    } catch (e) {
-        console.error("Error rendering scan:", e);
-        container.innerHTML = '<p class="error">Failed to load market scan.</p>';
-    }
-}
-
-
-
-/**
- * Chart.js plugin for horizontal lines
- */
-const drawHorizontalLinePlugin = {
-    id: 'horizontalLines',
-    beforeDraw(chart) {
-        if (!chart.options.plugins.horizontalLines) return;
-        const { ctx, chartArea: { top, bottom, left, right }, scales: { x, y } } = chart;
-        const lines = chart.options.plugins.horizontalLines.lines || [];
-        ctx.save();
-        lines.forEach(line => {
-            const yPos = y.getPixelForValue(line.value);
-            if (yPos >= top && yPos <= bottom) {
-                ctx.beginPath();
-                ctx.lineWidth = line.width || 1;
-                ctx.strokeStyle = line.color || '#fff';
-                ctx.setLineDash(line.dash || [5, 5]);
-                ctx.moveTo(left, yPos);
-                ctx.lineTo(right, yPos);
-                ctx.stroke();
-
-                if (line.text) {
-                    ctx.fillStyle = line.textColor || line.color;
-                    ctx.font = 'bold 11px monospace';
-                    ctx.fillText(line.text, left + 8, yPos - 6);
-                }
-            }
-        });
-        ctx.restore();
-    }
-};
-
-if (window.Chart) {
-    Chart.register(drawHorizontalLinePlugin);
-}
-
-/**
- * Trading Bot Position
- */
-async function renderBotPosition() {
-    const container = document.getElementById('position-content');
-    const pnlContainer = document.getElementById('bot-pnl-container');
-    if (!container) return;
-
-    try {
-        const positions = await API.getBotPositions();
-        
-        // Fetch stats globally
-        const stats = await API.getBotStats().catch(() => null);
-        if (pnlContainer && stats && stats.balance_history && stats.balance_history.length > 0) {
-            const first = stats.balance_history[0].equity;
-            const last = stats.balance_history[stats.balance_history.length - 1].equity;
-            const changePct = ((last - first) / first) * 100;
-            const isUp = changePct >= 0;
-            pnlContainer.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.35rem 0.75rem; border-radius: 6px;">
-                    <span style="color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase;">Bot PnL</span>
-                    <span class="${isUp ? 'change-up' : 'change-down'}" style="font-weight: bold; font-size: 0.95rem;">${isUp ? '+' : ''}${changePct.toFixed(2)}%</span>
-                </div>`;
-        }
-
-        if (!positions || positions.length === 0) {
-            container.innerHTML = `
-                <div style="display: flex; justify-content: center; align-items: center; width: 100%; color: var(--text-muted); font-family: var(--font-mono); padding: 2rem 0;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem; opacity: 0.5;">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    <span>No Active Positions</span>
-                </div>`;
-            return;
-        }
-
-        const symbols = positions.map(p => p.symbol).join(',');
-        const [klines, sparklinesObj] = await Promise.all([
-            API.getKlinesSummary(symbols).catch(() => null),
-            API.getSparklines().catch(() => null)
+        // Parallel fetch required data
+        const [analysis, fngIndex, marketScan, domStream] = await Promise.allSettled([
+            API.getCryptoAnalysis(lang),
+            API.getFearGreedIndex(),
+            API.getMarketScan(),
+            API.getDominanceStreamgraph()
         ]);
 
-        const formatPrice = (p) => {
-            if (!p) return '--';
-            if (p < 0.01) return p.toFixed(5);
-            if (p < 1) return p.toFixed(4);
-            return p.toFixed(2);
-        };
+        if (analysis.status === "fulfilled" && analysis.value) {
+            const data = analysis.value;
+            const headline = data.widget_long?.headline || "NEUTRAL";
+            document.getElementById('ds-bias').innerText = headline;
+            
+            // Bias color
+            const directionBlock = document.getElementById('ds-direction-block');
+            document.getElementById('ds-direction-block').querySelector('.label').innerText = `BIAS: ${headline}`;
+            
+            directionBlock.style.background = ''; // reset inline background color
+            const headlineLower = headline.toLowerCase();
 
-        const cleanSymbol = (sym) => sym.replace('USDT', '');
-
-        let htmlChunks = [];
-
-        positions.forEach(pos => {
-            const isLong = pos.side.toLowerCase() === 'buy';
-            const sideColor = isLong ? 'var(--accent-highlight)' : 'var(--accent-alert)';
-            const iconUrl = `https://bin.bnbstatic.com/static/assets/logos/${cleanSymbol(pos.symbol).toLowerCase()}.png`;
-
-            let currentPrice = null;
-            if (klines) {
-                const kitem = klines.find(k => k.symbol === pos.symbol);
-                if (kitem) currentPrice = kitem.price;
+            if (headlineLower.includes('bull') || headlineLower.includes('быч')) {
+                directionBlock.className = 'decision-block primary-bias-block';
+                document.getElementById('ds-bias').className = 'value text-green';
+            } else if (headlineLower.includes('bear') || headlineLower.includes('медв')) {
+                directionBlock.className = 'decision-block primary-bias-block bear';
+                document.getElementById('ds-bias').className = 'value text-red';
+            } else {
+                directionBlock.className = 'decision-block primary-bias-block';
+                directionBlock.style.background = 'var(--text-muted)';
+                document.getElementById('ds-bias').className = 'value';
             }
 
-            htmlChunks.push(`
-                <div class="active-trade-card" style="flex: 1 0 350px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 1.25rem; font-family: var(--font-mono);">
-                    
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <img src="${iconUrl}" class="coin-icon" onerror="this.style.display='none'" style="width: 32px; height: 32px; border-radius: 50%;">
-                            <div style="display: flex; flex-direction: column;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <span style="font-weight: 800; font-size: 1.2rem; color: var(--text-main); line-height: 1;">${cleanSymbol(pos.symbol)}</span>
-                                    <span style="background: ${isLong ? 'rgba(0, 230, 118, 0.1)' : 'rgba(255, 23, 68, 0.1)'}; border: 1px solid ${sideColor}; color: ${sideColor}; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">
-                                        ${isLong ? 'LONG' : 'SHORT'}
-                                    </span>
-                                </div>
+            const conf = data.widget_long?.confidence_pct || 50;
+            document.getElementById('ds-confidence').innerText = `${conf}%`;
+            document.getElementById('ds-confidence-fill').style.width = `${conf}%`;
+        }
+
+        if (fngIndex.status === "fulfilled" && fngIndex.value) {
+            document.getElementById('ds-fng-val').innerText = fngIndex.value.current_value;
+            document.getElementById('ds-fng-label').innerText = fngIndex.value.current_classification;
+        }
+
+        if (marketScan.status === "fulfilled" && marketScan.value) {
+            const mood = marketScan.value.breadth?.mood || "SIDEWAYS";
+            document.getElementById('ds-trend').innerText = mood;
+        }
+
+        if (domStream.status === "fulfilled" && domStream.value) {
+            const data = domStream.value.data || [];
+            if (data.length > 0) {
+                const latest = data[data.length - 1];
+                document.getElementById('ds-btc-dom').innerText = `${latest.btc_dominance.toFixed(1)}%`;
+            }
+            const marketCapChange = domStream.value.market_cap_24h_change;
+            if (marketCapChange !== undefined) {
+                const volString = Math.abs(marketCapChange) > 3 ? "HIGH VOLATILITY" : "LOW VOLATILITY";
+                document.getElementById('ds-volatility').innerText = volString;
+                document.getElementById('ds-volatility').style.color = Math.abs(marketCapChange) > 3 ? "var(--color-red)" : "var(--text-muted)";
+            }
+        }
+
+    } catch (e) {
+        console.error("Decision Strip error:", e);
+    }
+}
+
+// ----------------------------------------------------
+// TOP SIGNALS
+// ----------------------------------------------------
+const cleanSymbol = (sym) => String(sym).replace('USDT', '');
+
+async function renderTopSignals() {
+    const list = document.getElementById('signals-list');
+    if (!list) return;
+
+    try {
+        const [forecastRes, klinesRes] = await Promise.allSettled([
+            API.getMarketForecast(window.appLang || 'en'),
+            API.getSparklines() // or klines summary
+        ]);
+
+        if (forecastRes.status === "fulfilled" && forecastRes.value?.forecast?.top_signals) {
+            const signals = forecastRes.value.forecast.top_signals.slice(0, 4); // Max 4
+            let htmlChunks = [];
+            
+            // Get prices block
+            let prices = {};
+            if (klinesRes.status === "fulfilled" && klinesRes.value) {
+                // sparklines usually dictionary of symbol -> array
+                for (const symbol in klinesRes.value) {
+                    const arr = klinesRes.value[symbol];
+                    if (arr && arr.length > 0) {
+                        prices[symbol] = arr[arr.length - 1];
+                    }
+                }
+            }
+
+            signals.forEach((s, i) => {
+                const sStr = String(s.signal).toLowerCase();
+                let badgeClass = 'badge-yellow';
+                if(sStr.includes('buy')) badgeClass = 'badge-green';
+                if(sStr.includes('sell')) badgeClass = 'badge-red';
+
+                const symUp = String(s.symbol).toUpperCase();
+                const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
+                const price = prices[matchSym] || prices[symUp] || '--';
+                const fPrice = (typeof price === 'number') ? (price < 1 ? price.toFixed(4) : price.toFixed(2)) : price;
+
+                // Hacky risk eval
+                const riskLevel = sStr.includes('strong') ? 'MEDIUM' : (sStr.includes('sell') ? 'HIGH' : 'LOW');
+                
+                htmlChunks.push(`
+                    <div class="signal-row">
+                        <div class="signal-rank">${i + 1}</div>
+                        <div class="signal-main">
+                            <div class="signal-info">
+                                <h3>${cleanSymbol(s.symbol)}</h3>
+                                <div class="signal-badge ${badgeClass}">${s.signal}</div>
+                                <div class="signal-desc"><b>Why:</b> ${s.reason}</div>
                             </div>
                         </div>
-
-                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                            <span style="color: rgba(255,255,255,0.5); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">Current Price</span>
-                            <span style="color: #fff; font-weight: 800; font-size: 1.15rem;">$${formatPrice(currentPrice)}</span>
+                        <div class="signal-price-col">
+                            PRICE
+                            <div class="signal-price">$${fPrice}</div>
+                            <div class="signal-risk">RISK: ${riskLevel}</div>
+                        </div>
+                        <div class="signal-chart-col">
+                            <canvas id="top-sig-chart-${i}"></canvas>
                         </div>
                     </div>
+                `);
+            });
 
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;">
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">Size</span>
-                            <span style="color: var(--text-main); font-weight: 700; font-size: 1rem;">${pos.size.toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="color: rgba(255,255,255,0.5); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">Entry</span>
-                            <span style="color: rgba(255,255,255,0.9); font-weight: 700; font-size: 1rem;">$${formatPrice(pos.entry_price)}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="color: var(--accent-highlight); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">TP</span>
-                            <span style="color: var(--accent-highlight); font-weight: 700; font-size: 1rem;">$${formatPrice(pos.tp_price)}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="color: var(--accent-alert); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;">SL</span>
-                            <span style="color: var(--accent-alert); font-weight: 700; font-size: 1rem;">$${formatPrice(pos.sl_price)}</span>
-                        </div>
-                    </div>
+            list.innerHTML = htmlChunks.join('');
 
-                    <div style="height: 120px; width: 100%; position: relative; background: rgba(0,0,0,0.15); border-radius: 6px; border: 1px solid rgba(255,255,255,0.02); padding: 0.25rem; box-sizing: border-box;">
-                        <canvas id="active-trade-chart-${pos.id}"></canvas>
-                    </div>
-
-                </div>
-            `);
-        });
-
-        container.innerHTML = htmlChunks.join('');
-
-        // Draw sparklines
-        positions.forEach(pos => {
-            const sparklineData = sparklinesObj && sparklinesObj[pos.symbol] ? sparklinesObj[pos.symbol] : null;
-            if (sparklineData && sparklineData.length > 0) {
-                const canvas = document.getElementById(`active-trade-chart-${pos.id}`);
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                const sparkColor = sparklineData[sparklineData.length - 1] >= sparklineData[0] ? '#00E676' : '#FF1744';
-                
-                const gradient = ctx.createLinearGradient(0, 0, 0, 120);
-                gradient.addColorStop(0, sparklineData[sparklineData.length - 1] >= sparklineData[0] ? 'rgba(0, 230, 118, 0.2)' : 'rgba(255, 23, 68, 0.2)');
-                gradient.addColorStop(1, 'rgba(0,0,0,0)');
-
-                const minBound = Math.min(...sparklineData, pos.entry_price, pos.tp_price, pos.sl_price);
-                const maxBound = Math.max(...sparklineData, pos.entry_price, pos.tp_price, pos.sl_price);
-                const padding = (maxBound - minBound) * 0.1 || minBound * 0.05;
-
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: sparklineData.map((_, i) => i),
-                        datasets: [{
-                            data: sparklineData,
-                            borderColor: sparkColor,
-                            backgroundColor: gradient,
-                            borderWidth: 2,
-                            tension: 0.3,
-                            pointRadius: 0,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { 
-                            legend: { display: false }, 
-                            tooltip: { enabled: false },
-                            horizontalLines: {
-                                lines: [
-                                    { value: pos.entry_price, color: 'rgba(255,255,255,0.6)', text: 'ENTRY', dash: [4, 4], width: 1.5 },
-                                    { value: pos.tp_price, color: 'rgba(0, 230, 118, 0.8)', text: 'TP', dash: [3, 3], textColor: '#00E676', width: 1.5 },
-                                    { value: pos.sl_price, color: 'rgba(255, 23, 68, 0.8)', text: 'SL', dash: [3, 3], textColor: '#FF1744', width: 1.5 }
-                                ]
-                            }
-                        },
-                        scales: {
-                            x: { display: false },
-                            y: { 
-                                display: false, 
-                                min: minBound - padding, 
-                                max: maxBound + padding 
-                            }
-                        },
-                        layout: { padding: { left: 8, right: 8, top: 8, bottom: 4 } },
-                        animation: false
+            // Draw charts
+            if (klinesRes.status === "fulfilled" && klinesRes.value) {
+                signals.forEach((s, i) => {
+                    const sparklineData = klinesRes.value[s.symbol];
+                    if (sparklineData && sparklineData.length > 0) {
+                        drawBrutalSparkline(`top-sig-chart-${i}`, sparklineData);
                     }
                 });
             }
-        });
-
-    } catch (e) {
-        console.error("Error rendering bot position:", e);
-        container.innerHTML = '<p class="error">Failed to load trade data.</p>';
+        } else {
+            list.innerHTML = '<p>No signals generated yet.</p>';
+        }
+    } catch(e) {
+        console.error("Top signals error:", e);
     }
 }
 
-/**
- * BLOCK 1: 50 Coins with Values & Sparklines
- */
-async function renderAssetsBlock() {
-    const container = document.getElementById('assets-carousel');
-    if (!container) return;
+// ----------------------------------------------------
+// NARRATIVE ENGINE
+// ----------------------------------------------------
+async function renderNarrativeEngine() {
+    try {
+        const lang = window.appLang || 'en';
+        const forecastRes = await API.getMarketForecast(lang);
+
+        if (forecastRes && forecastRes.forecast) {
+            const summaryEl = document.getElementById('narrative-summary');
+            if (summaryEl) {
+                summaryEl.innerHTML = forecastRes.forecast.forecast || forecastRes.forecast.market_state;
+            }
+        }
+    } catch(e) { console.error(e); }
+}
+
+// ----------------------------------------------------
+// LATEST NEWS
+// ----------------------------------------------------
+async function renderLatestNews() {
+    const content = document.getElementById('news-content');
+    const timeEl = document.getElementById('news-time');
+    if (!content) return;
 
     try {
-        // Fetch both assets list and sparklines concurrently
-        const [assets, sparklines] = await Promise.all([
-            API.getAssets(),
-            API.getSparklines()
-        ]);
+        const lang = window.appLang || 'en';
+        const news = await API.getLatestNews(lang);
 
-        if (!assets || !assets.length) {
-            container.innerHTML = '<p class="error">Failed to load market data.</p>';
-            return;
+        if (news && news.summary) {
+            // Format timestamp
+            const date = new Date(news.timestamp || new Date());
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            if (timeEl) timeEl.innerText = `${hours}:${minutes}`;
+
+            // Handle line breaks
+            const formattedText = news.summary.replace(/\n/g, '<br/>');
+            content.innerHTML = formattedText;
+            
+            // Add sources if available
+            if (news.sources && news.sources.length > 0) {
+                const srcHtml = news.sources.map(s => {
+                    let title = s.title;
+                    if (!title && s.url) {
+                        try { title = (new URL(s.url)).hostname; } catch(err) { title = 'Link'; }
+                    }
+                    return `<a href="${s.url}" target="_blank" style="text-decoration: underline; margin-right: 10px;">${title}</a>`;
+                }).join('');
+                content.innerHTML += `<div style="margin-top: 1rem; padding-top: 0.5rem; border-top: var(--border-thin); font-size: 0.75rem;">SOURCES: ${srcHtml}</div>`;
+            }
+        } else {
+            content.innerHTML = 'No recent intelligence found.';
+            if (timeEl) timeEl.innerText = '--:--';
         }
-
-        container.innerHTML = ''; // Clear loading spinner
-
-        // Take top 50
-        const top50 = assets.slice(0, 50);
-
-        top50.forEach((asset, index) => {
-            const pill = document.createElement('div');
-            pill.className = 'asset-pill';
-
-            let priceChange24h = 0;
-            const assetSparkline = sparklines && sparklines[asset.symbol];
-
-            if (assetSparkline && assetSparkline.length > 0) {
-                const first = assetSparkline[0];
-                const last = assetSparkline[assetSparkline.length - 1];
-                if (first > 0) {
-                    priceChange24h = (last - first) / first;
-                }
-            }
-
-            const isUp = priceChange24h >= 0;
-            const changeClass = isUp ? 'change-up' : 'change-down';
-            const changeSign = isUp ? '+' : '';
-
-            // Format price based on value
-            const formattedPrice = asset.price > 1
-                ? `$${parseFloat(asset.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : `$${parseFloat(asset.price).toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
-
-            pill.innerHTML = `
-                <div class="asset-pill-header">
-                    <span class="asset-name">${asset.symbol}</span>
-                    <span class="asset-change ${changeClass}">${changeSign}${(priceChange24h * 100).toFixed(2)}%</span>
-                </div>
-                <div class="asset-price">${formattedPrice}</div>
-                <canvas class="sparkline-canvas" id="sparkline-${index}"></canvas>
-            `;
-            container.appendChild(pill);
-
-            // Draw sparkline if data exists
-            if (assetSparkline) {
-                drawSparkline(`sparkline-${index}`, assetSparkline, isUp);
-            }
-        });
-    } catch (e) {
-        container.innerHTML = '<p class="error">Error rendering market data.</p>';
+    } catch(e) {
         console.error(e);
+        content.innerHTML = 'Error loading intelligence.';
+        if (timeEl) timeEl.innerText = 'ERROR';
     }
 }
 
-/**
- * Utility to draw a smooth sparkline on canvas using Chart.js
- */
-function drawSparkline(canvasId, dataPoints, isUp) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    const color = isUp ? '#00E676' : '#FF1744'; // Green or Red
+// ----------------------------------------------------
+// EXPOSURE & POSITIONS
+// ----------------------------------------------------
+async function renderExposureAndPositions() {
+    try {
+        const [stats, positions, sparklinesObj] = await Promise.all([
+            API.getBotStats().catch(()=>null),
+            API.getBotPositions().catch(()=>[]),
+            API.getSparklines().catch(()=>null)
+        ]);
 
-    // Create a smooth mini chart
+        let unrealizedPnl = 0;
+
+        // Positions Table
+        const tbody = document.getElementById('pos-table-body');
+        if (!positions || positions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No Active Positions</td></tr>';
+            document.getElementById('exp-net-bias').innerText = 'FLAT 100%';
+            document.getElementById('exp-net-bias').className = `exp-value text-muted`;
+        } else {
+            let html = '';
+            let longSize = 0, shortSize = 0;
+
+            for(let i=0; i<positions.length; i++) {
+                const pos = positions[i];
+                const isLong = pos.side.toLowerCase() === 'buy';
+                
+                if(isLong) longSize += pos.size;
+                else shortSize += pos.size;
+
+                const price = (sparklinesObj && sparklinesObj[pos.symbol]) ? sparklinesObj[pos.symbol][sparklinesObj[pos.symbol].length - 1] : pos.entry_price;
+                const pnlValue = isLong ? (price - pos.entry_price)*pos.size : (pos.entry_price - price)*pos.size;
+                const pnlClass = pnlValue >= 0 ? 'text-green' : 'text-red';
+                
+                unrealizedPnl += pnlValue;
+
+                html += `
+                    <tr>
+                        <td>${cleanSymbol(pos.symbol)}</td>
+                        <td>${pos.size.toFixed(3)}</td>
+                        <td>$${pos.entry_price.toFixed(2)}</td>
+                        <td>$${price.toFixed(2)}</td>
+                        <td class="${pnlClass}">${pnlValue > 0 ? '+' : ''}${pnlValue.toFixed(2)}</td>
+                        <td class="td-chart"><canvas id="pos-chart-${pos.id}"></canvas></td>
+                        <td class="td-sltp">
+                            <span class="text-red">SL $${pos.sl_price.toFixed(2)}</span><br/>
+                            <span class="text-green">TP $${pos.tp_price.toFixed(2)}</span>
+                        </td>
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = html;
+
+            // Net Bias Tracker
+            const total = longSize + shortSize;
+            if(total > 0) {
+                const lPct = (longSize / total) * 100;
+                document.getElementById('exp-net-bias').innerText = `${lPct >= 50 ? 'LONG' : 'SHORT'} ${Math.max(lPct, 100-lPct).toFixed(0)}%`;
+                document.getElementById('exp-net-bias').className = `exp-value ${lPct >= 50 ? 'text-green' : 'text-red'}`;
+            }
+
+            positions.forEach(pos => {
+                const sparklineData = sparklinesObj && sparklinesObj[pos.symbol] ? sparklinesObj[pos.symbol] : null;
+                if(sparklineData) drawBrutalSparkline(`pos-chart-${pos.id}`, sparklineData, pos.side.toLowerCase() === 'buy', {
+                    entry: pos.entry_price,
+                    sl: pos.sl_price,
+                    tp: pos.tp_price
+                });
+            });
+
+            // Allocation calculation
+            const equity = stats ? (stats.balance_history[stats.balance_history.length - 1]?.equity || 100) : 100;
+            let currentAssetVal = 0;
+            let allocHtml = '';
+            
+            // Just for demonstration logic based on Positions
+            let btcVal = 0, ethVal = 0, altsVal = 0;
+            positions.forEach(pos => {
+                const price = (sparklinesObj && sparklinesObj[pos.symbol]) ? sparklinesObj[pos.symbol][sparklinesObj[pos.symbol].length - 1] : pos.entry_price;
+                const val = pos.size * price;
+                currentAssetVal += val;
+                
+                if(pos.symbol.includes('BTC')) btcVal += val;
+                else if(pos.symbol.includes('ETH')) ethVal += val;
+                else altsVal += val;
+            });
+            
+            const cashVal = Math.max(0, equity - currentAssetVal);
+            const sumVal = btcVal + ethVal + altsVal + cashVal;
+
+            if (sumVal > 0) {
+                const bPct = (btcVal / sumVal) * 100;
+                const ePct = (ethVal / sumVal) * 100;
+                const aPct = (altsVal / sumVal) * 100;
+                const cPct = (cashVal / sumVal) * 100;
+
+                if (bPct > 0) allocHtml += `<div style="width:${bPct}%; background:var(--color-yellow); color:#000; display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">BTC ${bPct.toFixed(0)}%</div>`;
+                if (ePct > 0) allocHtml += `<div style="width:${ePct}%; background:var(--color-blue); display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">ETH ${ePct.toFixed(0)}%</div>`;
+                if (aPct > 0) allocHtml += `<div style="width:${aPct}%; background:var(--text-main); display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">ALTS ${aPct.toFixed(0)}%</div>`;
+                if (cPct > 0) allocHtml += `<div style="width:${cPct}%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">CASH ${cPct.toFixed(0)}%</div>`;
+            } else {
+                allocHtml = `<div style="width:100%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">CASH 100%</div>`;
+            }
+
+            document.getElementById('allocation-bar').innerHTML = allocHtml;
+        }
+
+        // Stats Box
+        if (stats) {
+            const allTimePnl = stats.total_pnl_usdt + unrealizedPnl;
+            document.getElementById('exp-pnl').innerText = `$${allTimePnl > 0 ? '+' : ''}${allTimePnl.toFixed(2)}`;
+            document.getElementById('exp-pnl').className = `exp-value ${allTimePnl >= 0 ? 'text-green' : 'text-red'}`;
+            
+            const hist = stats.balance_history;
+            if(hist && hist.length > 0) {
+                document.getElementById('exp-equity').innerText = `$${hist[hist.length - 1].equity.toFixed(2)}`;
+                document.getElementById('exp-equity').className = `exp-value`;
+            }
+        }
+
+        // Risks
+        const forecastRes = await API.getMarketForecast(window.appLang || 'en');
+        if(forecastRes && forecastRes.forecast && forecastRes.forecast.risks) {
+            const risksHtml = forecastRes.forecast.risks.replace(/\n/g, '<br/>');
+            const el = document.getElementById('risk-list');
+            if (el) el.innerHTML = risksHtml;
+        }
+
+    } catch(e) { console.error(e); }
+}
+
+// ----------------------------------------------------
+// UTILS
+// ----------------------------------------------------
+function drawBrutalSparkline(canvasId, dataPoints, isUp = true, levels = null) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const color = isUp ? '#000' : '#FF1744';
+
+    const datasets = [{
+        data: dataPoints,
+        borderColor: color,
+        borderWidth: 2,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        fill: false,
+        stepped: false
+    }];
+
+    if (levels) {
+        const len = dataPoints.length;
+        if (levels.entry) {
+            datasets.push({ data: Array(len).fill(levels.entry), borderColor: '#888', borderWidth: 1, borderDash: [2,2], pointRadius: 0 });
+        }
+        if (levels.sl) {
+            datasets.push({ data: Array(len).fill(levels.sl), borderColor: '#FF1744', borderWidth: 1, borderDash: [2,2], pointRadius: 0 });
+        }
+        if (levels.tp) {
+            datasets.push({ data: Array(len).fill(levels.tp), borderColor: '#00E676', borderWidth: 1, borderDash: [2,2], pointRadius: 0 });
+        }
+    }
+
+    // Adjust Y-axis scale to include levels if they exist, but clip extreme values so sparkline doesn't flatline
+    let minVal = Math.min(...dataPoints);
+    let maxVal = Math.max(...dataPoints);
+    
+    if (levels) {
+        // Only include levels in scale if they are within 10% of the price action, otherwise clip them out of view
+        const range = maxVal - minVal;
+        const permittedSpread = range * 0.5 || minVal * 0.05;
+        const boundedMin = minVal - permittedSpread;
+        const boundedMax = maxVal + permittedSpread;
+        
+        if (levels.sl && levels.sl > boundedMin && levels.sl < boundedMax) {
+            minVal = Math.min(minVal, levels.sl);
+            maxVal = Math.max(maxVal, levels.sl);
+        }
+        if (levels.tp && levels.tp > boundedMin && levels.tp < boundedMax) {
+            minVal = Math.min(minVal, levels.tp);
+            maxVal = Math.max(maxVal, levels.tp);
+        }
+    }
+
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: dataPoints.map((_, i) => i),
-            datasets: [{
-                data: dataPoints,
-                borderColor: color,
-                borderWidth: 1.5,
-                tension: 0.4, // Smooth curve
-                pointRadius: 0,
-                pointHoverRadius: 0,
-                fill: false,
-            }]
+            datasets: datasets
         },
         options: {
             responsive: true,
@@ -616,133 +474,10 @@ function drawSparkline(canvasId, dataPoints, isUp) {
             plugins: { legend: { display: false }, tooltip: { enabled: false } },
             scales: {
                 x: { display: false },
-                y: { display: false, min: Math.min(...dataPoints) * 0.99, max: Math.max(...dataPoints) * 1.01 }
+                y: { display: false, min: minVal * 0.999, max: maxVal * 1.001 }
             },
-            layout: { padding: 0 },
+            layout: { padding: 5 },
             animation: false
         }
     });
-}
-
-/**
- * BLOCK 5: Dominance Charts
- */
-async function renderDominance() {
-    const canvas = document.getElementById('dominanceChart');
-    if (!canvas) return;
-
-    try {
-        const streamgraph = await API.getDominanceStreamgraph();
-        if (!streamgraph || !streamgraph.data || streamgraph.data.length === 0) {
-            canvas.parentElement.innerHTML = '<p class="text-muted">Dominance data unavailable.</p>';
-            return;
-        }
-
-        const dataPoints = streamgraph.data.sort((a, b) => a.timestamp - b.timestamp);
-
-        const labels = dataPoints.map(p => {
-            const ts = p.timestamp < 10000000000 ? p.timestamp * 1000 : p.timestamp;
-            return new Date(ts);
-        });
-
-        const btcData = dataPoints.map(p => p.btc_dominance || p.btcDominance);
-        const ethData = dataPoints.map(p => p.eth_dominance || p.ethDominance);
-
-        const ctx = canvas.getContext('2d');
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'BTC Dominance',
-                        data: btcData,
-                        borderColor: '#FF9100',
-                        backgroundColor: 'rgba(255, 145, 0, 0.2)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0
-                    },
-                    {
-                        label: 'ETH Dominance',
-                        data: ethData,
-                        borderColor: '#627EEA',
-                        backgroundColor: 'rgba(98, 126, 234, 0.2)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { position: 'top', labels: { color: '#E0E0E0', font: { family: 'Outfit' } } }
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'day' },
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#666666' }
-                    },
-                    y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#666666', callback: function (value) { return value + "%"; } }
-                    }
-                }
-            }
-        });
-    } catch (e) {
-        console.error("Error rendering dominance:", e);
-    }
-}
-
-/**
- * BLOCK 6: Global Markets (VIX, SP500, etc)
- */
-async function renderGlobalMarkets() {
-    const container = document.getElementById('global-metrics-content');
-    if (!container) return;
-
-    try {
-        const stats = await API.getMarketStats();
-        if (!stats || stats.length === 0) {
-            container.innerHTML = '<p class="text-muted">Global markets data unavailable.</p>';
-            return;
-        }
-
-        for (const stat of stats) {
-            const div = document.createElement('div');
-            div.className = 'global-stat-item';
-            div.innerHTML = `
-                <div class="stat-header">
-                    <span class="stat-name">${stat.name}</span>
-                    <span class="stat-current" id="current-${stat.id}">...</span>
-                </div>
-                <div class="stat-chart-container" style="height: 60px; width: 100%;">
-                    <canvas id="chart-${stat.id}"></canvas>
-                </div>
-            `;
-            container.appendChild(div);
-
-            // Fetch the chart data
-            API.getMarketStatChart(stat.id, 30).then(chartDto => {
-                if (chartDto && chartDto.data && chartDto.data.length > 0) {
-                    const sorted = chartDto.data.sort((a, b) => a.timestamp - b.timestamp);
-                    const currentVal = sorted[sorted.length - 1].value;
-                    document.getElementById(`current-${stat.id}`).innerText = currentVal.toFixed(2);
-
-                    const values = sorted.map(d => d.value);
-                    const isUp = values[values.length - 1] > values[0];
-                    drawSparkline(`chart-${stat.id}`, values, isUp);
-                }
-            });
-        }
-    } catch (e) {
-        console.error("Error rendering global markets:", e);
-    }
 }
