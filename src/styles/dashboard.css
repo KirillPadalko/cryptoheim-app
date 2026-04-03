@@ -211,6 +211,7 @@ a { text-decoration: none; color: inherit; }
     color: #000;
 }
 .primary-bias-block.bear { background: var(--color-red); color: #fff; }
+.primary-bias-block.neutral { background: #E0E0E0; color: #000; }
 
 /* 60/40 GRID LAYOUT */
 .dashboard-grid {

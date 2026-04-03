@@ -90,8 +90,7 @@ async function renderDecisionStrip() {
                 directionBlock.className = 'decision-block primary-bias-block bear';
                 document.getElementById('ds-bias').className = 'value text-red';
             } else {
-                directionBlock.className = 'decision-block primary-bias-block';
-                directionBlock.style.background = 'var(--text-muted)';
+                directionBlock.className = 'decision-block primary-bias-block neutral';
                 document.getElementById('ds-bias').className = 'value';
             }
 
