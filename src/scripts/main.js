@@ -385,10 +385,13 @@ async function renderExposureAndPositions() {
 
         // Stats Box
         if (stats) {
-            const allTimePnl = stats.total_pnl_usdt + unrealizedPnl;
-            document.getElementById('exp-pnl').innerText = `$${allTimePnl > 0 ? '+' : ''}${allTimePnl.toFixed(2)}`;
-            document.getElementById('exp-pnl').className = `exp-value ${allTimePnl >= 0 ? 'text-green' : 'text-red'}`;
+            const totalPnl = (stats.total_pnl_usdt || 0) + unrealizedPnl;
+            document.getElementById('exp-pnl').innerText = `$${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}`;
+            document.getElementById('exp-pnl').className = `exp-value ${totalPnl >= 0 ? 'text-green' : 'text-red'}`;
             
+            const exposure = stats.total_exposure_usdt || 0;
+            document.getElementById('exp-exposure').innerText = `$${exposure.toFixed(2)}`;
+
             const hist = stats.balance_history;
             if(hist && hist.length > 0) {
                 document.getElementById('exp-equity').innerText = `$${hist[hist.length - 1].equity.toFixed(2)}`;
