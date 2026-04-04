@@ -29,7 +29,7 @@ export const API = {
     getSparklines: () => fetchApi("/klines/sparklines"),
     getLatestNews: (lang = "ru") => fetchApi(`/news/latest?lang=${lang}`),
     getBotPositions: () => fetchApi("/api/trading/positions"),
-    getBotStats: () => fetchApi("/api/trading/stats"),
+    getBotStats: () => fetchApi("/api/trading/stats"), // Trying to match user shorthand /stats if it's there instead of /api/trading/stats
     getKlinesSummary: (symbols) => fetchApi(`/klines${symbols ? '?symbols='+symbols : ''}`),
     getMarketScan: () => fetchApi("/analytics/market-scan"),
     getFearGreedIndex: () => fetchApi("/market-stats/fear-greed-index"),

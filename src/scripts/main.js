@@ -284,7 +284,6 @@ async function renderExposureAndPositions() {
         const [stats, positions, sparklinesObj] = await Promise.all([
             API.getBotStats().catch(()=>null),
             API.getBotPositions().catch(()=>[]),
-            API.getSparklines().catch(()=>null)
         ]);
 
         let unrealizedPnl = 0;
@@ -391,6 +390,11 @@ async function renderExposureAndPositions() {
             
             const exposure = stats.total_exposure_usdt || 0;
             document.getElementById('exp-exposure').innerText = `$${exposure.toFixed(2)}`;
+
+            // Extended Stats
+            document.getElementById('exp-winrate').innerText = `${(stats.win_rate_pct || 0).toFixed(1)}%`;
+            document.getElementById('exp-trades').innerText = stats.total_closed_trades || 0;
+            document.getElementById('exp-accuracy').innerText = `${(stats.ai_accuracy_pct || 0).toFixed(1)}%`;
 
             const hist = stats.balance_history;
             if(hist && hist.length > 0) {

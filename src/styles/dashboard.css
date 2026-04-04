@@ -360,19 +360,19 @@ a { text-decoration: none; color: inherit; }
 /* EXPOSURE (RIGHT COL) */
 .exposure-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1.5rem 1rem;
     border-bottom: var(--border-thick);
     padding-bottom: 1rem;
 }
 .exp-col {
-    border-right: var(--border-thin);
-    padding: 0 1rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
-.exp-col:last-child { border-right: none; padding-right: 0;}
-.exp-col:first-child { padding-left: 0; }
 
-.exp-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
-.exp-value { font-size: 1.8rem; font-weight: 800; }
+.exp-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.25rem; color: var(--text-muted); }
+.exp-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
 .exp-sub { font-size: 0.8rem; font-weight: 700; }
 
 /* POSITIONS TABLE */
