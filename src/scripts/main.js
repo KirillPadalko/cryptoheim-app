@@ -284,6 +284,7 @@ async function renderExposureAndPositions() {
         const [stats, positions, sparklinesObj] = await Promise.all([
             API.getBotStats().catch(()=>null),
             API.getBotPositions().catch(()=>[]),
+            API.getSparklines().catch(()=>null)
         ]);
 
         let unrealizedPnl = 0;
