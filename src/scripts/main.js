@@ -399,7 +399,8 @@ async function renderExposureAndPositions() {
 
             const hist = stats.balance_history;
             if(hist && hist.length > 0) {
-                document.getElementById('exp-equity').innerText = `$${hist[hist.length - 1].equity.toFixed(2)}`;
+                const liveEquity = hist[hist.length - 1].equity + unrealizedPnl;
+                document.getElementById('exp-equity').innerText = `$${liveEquity.toFixed(2)}`;
                 document.getElementById('exp-equity').className = `exp-value`;
             }
         }
