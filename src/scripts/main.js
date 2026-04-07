@@ -314,7 +314,10 @@ async function renderExposureAndPositions() {
 
                 html += `
                     <tr>
-                        <td>${cleanSymbol(pos.symbol)}</td>
+                        <td>
+                            ${cleanSymbol(pos.symbol)}
+                            <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-${isLong ? 'green' : 'red'});">${isLong ? 'LONG' : 'SHORT'}</div>
+                        </td>
                         <td>${pos.size.toFixed(3)}</td>
                         <td>$${pos.entry_price.toFixed(2)}</td>
                         <td>$${price.toFixed(2)}</td>
