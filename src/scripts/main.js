@@ -189,63 +189,124 @@ async function renderDecisionStrip() {
     try {
         const lang = window.appLang || 'en';
         
-        // Parallel fetch required data
-        const [analysis, fngIndex, marketScan, domStream] = await Promise.allSettled([
+        // Parallel fetch all required data
+        const [analysis, fngIndex, marketScan, domStream, forecastRes] = await Promise.allSettled([
             API.getCryptoAnalysis(lang),
             API.getFearGreedIndex(),
             API.getMarketScan(),
-            API.getDominanceStreamgraph()
+            API.getDominanceStreamgraph(),
+            API.getMarketForecast(lang)
         ]);
 
-        if (analysis.status === "fulfilled" && analysis.value) {
-            const data = analysis.value;
-            const headline = data.widget_long?.headline || "NEUTRAL";
-            document.getElementById('ds-bias').innerText = headline;
-            
-            // Bias color
-            const directionBlock = document.getElementById('ds-direction-block');
-            document.getElementById('ds-direction-block').querySelector('.label').innerText = `BIAS: ${headline}`;
-            
-            directionBlock.style.background = ''; // reset inline background color
-            const headlineLower = headline.toLowerCase();
+        // --- MARKET STATE (regime) — data-driven, primary ---
+        const forecastData = forecastRes.status === "fulfilled" && forecastRes.value?.forecast
+            ? forecastRes.value.forecast : null;
 
-            if (headlineLower.includes('bull') || headlineLower.includes('Р±С‹С‡')) {
-                directionBlock.className = 'decision-block primary-bias-block';
-                document.getElementById('ds-bias').className = 'value text-green';
-            } else if (headlineLower.includes('bear') || headlineLower.includes('РјРµРґРІ')) {
-                directionBlock.className = 'decision-block primary-bias-block bear';
-                document.getElementById('ds-bias').className = 'value text-red';
-            } else {
-                directionBlock.className = 'decision-block primary-bias-block neutral';
-                document.getElementById('ds-bias').className = 'value';
+        const regime = forecastData?.market_regime || null;
+        const bias   = forecastData?.bias || null;
+        const direction = forecastData?.direction || null;
+        const confidence = forecastData?.confidence ?? null;
+
+        const regimeConfig = {
+            "trend":           { label: "TRENDING",   color: "var(--color-green)", desc: "Directional trend confirmed" },
+            "chop":            { label: "SIDEWAYS",    color: "var(--text-muted)", desc: "No clear direction" },
+            "high_volatility": { label: "VOLATILE",    color: "var(--color-red)",  desc: "High market volatility" },
+            "event":           { label: "EVENT",       color: "var(--color-red)",  desc: "Extreme Fear or Greed" },
+        };
+        const regimeCfg = regime ? regimeConfig[regime] : null;
+
+        const biasEl = document.getElementById('ds-bias');
+        const directionBlock = document.getElementById('ds-direction-block');
+
+        if (regimeCfg && biasEl) {
+            // Primary: regime
+            biasEl.innerText = regimeCfg.label;
+            biasEl.style.color = regimeCfg.color;
+
+            // Secondary: LLM bias label
+            const biasLabel = bias
+                ? `${regimeCfg.desc} · ${bias.toUpperCase()}`
+                : regimeCfg.desc;
+            if (directionBlock) {
+                directionBlock.querySelector('.label').innerText = `MARKET STATE: ${biasLabel}`;
             }
 
-            const conf = data.widget_long?.confidence_pct || 50;
-            document.getElementById('ds-confidence').innerText = `${conf}%`;
-            document.getElementById('ds-confidence-fill').style.width = `${conf}%`;
+            // Direction block color based on regime
+            const regimeLower = regime || '';
+            if (regimeLower === 'trend') {
+                directionBlock.className = bias === 'bearish'
+                    ? 'decision-block primary-bias-block bear'
+                    : 'decision-block primary-bias-block';
+            } else if (regimeLower === 'high_volatility' || regimeLower === 'event') {
+                directionBlock.className = 'decision-block primary-bias-block bear';
+            } else {
+                directionBlock.className = 'decision-block primary-bias-block neutral';
+            }
+
+        } else if (analysis.status === "fulfilled" && analysis.value) {
+            // Fallback to old behavior if forecast unavailable
+            const data = analysis.value;
+            const headline = data.widget_long?.headline || "NEUTRAL";
+            if (biasEl) biasEl.innerText = headline;
+            if (directionBlock) {
+                directionBlock.querySelector('.label').innerText = `BIAS: ${headline}`;
+                const hl = headline.toLowerCase();
+                directionBlock.className = hl.includes('bull') ? 'decision-block primary-bias-block'
+                    : hl.includes('bear') ? 'decision-block primary-bias-block bear'
+                    : 'decision-block primary-bias-block neutral';
+            }
         }
 
+        // --- CONFIDENCE (from forecast, fallback to crypto-analysis) ---
+        const conf = confidence
+            ?? analysis.value?.widget_long?.confidence_pct
+            ?? 50;
+        const confEl = document.getElementById('ds-confidence');
+        const confFill = document.getElementById('ds-confidence-fill');
+        if (confEl) confEl.innerText = `${conf}%`;
+        if (confFill) confFill.style.width = `${conf}%`;
+
+        // --- DIRECTION BUTTON (from forecast) ---
+        const dirBtn = document.getElementById('ds-direction-btn');
+        if (dirBtn && direction) {
+            dirBtn.innerText = direction;
+            dirBtn.className = direction === 'LONG' ? 'direction-btn long'
+                : direction === 'SHORT' ? 'direction-btn short'
+                : 'direction-btn wait';
+        }
+
+        // --- FEAR & GREED ---
         if (fngIndex.status === "fulfilled" && fngIndex.value) {
-            document.getElementById('ds-fng-val').innerText = fngIndex.value.current_value;
-            document.getElementById('ds-fng-label').innerText = fngIndex.value.current_classification;
+            const fngValEl = document.getElementById('ds-fng-val');
+            const fngLblEl = document.getElementById('ds-fng-label');
+            if (fngValEl) fngValEl.innerText = fngIndex.value.current_value;
+            if (fngLblEl) fngLblEl.innerText = fngIndex.value.current_classification;
         }
 
+        // --- TREND (from market-scan breadth) ---
         if (marketScan.status === "fulfilled" && marketScan.value) {
             const mood = marketScan.value.breadth?.mood || "SIDEWAYS";
-            document.getElementById('ds-trend').innerText = mood;
+            const trendEl = document.getElementById('ds-trend');
+            if (trendEl) trendEl.innerText = mood;
         }
 
+        // --- BTC DOMINANCE + VOLATILITY ---
         if (domStream.status === "fulfilled" && domStream.value) {
             const data = domStream.value.data || [];
             if (data.length > 0) {
                 const latest = data[data.length - 1];
-                document.getElementById('ds-btc-dom').innerText = `${latest.btc_dominance.toFixed(1)}%`;
+                const btcEl = document.getElementById('ds-btc-dom');
+                if (btcEl) btcEl.innerText = `${latest.btc_dominance.toFixed(1)}%`;
             }
-            const marketCapChange = domStream.value.market_cap_24h_change;
+            const marketCapChange = forecastData?.market_cap_24h_change
+                ?? domStream.value.market_cap_24h_change;
             if (marketCapChange !== undefined) {
-                const volString = Math.abs(marketCapChange) > 3 ? "HIGH VOLATILITY" : "LOW VOLATILITY";
-                document.getElementById('ds-volatility').innerText = volString;
-                document.getElementById('ds-volatility').style.color = Math.abs(marketCapChange) > 3 ? "var(--color-red)" : "var(--text-muted)";
+                const volEl = document.getElementById('ds-volatility');
+                const isHigh = Math.abs(marketCapChange) > 3;
+                if (volEl) {
+                    volEl.innerText = isHigh ? "HIGH VOLATILITY" : "LOW VOLATILITY";
+                    volEl.style.color = isHigh ? "var(--color-red)" : "var(--text-muted)";
+                }
             }
         }
 
@@ -253,6 +314,7 @@ async function renderDecisionStrip() {
         console.error("Decision Strip error:", e);
     }
 }
+
 
 // ----------------------------------------------------
 // TOP SIGNALS
