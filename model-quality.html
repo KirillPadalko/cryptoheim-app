@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./src/assets/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CryptoHeim — AI Model Quality</title>
+    <meta name="description" content="Live AI trading model performance metrics — signal accuracy, TP hit rate, and quality gate status." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-main: #f5f5f5;
+            --bg-card: #ffffff;
+            --text-main: #000000;
+            --text-muted: #555555;
+            --color-green: #00c853;
+            --color-red: #ff1744;
+            --color-yellow: #f59e0b;
+            --color-blue: #2962ff;
+            --color-purple: #7c3aed;
+            --border-thick: 3px solid #000;
+            --border-thin: 1px solid #000;
+            --font-main: 'Space Grotesk', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+            --shadow: 4px 4px 0 #000;
+            --shadow-sm: 2px 2px 0 #000;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.5;
+        }
+
+        /* ─── NAV ─── */
+        nav {
+            border-bottom: var(--border-thick);
+            background: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav .logo { font-size: 1.25rem; font-weight: 700; text-decoration: none; color: #000; }
+        nav .nav-links { display: flex; gap: 1rem; margin-left: auto; }
+        nav .nav-links a {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 0.35rem 0.75rem;
+            border: var(--border-thin);
+            transition: all .15s;
+        }
+        nav .nav-links a:hover, nav .nav-links a.active {
+            background: #000;
+            color: #fff;
+        }
+
+        /* ─── CONTAINER ─── */
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+        /* ─── PAGE HEADER ─── */
+        .page-header {
+            border-bottom: var(--border-thick);
+            background: #fff;
+            padding: 2.5rem 0 2rem;
+        }
+        .page-header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+        .page-header p { color: var(--text-muted); margin-top: 0.4rem; font-size: 1rem; }
+        .header-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .period-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            background: #000;
+            color: #fff;
+            padding: 0.3rem 0.75rem;
+            border: var(--border-thin);
+        }
+
+        /* ─── MAIN GRID ─── */
+        .main-content { padding: 2rem 0 4rem; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        /* ─── QUALITY GATE ─── */
+        .gate-card {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: var(--shadow);
+            padding: 1.75rem 2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .gate-left { display: flex; align-items: center; gap: 1.25rem; }
+        .gate-dot {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            border: 2px solid #000;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .gate-dot::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 50%;
+        }
+        .gate-dot.active  { background: var(--color-green); border-color: var(--color-green); }
+        .gate-dot.active::after { background: #fff; }
+        .gate-dot.restricted { background: var(--color-yellow); border-color: var(--color-yellow); }
+        .gate-dot.restricted::after { background: #fff; }
+        .gate-dot.paused { background: var(--color-red); border-color: var(--color-red); }
+        .gate-dot.paused::after { background: #fff; }
+        .gate-dot.unknown { background: #ccc; border-color: #999; }
+        .gate-status { font-size: 1.1rem; font-weight: 700; }
+        .gate-reason { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem; font-family: var(--font-mono); }
+        .gate-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.4rem 1rem;
+            border: 2px solid #000;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .gate-badge.active      { background: var(--color-green); color: #000; }
+        .gate-badge.restricted  { background: var(--color-yellow); color: #000; }
+        .gate-badge.paused      { background: var(--color-red); color: #fff; }
+        .gate-badge.unknown     { background: #eee; color: #555; }
+
+        /* ─── KPI CARDS ─── */
+        .kpi-card {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        .kpi-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+        .kpi-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            margin: 0.5rem 0 0.25rem;
+            font-family: var(--font-mono);
+        }
+        .kpi-value.null-val { color: #bbb; font-size: 1.5rem; }
+        .kpi-sub { font-size: 0.8rem; color: var(--text-muted); }
+        .kpi-bar { height: 4px; background: #eee; margin-top: 1rem; border: 1px solid #ddd; }
+        .kpi-bar-fill { height: 100%; transition: width 1s ease; }
+        .kpi-bar-fill.green { background: var(--color-green); }
+        .kpi-bar-fill.red   { background: var(--color-red); }
+        .kpi-bar-fill.yellow{ background: var(--color-yellow); }
+        .kpi-bar-fill.blue  { background: var(--color-blue); }
+
+        /* ─── SIGNAL TYPE CARDS ─── */
+        .signal-card {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        .signal-card h3 {
+            font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.2rem;
+        }
+        .signal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.9rem; }
+        .signal-row-label { font-size: 0.85rem; font-weight: 600; }
+        .signal-row-value { font-size: 1rem; font-weight: 700; font-family: var(--font-mono); }
+        .signal-bar-wrap { margin-top: 0.3rem; }
+        .signal-bar-bg { height: 6px; background: #f0f0f0; border: 1px solid #ddd; border-radius: 0; }
+        .signal-bar-fill { height: 100%; border-radius: 0; transition: width 1s ease; }
+        .count-pill {
+            display: inline-flex; align-items: center; justify-content: center;
+            background: #000; color: #fff;
+            font-size: 0.7rem; font-family: var(--font-mono); font-weight: 700;
+            padding: 0.2rem 0.6rem; margin-bottom: 1rem;
+        }
+
+        /* ─── SYMBOLS TABLE ─── */
+        .table-card {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .table-card-header {
+            padding: 1.2rem 1.5rem;
+            border-bottom: 2px solid #000;
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--text-muted);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .table-card-header span:last-child { font-size: 0.7rem; color: #aaa; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            font-size: 0.68rem; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text-muted); text-align: left;
+            padding: 0.7rem 1.5rem;
+            border-bottom: var(--border-thin);
+            background: #fafafa;
+        }
+        tbody tr { border-bottom: 1px solid #f0f0f0; transition: background .1s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #fafafa; }
+        tbody td { padding: 0.8rem 1.5rem; font-size: 0.88rem; }
+        .rank-num {
+            font-family: var(--font-mono); font-size: 0.7rem;
+            color: #bbb; font-weight: 700;
+        }
+        .sym-name { font-weight: 700; font-family: var(--font-mono); font-size: 0.9rem; }
+        .pct-val { font-family: var(--font-mono); font-weight: 700; font-size: 0.9rem; }
+        .mini-bar { height: 5px; background: #eee; border-radius: 0; margin-top: 4px; }
+        .mini-bar-fill { height: 100%; border-radius: 0; }
+        .count-small { font-size: 0.75rem; color: #aaa; font-family: var(--font-mono); }
+        .medal { font-size: 0.85rem; }
+
+        /* ─── CHART ─── */
+        .chart-card {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+        }
+        .chart-card h3 {
+            font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-muted); margin-bottom: 1.25rem;
+        }
+
+        /* ─── LOADING / ERROR ─── */
+        .loading-overlay {
+            display: flex; align-items: center; justify-content: center;
+            padding: 5rem 0; gap: 0.75rem;
+            font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);
+        }
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid #ddd; border-top-color: #000;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── FOOTER ─── */
+        footer {
+            border-top: var(--border-thick);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .gate-card { flex-direction: column; align-items: flex-start; }
+            .page-header h1 { font-size: 1.6rem; }
+            .kpi-value { font-size: 2.2rem; }
+        }
+
+        .gap-top { margin-top: 1.5rem; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="logo">⬡ CryptoHeim</a>
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="indicators.html">Indicators</a>
+        <a href="model-quality.html" class="active">AI Quality</a>
+    </div>
+</nav>
+
+<div class="page-header">
+    <div class="container">
+        <div class="header-row">
+            <div>
+                <h1>AI Model Quality</h1>
+                <p>Live signal performance metrics — updated after each forecast evaluation cycle</p>
+            </div>
+            <div id="periodBadge" class="period-badge">7-DAY WINDOW</div>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="container" id="loading">
+        <div class="loading-overlay"><div class="spinner"></div> Loading metrics...</div>
+    </div>
+
+    <div class="container" id="content" style="display:none;">
+
+        <!-- Quality Gate -->
+        <div class="section-label">Quality Gate Status</div>
+        <div class="gate-card" id="gateCard">
+            <div class="gate-left">
+                <div class="gate-dot" id="gateDot"></div>
+                <div>
+                    <div class="gate-status" id="gateStatus">—</div>
+                    <div class="gate-reason" id="gateReason">—</div>
+                </div>
+            </div>
+            <div>
+                <div class="gate-badge" id="gateBadge">—</div>
+                <div style="font-size:0.7rem; color:#aaa; margin-top:0.4rem; font-family:var(--font-mono);" id="tradingAllowed"></div>
+            </div>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="section-label">Overview — Last 7 Days</div>
+        <div class="grid-3">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Signals</div>
+                <div class="kpi-value" id="kpiTotal">—</div>
+                <div class="kpi-sub">evaluated signals</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">TP Hit Rate</div>
+                <div class="kpi-value" id="kpiHitRate">—</div>
+                <div class="kpi-sub">price reached take-profit</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiHitBar" style="width:0%"></div></div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Strong Signal Precision</div>
+                <div class="kpi-value" id="kpiStrong">—</div>
+                <div class="kpi-sub">accuracy of Strong signals</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" id="kpiStrongBar" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <!-- Signal Type Breakdown -->
+        <div class="grid-2 gap-top">
+            <div class="signal-card" id="cardRegular">
+                <h3>Regular Signals</h3>
+                <div id="regularContent">—</div>
+            </div>
+            <div class="signal-card" id="cardStrong">
+                <h3>Strong Signals</h3>
+                <div id="strongContent">—</div>
+            </div>
+        </div>
+
+        <!-- Chart + Table -->
+        <div class="grid-2 gap-top">
+            <div class="chart-card">
+                <h3>Accuracy Comparison</h3>
+                <canvas id="comparisonChart" height="200"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Top 5 Symbols — TP Hit Rate</h3>
+                <canvas id="topHitChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Symbols Table -->
+        <div class="table-card gap-top">
+            <div class="table-card-header">
+                <span>Top Symbols by Accuracy</span>
+                <span id="tableSubtext">min 3 evaluations</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Symbol</th>
+                        <th>Signals</th>
+                        <th>Direction Accuracy</th>
+                        <th>TP Hit Rate</th>
+                    </tr>
+                </thead>
+                <tbody id="symbolsTable"></tbody>
+            </table>
+        </div>
+
+    </div><!-- /content -->
+</div>
+
+<footer>
+    CryptoHeim © 2025 &nbsp;·&nbsp; AI Quality Dashboard &nbsp;·&nbsp; <span id="footerTs">—</span>
+</footer>
+
+<script>
+    const API_BASE = 'https://api.coinheim.site'; // replace with your domain
+
+    function pct(val) {
+        if (val === null || val === undefined) return null;
+        return Math.round(val * 100);
+    }
+
+    function pctStr(val) {
+        const p = pct(val);
+        return p === null ? '—' : p + '%';
+    }
+
+    function colorClass(val, greenAt, yellowAt) {
+        if (val === null) return 'blue';
+        if (val >= greenAt) return 'green';
+        if (val >= yellowAt) return 'yellow';
+        return 'red';
+    }
+
+    function medal(i) {
+        return ['🥇','🥈','🥉'][i] || '';
+    }
+
+    function renderSignalBlock(data, containerId) {
+        if (!data) { document.getElementById(containerId).innerHTML = '<span style="color:#bbb;font-size:0.85rem;">No data</span>'; return; }
+        const acc = pct(data.accuracy);
+        const hit = pct(data.hit_rate_tp);
+        const accColor = acc >= 60 ? 'var(--color-green)' : acc >= 45 ? 'var(--color-yellow)' : 'var(--color-red)';
+        const hitColor = hit >= 50 ? 'var(--color-green)' : hit >= 35 ? 'var(--color-yellow)' : 'var(--color-red)';
+        document.getElementById(containerId).innerHTML = `
+            <div class="count-pill">${data.count} signals</div>
+            <div class="signal-row">
+                <div>
+                    <div class="signal-row-label">Direction Accuracy</div>
+                    <div class="signal-bar-wrap">
+                        <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:${acc}%; background:${accColor}"></div></div>
+                    </div>
+                </div>
+                <div class="signal-row-value" style="color:${accColor}">${acc !== null ? acc + '%' : '—'}</div>
+            </div>
+            <div class="signal-row">
+                <div>
+                    <div class="signal-row-label">TP Hit Rate</div>
+                    <div class="signal-bar-wrap">
+                        <div class="signal-bar-bg"><div class="signal-bar-fill" style="width:${hit}%; background:${hitColor}"></div></div>
+                    </div>
+                </div>
+                <div class="signal-row-value" style="color:${hitColor}">${hit !== null ? hit + '%' : '—'}</div>
+            </div>
+        `;
+    }
+
+    function renderGate(gate) {
+        const dot = document.getElementById('gateDot');
+        const badge = document.getElementById('gateBadge');
+        const status = document.getElementById('gateStatus');
+        const reason = document.getElementById('gateReason');
+        const allowed = document.getElementById('tradingAllowed');
+        const cls = gate.status;
+        dot.className = 'gate-dot ' + cls;
+        badge.className = 'gate-badge ' + cls;
+        const labels = { active: '🟢 Active', restricted: '⚠️ Restricted', paused: '🛑 Paused', unknown: '⬤ Unknown' };
+        status.textContent = labels[cls] || cls;
+        badge.textContent = cls.toUpperCase();
+        reason.textContent = gate.reason;
+        const allowedMap = { all: 'All signals allowed', strong_only: 'Strong signals only', none: 'No new trades' };
+        allowed.textContent = allowedMap[gate.trading_allowed] || gate.trading_allowed;
+    }
+
+    async function load() {
+        try {
+            const res = await fetch(`${API_BASE}/model-quality`);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const d = await res.json();
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            // Gate
+            renderGate(d.quality_gate_status);
+
+            // KPIs
+            document.getElementById('kpiTotal').textContent = d.total_signals ?? '—';
+
+            const hitRate = pct(d.hit_rate_tp ?? d.by_signal_type?.regular?.hit_rate_tp);
+            const hitEl = document.getElementById('kpiHitRate');
+            if (hitRate !== null) {
+                hitEl.textContent = hitRate + '%';
+                hitEl.style.color = hitRate >= 50 ? 'var(--color-green)' : hitRate >= 35 ? 'var(--color-yellow)' : 'var(--color-red)';
+                const hBar = document.getElementById('kpiHitBar');
+                hBar.style.width = hitRate + '%';
+                hBar.className = 'kpi-bar-fill ' + colorClass(hitRate/100, 0.5, 0.35);
+            } else {
+                hitEl.className = 'kpi-value null-val';
+                hitEl.textContent = 'n/a';
+            }
+
+            const strongPct = pct(d.precision_strong ?? d.by_signal_type?.strong?.accuracy);
+            const strongEl = document.getElementById('kpiStrong');
+            if (strongPct !== null) {
+                strongEl.textContent = strongPct + '%';
+                strongEl.style.color = strongPct >= 60 ? 'var(--color-green)' : strongPct >= 45 ? 'var(--color-yellow)' : 'var(--color-red)';
+                const sBar = document.getElementById('kpiStrongBar');
+                sBar.style.width = strongPct + '%';
+                sBar.className = 'kpi-bar-fill ' + colorClass(strongPct/100, 0.6, 0.45);
+            } else {
+                strongEl.className = 'kpi-value null-val';
+                strongEl.textContent = 'n/a';
+            }
+
+            // Signal type blocks
+            renderSignalBlock(d.by_signal_type?.regular, 'regularContent');
+            renderSignalBlock(d.by_signal_type?.strong, 'strongContent');
+
+            // Symbols table
+            const tbody = document.getElementById('symbolsTable');
+            (d.top_symbols_by_accuracy || []).forEach((s, i) => {
+                const accPct = Math.round(s.accuracy * 100);
+                const hitPct = Math.round(s.hit_rate_tp * 100);
+                const accColor = accPct >= 70 ? 'var(--color-green)' : accPct >= 50 ? 'var(--color-yellow)' : 'var(--color-red)';
+                const hitColor = hitPct >= 50 ? 'var(--color-green)' : hitPct >= 35 ? 'var(--color-yellow)' : 'var(--color-red)';
+                tbody.innerHTML += `
+                <tr>
+                    <td><span class="rank-num">${i < 3 ? medal(i) : '#' + (i+1)}</span></td>
+                    <td><span class="sym-name">${s.symbol}</span></td>
+                    <td><span class="count-small">${s.count}</span></td>
+                    <td>
+                        <span class="pct-val" style="color:${accColor}">${accPct}%</span>
+                        <div class="mini-bar"><div class="mini-bar-fill" style="width:${accPct}%; background:${accColor}"></div></div>
+                    </td>
+                    <td>
+                        <span class="pct-val" style="color:${hitColor}">${hitPct}%</span>
+                        <div class="mini-bar"><div class="mini-bar-fill" style="width:${hitPct}%; background:${hitColor}"></div></div>
+                    </td>
+                </tr>`;
+            });
+
+            // Footer timestamp
+            if (d.computed_at) {
+                document.getElementById('footerTs').textContent = 'Last computed: ' + new Date(d.computed_at).toLocaleString();
+            } else {
+                document.getElementById('footerTs').textContent = 'Metrics not yet computed (wait for evaluate_past_forecasts_task)';
+            }
+
+            // Charts
+            renderComparisonChart(d.by_signal_type);
+            renderTopHitChart(d.top_symbols_by_accuracy);
+
+        } catch (e) {
+            document.getElementById('loading').innerHTML = `
+                <div class="loading-overlay" style="flex-direction:column; gap:0.5rem;">
+                    <span style="font-size:1.5rem">⚠️</span>
+                    <span>Failed to load metrics</span>
+                    <span style="font-size:0.75rem; color:#aaa">${e.message}</span>
+                </div>`;
+        }
+    }
+
+    function renderComparisonChart(byType) {
+        if (!byType) return;
+        const reg = byType.regular || {};
+        const str = byType.strong || {};
+        new Chart(document.getElementById('comparisonChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Direction\nAccuracy', 'TP Hit Rate'],
+                datasets: [
+                    {
+                        label: 'Regular',
+                        data: [pct(reg.accuracy), pct(reg.hit_rate_tp)],
+                        backgroundColor: '#000',
+                        borderColor: '#000',
+                        borderWidth: 2,
+                    },
+                    {
+                        label: 'Strong',
+                        data: [pct(str.accuracy), pct(str.hit_rate_tp)],
+                        backgroundColor: '#fff',
+                        borderColor: '#000',
+                        borderWidth: 2,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { font: { family: 'Space Mono', size: 11 }, color: '#000' } },
+                    tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw + '%' } }
+                },
+                scales: {
+                    y: {
+                        min: 0, max: 100,
+                        ticks: { callback: v => v + '%', font: { family: 'Space Mono', size: 10 }, color: '#555' },
+                        grid: { color: '#f0f0f0' }
+                    },
+                    x: { ticks: { font: { family: 'Space Mono', size: 10 }, color: '#555' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    function renderTopHitChart(symbols) {
+        if (!symbols || !symbols.length) return;
+        const top5 = symbols.slice(0, 5);
+        new Chart(document.getElementById('topHitChart'), {
+            type: 'bar',
+            data: {
+                labels: top5.map(s => s.symbol),
+                datasets: [{
+                    label: 'TP Hit Rate %',
+                    data: top5.map(s => Math.round(s.hit_rate_tp * 100)),
+                    backgroundColor: top5.map(s => {
+                        const v = s.hit_rate_tp;
+                        return v >= 0.5 ? '#00c853' : v >= 0.35 ? '#f59e0b' : '#ff1744';
+                    }),
+                    borderColor: '#000',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => 'TP Hit: ' + ctx.raw + '%' } }
+                },
+                scales: {
+                    x: {
+                        min: 0, max: 100,
+                        ticks: { callback: v => v + '%', font: { family: 'Space Mono', size: 10 }, color: '#555' },
+                        grid: { color: '#f0f0f0' }
+                    },
+                    y: { ticks: { font: { family: 'Space Mono', size: 11 }, color: '#000' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    load();
+</script>
+</body>
+</html>
