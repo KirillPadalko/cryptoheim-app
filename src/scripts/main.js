@@ -3,6 +3,105 @@ import { API } from './api.js';
 const REFRESH_INTERVAL_SEC = 300; // 5 minutes
 let timeRemaining = REFRESH_INTERVAL_SEC;
 
+const I18N = {
+    'ru': {
+        'subtitle': 'ДЭШБОРД АНАЛИТИКИ И СИГНАЛОВ',
+        'app_btn': 'ПРИЛОЖЕНИЕ В GOOGLE PLAY',
+        'live': 'ОНЛАЙН',
+        'next_upd': 'СЛЕДУЮЩЕЕ ОБНОВЛЕНИЕ',
+        'mkt_bias': 'ОЦЕНКА РЫНКА',
+        'short_outlook': 'КРАТКОСРОЧНЫЙ ПРОГНОЗ',
+        'confidence': 'УВЕРЕННОСТЬ',
+        'fng': 'СТРАХ И ЖАДНОСТЬ',
+        'trend': 'ТРЕНД',
+        'reversal': 'ВЕРОЯТНОСТЬ РАЗВОРОТА',
+        'btc_dom': 'ДОМИНАЦИЯ BTC',
+        'bias': 'ПРОГНОЗ',
+        'waiting': 'ожидание сигнала',
+        'top_signals': 'ГЛАВНЫЕ СИГНАЛЫ',
+        'priority': '(ПРИОРИТЕТ)',
+        'see_all': 'СМОТРЕТЬ ВСЕ',
+        'what_break': 'ЧТО МОЖЕТ СЛОМАТЬ СЦЕНАРИЙ?',
+        'loading_risks': 'Загрузка рисков...',
+        'mkt_intel': 'СВОДКА НОВОСТЕЙ',
+        'loading': 'Загрузка...',
+        'awaiting': 'Ожидание данных...',
+        'exposure': 'ЭКСПОЗИЦИЯ И РИСКИ',
+        'pnl_all': 'PNL (ЗА ВСЕ ВРЕМЯ)',
+        'mkt_exp': 'ЭКСПОЗИЦИЯ РЫНКА',
+        'winrate': 'ВИНРЕЙТ',
+        'trades': 'ВСЕГО СДЕЛОК',
+        'accuracy': 'ТОЧНОСТЬ ИИ',
+        'equity': 'КАПИТАЛ',
+        'net_bias': 'СОВОКУПНЫЙ БАЙЕС',
+        'asset': 'АКТИВ',
+        'size': 'ОБЪЕМ',
+        'entry': 'ВХОД',
+        'price': 'ЦЕНА',
+        'pnl': 'PNL',
+        'chart': 'ГРАФИК',
+        'sltp': 'SL/TP',
+        'allocation': 'АЛЛОКАЦИЯ',
+        'recent_closes': 'НЕДАВНО ЗАКРЫТЫЕ',
+        'sl': 'СТОП-ЛОСС',
+        'tp': 'ТЕЙК-ПРОФИТ',
+        'unpnl': 'НЕРЕАЛ. PNL',
+        'chart_hint': 'Колесико для масштаба &nbsp;&bull;&nbsp; Тяните для перемещения &nbsp;&bull;&nbsp; Двойной клик для сброса',
+        
+        // Dynamically used keys
+        'dyn_no_active': 'Нет открытых позиций',
+        'dyn_no_closed': 'Пока нет закрытых сделок',
+        'dyn_err_trades': 'Ошибка загрузки сделок',
+        'dyn_chart_loading': 'Загрузка графика...',
+        'dyn_chart_err': 'Графики не загружены.',
+        'dyn_cash': 'КЭШ',
+        'dyn_cash_100': 'КЭШ 100%',
+        'dyn_long': 'ЛОНГ',
+        'dyn_short': 'ШОРТ'
+    },
+    'en': {
+        // En defaults are already correctly written fallback in indicators.html, 
+        // but we define dynamic ones here:
+        'dyn_no_active': 'No Active Positions',
+        'dyn_no_closed': 'No closed trades yet',
+        'dyn_err_trades': 'Error loading trades',
+        'dyn_chart_loading': 'Loading chart data...',
+        'dyn_chart_err': 'Lightweight Charts not loaded.',
+        'dyn_cash': 'CASH',
+        'dyn_cash_100': 'FLAT 100%',
+        'dyn_long': 'LONG',
+        'dyn_short': 'SHORT'
+    }
+};
+
+function getTr(key) {
+    if (window.appLang === 'ru' && I18N['ru'][key]) return I18N['ru'][key];
+    if (I18N['en'][key]) return I18N['en'][key];
+    return key;
+}
+
+function applyTranslations() {
+    if (window.appLang !== 'ru') {
+        // In this implementation, to revert to English we'd need to store original HTML texts, 
+        // OR simply reload page. Simplest for 'en' state: force a reload if switching back.
+        // But since we want dynamic, let's just reload page on lang switch to be clean.
+    } else {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (I18N['ru'][key]) {
+                el.innerHTML = I18N['ru'][key];
+            }
+        });
+    }
+}
+
+
+// Position data store for modal chart
+const _posChartData = {};
+let _lwChart = null;  // active Lightweight Charts instance
+let _currentModalCanvasId = null;
+let _currentModalTF = '15m';
+
 document.addEventListener('DOMContentLoaded', () => {
     window.appLang = localStorage.getItem('appLang') || 'en';
     
@@ -14,16 +113,41 @@ document.addEventListener('DOMContentLoaded', () => {
             
             btn.addEventListener('click', () => {
                 if (btn.dataset.lang === window.appLang) return;
-                langBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
                 window.appLang = btn.dataset.lang;
                 localStorage.setItem('appLang', window.appLang);
-                updateDashboardData(); // Refresh all
+                window.location.reload(); // Cleanest way to reset EN/RU statically and avoid tracking original EN nodes
             });
         });
     }
 
+    if (window.appLang === 'ru') applyTranslations();
+    
     startDashboard();
+
+    // Modal events
+    const modal = document.getElementById('chart-modal');
+    const closeBtn = document.getElementById('chart-modal-close-btn');
+    if (closeBtn) closeBtn.addEventListener('click', closePositionModal);
+    if (modal) modal.addEventListener('click', (e) => {
+        if (e.target === modal) closePositionModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePositionModal();
+    });
+
+    // Modal timeframe switching
+    const tfBtns = document.querySelectorAll('#modal-tf-selector .tf-btn');
+    tfBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.classList.contains('active')) return;
+            tfBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _currentModalTF = btn.dataset.tf;
+            if (_currentModalCanvasId) {
+                openPositionModal(_currentModalCanvasId, _currentModalTF);
+            }
+        });
+    });
 });
 
 async function startDashboard() {
@@ -37,7 +161,8 @@ async function updateDashboardData() {
         renderTopSignals(),
         renderNarrativeEngine(),
         renderLatestNews(),
-        renderExposureAndPositions()
+        renderExposureAndPositions(),
+        renderClosedOrders()
     ]);
 }
 
@@ -83,10 +208,10 @@ async function renderDecisionStrip() {
             directionBlock.style.background = ''; // reset inline background color
             const headlineLower = headline.toLowerCase();
 
-            if (headlineLower.includes('bull') || headlineLower.includes('быч')) {
+            if (headlineLower.includes('bull') || headlineLower.includes('Р±С‹С‡')) {
                 directionBlock.className = 'decision-block primary-bias-block';
                 document.getElementById('ds-bias').className = 'value text-green';
-            } else if (headlineLower.includes('bear') || headlineLower.includes('медв')) {
+            } else if (headlineLower.includes('bear') || headlineLower.includes('РјРµРґРІ')) {
                 directionBlock.className = 'decision-block primary-bias-block bear';
                 document.getElementById('ds-bias').className = 'value text-red';
             } else {
@@ -292,8 +417,8 @@ async function renderExposureAndPositions() {
         // Positions Table
         const tbody = document.getElementById('pos-table-body');
         if (!positions || positions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">No Active Positions</td></tr>';
-            document.getElementById('exp-net-bias').innerText = 'FLAT 100%';
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">${getTr('dyn_no_active')}</td></tr>`;
+            document.getElementById('exp-net-bias').innerText = getTr('dyn_cash_100');
             document.getElementById('exp-net-bias').className = `exp-value text-muted`;
         } else {
             let html = '';
@@ -316,7 +441,7 @@ async function renderExposureAndPositions() {
                     <tr>
                         <td>
                             ${cleanSymbol(pos.symbol)}
-                            <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-${isLong ? 'green' : 'red'});">${isLong ? 'LONG' : 'SHORT'}</div>
+                            <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-${isLong ? 'green' : 'red'});">${isLong ? getTr('dyn_long') : getTr('dyn_short')}</div>
                         </td>
                         <td>${pos.size.toFixed(3)}</td>
                         <td>$${pos.entry_price.toFixed(2)}</td>
@@ -342,11 +467,24 @@ async function renderExposureAndPositions() {
 
             positions.forEach(pos => {
                 const sparklineData = sparklinesObj && sparklinesObj[pos.symbol] ? sparklinesObj[pos.symbol] : null;
-                if(sparklineData) drawBrutalSparkline(`pos-chart-${pos.id}`, sparklineData, pos.side.toLowerCase() === 'buy', {
-                    entry: pos.entry_price,
-                    sl: pos.sl_price,
-                    tp: pos.tp_price
-                });
+                const isLong = pos.side.toLowerCase() === 'buy';
+                const price = sparklineData ? sparklineData[sparklineData.length - 1] : pos.entry_price;
+                const pnlValue = isLong ? (price - pos.entry_price) * pos.size
+                                        : (pos.entry_price - price) * pos.size;
+
+                if (sparklineData) {
+                    drawBrutalSparkline(`pos-chart-${pos.id}`, sparklineData, isLong, {
+                        entry: pos.entry_price,
+                        sl: pos.sl_price,
+                        tp: pos.tp_price
+                    });
+                    // Store for modal
+                    _posChartData[`pos-chart-${pos.id}`] = { pos, sparklineData, currentPrice: price, pnlValue };
+                }
+
+                // Make chart cell open modal on click
+                const td = document.getElementById(`pos-chart-${pos.id}`)?.parentElement;
+                if (td) td.addEventListener('click', () => openPositionModal(`pos-chart-${pos.id}`));
             });
 
             // Allocation calculation
@@ -378,9 +516,9 @@ async function renderExposureAndPositions() {
                 if (bPct > 0) allocHtml += `<div style="width:${bPct}%; background:var(--color-yellow); color:#000; display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">BTC ${bPct.toFixed(0)}%</div>`;
                 if (ePct > 0) allocHtml += `<div style="width:${ePct}%; background:var(--color-blue); display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">ETH ${ePct.toFixed(0)}%</div>`;
                 if (aPct > 0) allocHtml += `<div style="width:${aPct}%; background:var(--text-main); display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">ALTS ${aPct.toFixed(0)}%</div>`;
-                if (cPct > 0) allocHtml += `<div style="width:${cPct}%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">CASH ${cPct.toFixed(0)}%</div>`;
+                if (cPct > 0) allocHtml += `<div style="width:${cPct}%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">${getTr('dyn_cash')} ${cPct.toFixed(0)}%</div>`;
             } else {
-                allocHtml = `<div style="width:100%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">CASH 100%</div>`;
+                allocHtml = `<div style="width:100%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">${getTr('dyn_cash_100')}</div>`;
             }
 
             document.getElementById('allocation-bar').innerHTML = allocHtml;
@@ -420,64 +558,148 @@ async function renderExposureAndPositions() {
 }
 
 // ----------------------------------------------------
+// CLOSED ORDERS
+// ----------------------------------------------------
+function formatHoldTime(minutes) {
+    if (minutes === null || minutes === undefined) return 'вЂ”';
+    if (minutes < 60) return `${Math.round(minutes)}m`;
+    if (minutes < 1440) return `${Math.round(minutes / 60)}h ${Math.round(minutes % 60)}m`;
+    const days = Math.floor(minutes / 1440);
+    const hrs = Math.round((minutes % 1440) / 60);
+    return `${days}d ${hrs}h`;
+}
+
+async function renderClosedOrders() {
+    const listEl = document.getElementById('closed-orders-list');
+    const badgeEl = document.getElementById('closed-count-badge');
+    if (!listEl) return;
+
+    try {
+        // last_10_trades comes from /stats вЂ” already fetched in renderExposureAndPositions,
+        // but we fetch independently to keep functions decoupled.
+        const stats = await API.getBotStats().catch(() => null);
+
+        const trades = stats?.last_10_trades;
+        if (!trades || trades.length === 0) {
+            listEl.innerHTML = `<div class="closed-order-empty">${getTr('dyn_no_closed')}</div>`;
+            if (badgeEl) badgeEl.textContent = '0';
+            return;
+        }
+
+        if (badgeEl) badgeEl.textContent = trades.length;
+
+        const html = trades.map(t => {
+            const isWin = t.pnl >= 0;
+            const iconClass = isWin ? 'win' : 'loss';
+            const icon = isWin ? 'вњ“' : 'вњ—';
+            const pnlSign = t.pnl > 0 ? '+' : '';
+            const sym = String(t.symbol).replace('USDT', '');
+            const isLong = String(t.side).toLowerCase() === 'buy';
+            const sideLabel = isLong ? 'LONG' : 'SHORT';
+            const sideClass = isLong ? 'long' : 'short';
+            const holdStr = formatHoldTime(t.hold_minutes);
+
+            return `
+                <div class="closed-order-row">
+                    <div class="closed-order-icon ${iconClass}">${icon}</div>
+                    <div class="closed-order-info">
+                        <div class="closed-order-symbol">${sym}</div>
+                        <div class="closed-order-meta">
+                            <span class="closed-order-side ${sideClass}">${sideLabel}</span>
+                            <span class="closed-order-duration">вЏ± ${holdStr}</span>
+                        </div>
+                    </div>
+                    <div class="closed-order-pnl ${iconClass}">${pnlSign}$${t.pnl.toFixed(2)}</div>
+                </div>
+            `;
+        }).join('');
+
+        listEl.innerHTML = html;
+    } catch(e) {
+        console.error('Closed orders error:', e);
+        listEl.innerHTML = `<div class="closed-order-empty">${getTr('dyn_err_trades')}</div>`;
+    }
+}
+
+// ----------------------------------------------------
 // UTILS
 // ----------------------------------------------------
 function drawBrutalSparkline(canvasId, dataPoints, isUp = true, levels = null) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const color = isUp ? '#000' : '#FF1744';
 
-    const datasets = [{
-        data: dataPoints,
-        borderColor: color,
-        borderWidth: 2,
-        tension: 0,
-        pointRadius: 0,
-        pointHoverRadius: 0,
-        fill: false,
-        stepped: false
-    }];
+    const lineColor = isUp ? '#000000' : '#FF1744';
+    const hasLevels = !!(levels && (levels.entry || levels.sl || levels.tp));
 
-    if (levels) {
-        const len = dataPoints.length;
-        if (levels.entry) {
-            datasets.push({ data: Array(len).fill(levels.entry), borderColor: '#888', borderWidth: 1, borderDash: [2,2], pointRadius: 0 });
-        }
-        if (levels.sl) {
-            datasets.push({ data: Array(len).fill(levels.sl), borderColor: '#FF1744', borderWidth: 1, borderDash: [2,2], pointRadius: 0 });
-        }
-        if (levels.tp) {
-            datasets.push({ data: Array(len).fill(levels.tp), borderColor: '#00E676', borderWidth: 1, borderDash: [2,2], pointRadius: 0 });
-        }
+    // Y range - strictly based on price data to keep sparkline large
+    const minVal = Math.min(...dataPoints);
+    const maxVal = Math.max(...dataPoints);
+
+    // Find closest index to entry price for stake position
+    let entryIdx = 0;
+    if (hasLevels && levels.entry) {
+        let minDiff = Infinity;
+        dataPoints.forEach((v, i) => {
+            const d = Math.abs(v - levels.entry);
+            if (d < minDiff) { minDiff = d; entryIdx = i; }
+        });
     }
 
-    // Adjust Y-axis scale to include levels if they exist, but clip extreme values so sparkline doesn't flatline
-    let minVal = Math.min(...dataPoints);
-    let maxVal = Math.max(...dataPoints);
-    
-    if (levels) {
-        // Only include levels in scale if they are within 10% of the price action, otherwise clip them out of view
-        const range = maxVal - minVal;
-        const permittedSpread = range * 0.5 || minVal * 0.05;
-        const boundedMin = minVal - permittedSpread;
-        const boundedMax = maxVal + permittedSpread;
-        
-        if (levels.sl && levels.sl > boundedMin && levels.sl < boundedMax) {
-            minVal = Math.min(minVal, levels.sl);
-            maxVal = Math.max(maxVal, levels.sl);
+    // Compact entry stake (no labels вЂ” just visual markers for thumbnail)
+    const stakePlugin = hasLevels ? {
+        id: 'stake_' + canvasId,
+        afterDraw(chart) {
+            const { ctx: c, scales } = chart;
+            if (!scales.y || !scales.x || !levels.entry) return;
+            const xPx = scales.x.getPixelForValue(entryIdx);
+            const yE  = scales.y.getPixelForValue(levels.entry);
+            const yTP = levels.tp ? scales.y.getPixelForValue(levels.tp) : null;
+            const ySL = levels.sl ? scales.y.getPixelForValue(levels.sl) : null;
+            const tw  = 6;
+
+            c.save();
+            c.lineCap = 'round';
+
+            // Connector
+            c.beginPath();
+            c.moveTo(xPx, yTP ?? yE);
+            c.lineTo(xPx, ySL ?? yE);
+            c.strokeStyle = 'rgba(0,0,0,0.2)';
+            c.lineWidth = 1;
+            c.setLineDash([2, 2]);
+            c.stroke();
+            c.setLineDash([]);
+
+            // TP tick
+            if (yTP !== null) {
+                c.beginPath(); c.moveTo(xPx - tw, yTP); c.lineTo(xPx + tw, yTP);
+                c.strokeStyle = '#00C853'; c.lineWidth = 2; c.stroke();
+            }
+            // SL tick
+            if (ySL !== null) {
+                c.beginPath(); c.moveTo(xPx - tw, ySL); c.lineTo(xPx + tw, ySL);
+                c.strokeStyle = '#FF1744'; c.lineWidth = 2; c.stroke();
+            }
+            // Entry dot
+            c.beginPath();
+            c.arc(xPx, yE, 3.5, 0, Math.PI * 2);
+            c.fillStyle = 'rgba(255,214,0,0.4)';
+            c.fill();
+            c.strokeStyle = '#FFD600';
+            c.lineWidth = 1.5;
+            c.stroke();
+
+            c.restore();
         }
-        if (levels.tp && levels.tp > boundedMin && levels.tp < boundedMax) {
-            minVal = Math.min(minVal, levels.tp);
-            maxVal = Math.max(maxVal, levels.tp);
-        }
-    }
+    } : null;
 
     new Chart(ctx, {
         type: 'line',
         data: {
             labels: dataPoints.map((_, i) => i),
-            datasets: datasets
+            datasets: [{ data: dataPoints, borderColor: lineColor, borderWidth: 1.2,
+                tension: 0, pointRadius: 0, fill: false }]
         },
         options: {
             responsive: true,
@@ -485,10 +707,239 @@ function drawBrutalSparkline(canvasId, dataPoints, isUp = true, levels = null) {
             plugins: { legend: { display: false }, tooltip: { enabled: false } },
             scales: {
                 x: { display: false },
-                y: { display: false, min: minVal * 0.999, max: maxVal * 1.001 }
+                y: { display: false, min: minVal * 0.997, max: maxVal * 1.003 }
             },
-            layout: { padding: 5 },
+            layout: { padding: 4 },
             animation: false
-        }
+        },
+        plugins: stakePlugin ? [stakePlugin] : []
     });
 }
+
+// ----------------------------------------------------
+// POSITION CHART MODAL  (Lightweight Charts)
+// ----------------------------------------------------
+function _fmtModalPrice(v) {
+    if (!v && v !== 0) return '--';
+    if (v >= 10000) return `$${(v / 1000).toFixed(2)}k`;
+    if (v >= 1)     return `$${v.toFixed(2)}`;
+    return `$${v.toFixed(5)}`;
+}
+
+async function openPositionModal(canvasId, timeframe = '15m') {
+    _currentModalCanvasId = canvasId;
+    _currentModalTF = timeframe;
+    try {
+        const data = _posChartData[canvasId];
+        if (!data) return;
+
+        const { pos, sparklineData, pnlValue } = data;
+        const isLong = pos?.side?.toLowerCase() === 'buy';
+        const sym = pos?.symbol ? String(pos.symbol).replace('USDT', '') : '--';
+
+        // Populate header
+        document.getElementById('modal-symbol').textContent = sym;
+        const badge = document.getElementById('modal-side-badge');
+        if (badge) {
+            badge.textContent = isLong ? getTr('dyn_long') : getTr('dyn_short');
+            badge.className = `closed-order-side ${isLong ? 'long' : 'short'}`;
+        }
+        document.getElementById('modal-entry').textContent = _fmtModalPrice(pos?.entry_price);
+        document.getElementById('modal-sl').textContent    = _fmtModalPrice(pos?.sl_price);
+        document.getElementById('modal-tp').textContent    = _fmtModalPrice(pos?.tp_price);
+
+        const pnlEl = document.getElementById('modal-pnl');
+        if (pnlEl && pnlValue !== undefined) {
+            const pnlSign = pnlValue >= 0 ? '+' : '';
+            pnlEl.textContent = `${pnlSign}$${Math.abs(pnlValue).toFixed(2)}`;
+            pnlEl.className = `chart-modal-stat-value ${pnlValue >= 0 ? 'text-green' : 'text-red'}`;
+        }
+
+        // Show overlay
+        const modal = document.getElementById('chart-modal');
+        if (modal) {
+            modal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Destroy previous chart
+        if (_lwChart) { _lwChart.remove(); _lwChart = null; }
+        const container = document.getElementById('chart-modal-chart');
+        if (!container) return;
+        container.innerHTML = `<div style="padding:2rem;text-align:center;color:#555;font-family:monospace">${getTr('dyn_chart_loading')}</div>`;
+
+        if (typeof LightweightCharts === 'undefined') {
+            container.innerHTML = `<div style="padding:2rem;text-align:center;color:#555;font-family:monospace">${getTr('dyn_chart_err')}</div>`;
+            return;
+        }
+
+        let klines = [];
+        try {
+            if (API.getKlinesForSymbol) {
+                const res = await API.getKlinesForSymbol(pos.symbol, timeframe);
+                if (res && res.klines) {
+                    klines = res.klines;
+                }
+            }
+        } catch(e) {
+            console.error('Failed to fetch klines for modal', e);
+        }
+
+        container.innerHTML = '';
+
+        // Create chart
+        _lwChart = LightweightCharts.createChart(container, {
+            width:  container.clientWidth,
+            height: container.clientHeight,
+            layout: {
+                background: { color: '#FFFFFF' },
+                textColor: '#000000',
+                fontFamily: "'Space Mono', 'Space Grotesk', monospace",
+                fontSize: 11,
+            },
+            grid: {
+                vertLines: { color: 'rgba(0,0,0,0.05)' },
+                horzLines: { color: 'rgba(0,0,0,0.05)' },
+            },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            rightPriceScale: {
+                borderColor: 'rgba(0,0,0,0.15)',
+                scaleMargins: { top: 0.15, bottom: 0.15 },
+            },
+            timeScale: {
+                borderColor: 'rgba(0,0,0,0.15)',
+                timeVisible: true,
+                secondsVisible: false,
+                fixLeftEdge: true,
+                fixRightEdge: true,
+            },
+            handleScale: { mouseWheel: true, pinch: true },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true },
+        });
+
+        let series;
+        let allPriceValues = [];
+
+        // Check if klines is valid and has valid data points
+        const validKlines = klines.filter(k => k.close != null && k.open != null && k.high != null && k.low != null);
+
+        if (validKlines.length > 0) {
+            const lwData = validKlines.map(k => ({
+                time: typeof k.open_time === 'number' ? 
+                        (k.open_time > 1e10 ? Math.floor(k.open_time / 1000) : k.open_time) : 
+                        k.open_time,
+                open: k.open,
+                high: k.high,
+                low: k.low,
+                close: k.close
+            }));
+
+            // Filter out duplicate or invalid times
+            const uniqueData = [];
+            const timesSet = new Set();
+            lwData.sort((a,b) => a.time - b.time).forEach(d => {
+                if(!timesSet.has(d.time) && !isNaN(d.time)) {
+                    timesSet.add(d.time);
+                    uniqueData.push(d);
+                }
+            });
+
+            series = _lwChart.addCandlestickSeries({
+                upColor: '#00C853',
+                downColor: '#FF1744',
+                borderVisible: false,
+                wickUpColor: '#00C853',
+                wickDownColor: '#FF1744',
+            });
+            series.setData(uniqueData);
+            allPriceValues = uniqueData.map(k => k.high).concat(uniqueData.map(k => k.low));
+        } else if (sparklineData && sparklineData.length > 0) {
+            // Fallback to AreaSeries and sparkline
+            const N = sparklineData.length;
+            const nowSec = Math.floor(Date.now() / 1000);
+            const stepSec = Math.floor((24 * 3600) / Math.max(N - 1, 1));
+            const lwData = sparklineData.map((price, i) => ({
+                time: nowSec - (N - 1 - i) * stepSec,
+                value: price
+            })).filter(d => d.value != null && !isNaN(d.time));
+
+            series = _lwChart.addAreaSeries({
+                lineColor: isLong ? '#000000' : '#FF1744',
+                topColor:  isLong ? 'rgba(0,0,0,0.08)' : 'rgba(255,23,68,0.07)',
+                bottomColor: 'rgba(0,0,0,0)',
+                lineWidth: 2,
+                crosshairMarkerVisible: true,
+                crosshairMarkerRadius: 5,
+                crosshairMarkerBorderColor: isLong ? '#000' : '#FF1744',
+                crosshairMarkerBackgroundColor: '#fff',
+                priceLineVisible: false,
+            });
+            series.setData(lwData);
+            allPriceValues = [...sparklineData]; // Copy to avoid mutating original
+        } else {
+            container.innerHTML = '<div style="padding:2rem;text-align:center;color:#555;">No data available.</div>';
+            return;
+        }
+
+        // Entry price line
+        if (pos?.entry_price) {
+            series.createPriceLine({
+                price: pos.entry_price,
+                color: '#FFD600',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: 'ENTRY',
+            });
+            allPriceValues.push(pos.entry_price);
+        }
+        // Take Profit line
+        if (pos?.tp_price) {
+            series.createPriceLine({
+                price: pos.tp_price,
+                color: '#00C853',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: 'TP',
+            });
+            allPriceValues.push(pos.tp_price);
+        }
+        // Stop Loss line
+        if (pos?.sl_price) {
+            series.createPriceLine({
+                price: pos.sl_price,
+                color: '#FF1744',
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true,
+                title: 'SL',
+            });
+        }
+
+        _lwChart.timeScale().fitContent();
+
+        // Responsive resize
+        const ro = new ResizeObserver(() => {
+            if (_lwChart && container.clientWidth > 0) {
+                _lwChart.applyOptions({
+                    width:  container.clientWidth,
+                    height: container.clientHeight
+                });
+            }
+        });
+        ro.observe(container);
+
+    } catch (err) {
+        console.error("Error in openPositionModal:", err);
+        alert('Could not open modal: ' + err.message);
+    }
+}
+
+function closePositionModal() {
+    const modal = document.getElementById('chart-modal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+    if (_lwChart) { _lwChart.remove(); _lwChart = null; }
+}
+

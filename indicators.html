@@ -19,6 +19,8 @@
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <!-- Lightweight Charts (TradingView) for full-screen position modal -->
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head>
 
 <body>
@@ -30,27 +32,27 @@
                     <img src="./src/assets/logo.png" alt="Logo" class="mini-logo">
                     <div class="header-titles">
                         <h1>CRYPTOHEIM LIVE</h1>
-                        <p>ANALYTICS & INTELLIGENCE DASHBOARD</p>
+                        <p data-i18n="subtitle">ANALYTICS & INTELLIGENCE DASHBOARD</p>
                     </div>
                 </div>
                 <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" class="play-store-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
                       <path d="M14.222 9.374c1.037-.61 1.037-2.137 0-2.748L11.528 5.04 8.32 8l3.208 2.96 2.694-1.586Zm-3.595 2.116L7.583 8.68 1.03 14.73c.201 1.029 1.36 1.61 2.303 1.055l7.294-4.295ZM1 13.396V2.603L6.846 8 1 13.396ZM1.03 1.27l6.553 6.05 3.044-2.81L3.333.215C2.39-.341 1.231.24 1.03 1.27Z"/>
                     </svg>
-                    APP ON GOOGLE PLAY
+                    <span data-i18n="app_btn">APP ON GOOGLE PLAY</span>
                 </a>
             </div>
             <div class="header-right">
                 <div class="status-live">
                     <div class="status-indicator"></div>
-                    LIVE
+                    <span data-i18n="live">LIVE</span>
                 </div>
                 <div id="lang-switcher" class="lang-switcher">
                     <div class="lang-btn active" data-lang="en">EN</div>
                     <div class="lang-btn" data-lang="ru">RU</div>
                 </div>
                 <div class="refresh-timer-box">
-                    <span class="timer-label">NEXT UPDATE</span>
+                    <span class="timer-label" data-i18n="next_upd">NEXT UPDATE</span>
                     <span id="refresh-timer" class="timer-value">04:51</span>
                 </div>
                 <!-- Menu / Back placeholder -->
@@ -68,35 +70,35 @@
         <div class="decision-wrapper">
             <div class="decision-strip" id="decision-strip">
                 <div class="decision-block">
-                    <div class="label">MARKET BIAS</div>
+                    <div class="label" data-i18n="mkt_bias">MARKET BIAS</div>
                     <div class="value text-green" id="ds-bias">...</div>
-                    <div class="subtext">SHORT-TERM OUTLOOK</div>
+                    <div class="subtext" data-i18n="short_outlook">SHORT-TERM OUTLOOK</div>
                 </div>
                 <div class="decision-block">
-                    <div class="label">CONFIDENCE</div>
+                    <div class="label" data-i18n="confidence">CONFIDENCE</div>
                     <div class="value" id="ds-confidence">...</div>
                     <div class="confidence-bar">
                         <div class="confidence-fill" id="ds-confidence-fill" style="width: 0%"></div>
                     </div>
                 </div>
                 <div class="decision-block">
-                    <div class="label">FEAR & GREED</div>
+                    <div class="label" data-i18n="fng">FEAR & GREED</div>
                     <div class="value text-red" id="ds-fng-val">...</div>
                     <div class="subtext" id="ds-fng-label">...</div>
                 </div>
                 <div class="decision-block">
-                    <div class="label">TREND</div>
+                    <div class="label" data-i18n="trend">TREND</div>
                     <div class="value" id="ds-trend">...</div>
-                    <div class="subtext">POTENTIAL REVERSAL</div>
+                    <div class="subtext" data-i18n="reversal">POTENTIAL REVERSAL</div>
                 </div>
                 <div class="decision-block">
-                    <div class="label">BTC DOMINANCE</div>
+                    <div class="label" data-i18n="btc_dom">BTC DOMINANCE</div>
                     <div class="value" id="ds-btc-dom">...</div>
                     <div class="subtext" id="ds-volatility">...</div>
                 </div>
                 <div class="decision-block primary-bias-block" id="ds-direction-block">
-                    <div class="label">BIAS: ...</div>
-                    <div class="subtext">waiting for signal</div>
+                    <div class="label" id="lbl-bias"><span data-i18n="bias">BIAS</span>: ...</div>
+                    <div class="subtext" id="lbl-waiting" data-i18n="waiting">waiting for signal</div>
                 </div>
             </div>
             <div class="narrative-text" id="narrative-summary">
@@ -113,8 +115,8 @@
                 <!-- TOP SIGNALS -->
                 <div class="brutal-card">
                     <div class="brutal-title">
-                        TOP SIGNALS <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">(PRIORITY)</span>
-                        <button style="border: var(--border-thick); background: #fff; padding: 5px 15px; font-weight: 800; cursor: pointer; font-family: var(--font-main);">SEE ALL</button>
+                        <span><span data-i18n="top_signals">TOP SIGNALS</span> <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);" data-i18n="priority">(PRIORITY)</span></span>
+                        <button style="border: var(--border-thick); background: #fff; padding: 5px 15px; font-weight: 800; cursor: pointer; font-family: var(--font-main);" data-i18n="see_all">SEE ALL</button>
                     </div>
                     <div class="signals-list" id="signals-list">
                         <!-- Populated by JS -->
@@ -123,17 +125,16 @@
 
                 <!-- RISK SCENARIO -->
                 <div class="risk-block" id="risk-block">
-                    <h3>WHAT CAN BREAK THIS SCENARIO?</h3>
-                    <div class="risk-text" id="risk-list" style="font-weight: 500; font-size: 0.9rem; line-height: 1.4;">
+                    <h3 data-i18n="what_break">WHAT CAN BREAK THIS SCENARIO?</h3>
+                    <div class="risk-text" id="risk-list" style="font-weight: 500; font-size: 0.9rem; line-height: 1.4;" data-i18n="loading_risks">
                         Loading risks...
                     </div>
                 </div>
 
                 <!-- LATEST NEWS -->
                 <div class="brutal-card">
-                    <div class="brutal-title">MARKET INTELLIGENCE <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); font-family: var(--font-mono);" id="news-time">Loading...</span></div>
-                    <div class="news-content" id="news-content" style="font-size: 0.95rem; line-height: 1.4; font-weight: 500; overflow-y: auto; max-height: 250px; padding-right: 10px; margin-top: 10px;">
-                        <!-- Populated by JS -->
+                    <div class="brutal-title"><span data-i18n="mkt_intel">MARKET INTELLIGENCE</span> <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); font-family: var(--font-mono);" id="news-time" data-i18n="loading">Loading...</span></div>
+                    <div class="news-content" id="news-content" style="font-size: 0.95rem; line-height: 1.4; font-weight: 500; overflow-y: auto; max-height: 250px; padding-right: 10px; margin-top: 10px;" data-i18n="awaiting">
                         Awaiting intel...
                     </div>
                 </div>
@@ -144,35 +145,35 @@
                 
                 <!-- YOUR EXPOSURE & TABLE -->
                 <div class="brutal-card" style="padding: 0;">
-                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.5rem; border-bottom: none; margin-bottom: 0;">YOUR EXPOSURE</div>
+                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.5rem; border-bottom: none; margin-bottom: 0;" data-i18n="exposure">YOUR EXPOSURE</div>
                     
                     <div class="exposure-grid" id="exposure-grid" style="padding: 0 1.5rem 1rem;">
                         <div class="exp-col">
-                            <div class="exp-label">PNL (ALL TIME)</div>
+                            <div class="exp-label" data-i18n="pnl_all">PNL (ALL TIME)</div>
                             <div class="exp-value text-green" id="exp-pnl">...</div>
                         </div>
                         <div class="exp-col">
-                            <div class="exp-label">MARKET EXPOSURE</div>
+                            <div class="exp-label" data-i18n="mkt_exp">MARKET EXPOSURE</div>
                             <div class="exp-value" id="exp-exposure">...</div>
                         </div>
                         <div class="exp-col">
-                            <div class="exp-label">WIN RATE</div>
+                            <div class="exp-label" data-i18n="winrate">WIN RATE</div>
                             <div class="exp-value" id="exp-winrate">...</div>
                         </div>
                         <div class="exp-col">
-                            <div class="exp-label">TOTAL TRADES</div>
+                            <div class="exp-label" data-i18n="trades">TOTAL TRADES</div>
                             <div class="exp-value" id="exp-trades">...</div>
                         </div>
                         <div class="exp-col">
-                            <div class="exp-label">AI ACCURACY</div>
+                            <div class="exp-label" data-i18n="accuracy">AI ACCURACY</div>
                             <div class="exp-value" id="exp-accuracy">...</div>
                         </div>
                         <div class="exp-col">
-                            <div class="exp-label">EQUITY</div>
+                            <div class="exp-label" data-i18n="equity">EQUITY</div>
                             <div class="exp-value" id="exp-equity">...</div>
                         </div>
                         <div class="exp-col">
-                            <div class="exp-label">NET BIAS</div>
+                            <div class="exp-label" data-i18n="net_bias">NET BIAS</div>
                             <div class="exp-value text-green" id="exp-net-bias">...</div>
                         </div>
                     </div>
@@ -181,17 +182,17 @@
                         <table class="pos-table" id="pos-table">
                             <thead>
                                 <tr>
-                                    <th>ASSET</th>
-                                    <th>SIZE</th>
-                                    <th>ENTRY</th>
-                                    <th>PRICE</th>
-                                    <th>PNL</th>
-                                    <th>CHART</th>
-                                    <th>SL/TP</th>
+                                    <th data-i18n="asset">ASSET</th>
+                                    <th data-i18n="size">SIZE</th>
+                                    <th data-i18n="entry">ENTRY</th>
+                                    <th data-i18n="price">PRICE</th>
+                                    <th data-i18n="pnl">PNL</th>
+                                    <th data-i18n="chart">CHART</th>
+                                    <th data-i18n="sltp">SL/TP</th>
                                 </tr>
                             </thead>
                             <tbody id="pos-table-body">
-                                <tr><td colspan="7" style="text-align: center;">Loading...</td></tr>
+                                <tr><td colspan="7" style="text-align: center;" data-i18n="loading">Loading...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -199,15 +200,64 @@
 
                 <!-- ALLOCATION BAR -->
                 <div class="brutal-card" style="padding: 1rem 1.5rem;">
-                    <div style="font-size: 0.8rem; font-weight: 800; margin-bottom: 0.5rem; text-transform: uppercase;">Allocation</div>
+                    <div style="font-size: 0.8rem; font-weight: 800; margin-bottom: 0.5rem; text-transform: uppercase;" data-i18n="allocation">Allocation</div>
                     <div id="allocation-bar" style="display: flex; height: 32px; border: var(--border-thick); overflow: hidden; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: #fff;">
                         <!-- populated by JS -->
                     </div>
                 </div>
 
-                
+                <!-- RECENT CLOSED ORDERS -->
+                <div class="brutal-card" style="padding: 0;">
+                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.75rem; border-bottom: var(--border-thick); margin-bottom: 0;">
+                        <span data-i18n="recent_closes">RECENT CLOSES</span>
+                        <span id="closed-count-badge" class="closed-count-badge">0</span>
+                    </div>
+                    <div id="closed-orders-list" class="closed-orders-list">
+                        <div class="closed-order-empty" data-i18n="loading">Loading...</div>
+                    </div>
+                </div>
+
             </div>
         </main>
+    </div>
+
+    <!-- POSITION CHART MODAL -->
+    <div id="chart-modal" class="chart-modal-overlay">
+        <div class="chart-modal-card">
+            <div class="chart-modal-header">
+                <div class="chart-modal-title">
+                    <span id="modal-symbol" class="chart-modal-symbol">--</span>
+                    <span id="modal-side-badge" class="closed-order-side long">LONG</span>
+                    <div class="chart-tf-selector" id="modal-tf-selector">
+                        <button class="tf-btn" data-tf="5m">5m</button>
+                        <button class="tf-btn active" data-tf="15m">15m</button>
+                        <button class="tf-btn" data-tf="1h">1H</button>
+                        <button class="tf-btn" data-tf="4h">4H</button>
+                    </div>
+                </div>
+                <div class="chart-modal-stats">
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label" data-i18n="entry">ENTRY</span>
+                        <span class="chart-modal-stat-value" id="modal-entry">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label" data-i18n="sl">STOP LOSS</span>
+                        <span class="chart-modal-stat-value text-red" id="modal-sl">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label" data-i18n="tp">TAKE PROFIT</span>
+                        <span class="chart-modal-stat-value text-green" id="modal-tp">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label" data-i18n="unpnl">UNREAL. PNL</span>
+                        <span class="chart-modal-stat-value" id="modal-pnl">--</span>
+                    </div>
+                </div>
+                <button class="chart-modal-close" id="chart-modal-close-btn">✕</button>
+            </div>
+            <div id="chart-modal-chart" class="chart-modal-chart"></div>
+            <div class="chart-modal-hint" data-i18n="chart_hint">Scroll to zoom &nbsp;&bull;&nbsp; Drag to pan &nbsp;&bull;&nbsp; Double-click to reset</div>
+        </div>
     </div>
 
     <!-- Scripts -->

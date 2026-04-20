@@ -391,13 +391,16 @@ a { text-decoration: none; color: inherit; }
     border-bottom: var(--border-thick);
 }
 .pos-table td {
-    padding: 12px 8px;
+    padding: 10px 8px;
     border-bottom: var(--border-thin);
     font-weight: 600;
     font-size: 0.9rem;
 }
 .pos-table tr:last-child td { border-bottom: none; }
-.td-chart { width: 80px; height: 30px; }
+/* Position chart thumbnail - click to open full modal */
+.td-chart { width: 170px; height: 130px; cursor: pointer; }
+.td-chart:hover { opacity: 0.75; transition: opacity 0.15s; }
+.td-chart canvas { display: block; width: 100% !important; height: 100% !important; }
 .td-sltp { font-size: 0.75rem; color: var(--text-muted); }
 
 /* RISK BLOCK */
@@ -411,6 +414,107 @@ a { text-decoration: none; color: inherit; }
 
 .text-green { color: var(--color-green); }
 .text-red { color: var(--color-red); }
+.text-muted { color: var(--text-muted); }
+
+/* CLOSED ORDERS LIST */
+.closed-orders-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.closed-order-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    border-bottom: var(--border-thin);
+    transition: background 0.15s ease;
+}
+.closed-order-row:last-child { border-bottom: none; }
+.closed-order-row:hover { background: rgba(255,255,255,0.03); }
+
+.closed-order-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    border: 2px solid;
+    border-radius: 50%;
+}
+.closed-order-icon.win {
+    border-color: var(--color-green);
+    color: var(--color-green);
+}
+.closed-order-icon.loss {
+    border-color: var(--color-red);
+    color: var(--color-red);
+}
+
+.closed-order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.closed-order-symbol {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+.closed-order-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.closed-order-side {
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+}
+.closed-order-side.long { background: var(--color-green); color: #000; }
+.closed-order-side.short { background: var(--color-red); color: #fff; }
+
+.closed-order-duration {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.closed-order-pnl {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-align: right;
+    white-space: nowrap;
+}
+.closed-order-pnl.win { color: var(--color-green); }
+.closed-order-pnl.loss { color: var(--color-red); }
+
+.closed-order-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.closed-count-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--text-muted);
+    color: var(--bg-main);
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+}
 
 /* --- RESPONSIVE LAYOUT (CLEAN FIX) --- */
 
@@ -526,4 +630,163 @@ a { text-decoration: none; color: inherit; }
     .header-titles p {
         display: none;
     }
+}
+
+/* ================================================================
+   POSITION CHART MODAL  (Lightweight Charts full-screen view)
+   ================================================================ */
+.chart-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(3px);
+}
+.chart-modal-overlay.open {
+    display: flex;
+}
+
+.chart-modal-card {
+    background: #fff;
+    border: var(--border-thick);
+    width: 100%;
+    max-width: 960px;
+    height: min(75vh, 620px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 8px 8px 0 rgba(0,0,0,0.35);
+    animation: modalIn 0.18s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.97) translateY(8px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+.chart-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.9rem 1.5rem;
+    border-bottom: var(--border-thick);
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+}
+
+.chart-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.chart-modal-symbol {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-family: var(--font-main);
+}
+
+.chart-tf-selector {
+    display: flex;
+    gap: 4px;
+    margin-left: 15px;
+    border: var(--border-thin);
+    padding: 2px;
+    background: #f5f5f5;
+}
+.chart-tf-selector .tf-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    padding: 4px 8px;
+    color: var(--text-muted);
+}
+.chart-tf-selector .tf-btn:hover {
+    color: var(--text-main);
+}
+.chart-tf-selector .tf-btn.active {
+    background: #000;
+    color: #fff;
+}
+
+.chart-modal-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+}
+
+.chart-modal-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.chart-modal-stat-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+}
+.chart-modal-stat-value {
+    font-size: 1rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    letter-spacing: -0.02em;
+}
+
+.chart-modal-close {
+    flex-shrink: 0;
+    background: none;
+    border: var(--border-thick);
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-main);
+    transition: background 0.15s, color 0.15s;
+    margin-left: auto;
+}
+.chart-modal-close:hover {
+    background: #000;
+    color: #fff;
+}
+
+.chart-modal-chart {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-modal-hint {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    padding: 0.45rem 1.5rem;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 600px) {
+    .chart-modal-stats { gap: 0.75rem; }
+    .chart-modal-stat-value { font-size: 0.85rem; }
+    .chart-modal-symbol { font-size: 1.2rem; }
+    .chart-modal-header { padding: 0.75rem 1rem; gap: 0.75rem; }
+    .chart-modal-card { height: 85vh; }
 }
