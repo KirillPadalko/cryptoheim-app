@@ -598,7 +598,7 @@ async function renderClosedOrders() {
         const html = trades.map(t => {
             const isWin = t.pnl >= 0;
             const iconClass = isWin ? 'win' : 'loss';
-            const icon = isWin ? 'вњ“' : 'вњ—';
+            const icon = isWin ? '✓' : '✕';
             const pnlSign = t.pnl > 0 ? '+' : '';
             const sym = String(t.symbol).replace('USDT', '');
             const isLong = String(t.side).toLowerCase() === 'buy';
@@ -613,7 +613,7 @@ async function renderClosedOrders() {
                         <div class="closed-order-symbol">${sym}</div>
                         <div class="closed-order-meta">
                             <span class="closed-order-side ${sideClass}">${sideLabel}</span>
-                            <span class="closed-order-duration">вЏ± ${holdStr}</span>
+                            <span class="closed-order-duration">⏱ ${holdStr}</span>
                         </div>
                     </div>
                     <div class="closed-order-pnl ${iconClass}">${pnlSign}$${t.pnl.toFixed(2)}</div>
