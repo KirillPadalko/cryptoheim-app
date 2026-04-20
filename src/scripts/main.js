@@ -487,13 +487,15 @@ async function renderExposureAndPositions() {
                 if (td) td.addEventListener('click', () => openPositionModal(`pos-chart-${pos.id}`));
             });
 
-            // Allocation calculation
-            const equity = stats ? (stats.balance_history[stats.balance_history.length - 1]?.equity || 100) : 100;
-            let currentAssetVal = 0;
+            // Calculate detailed allocation
             let allocHtml = '';
+            let btcVal = 0, ethVal = 0, altsVal = 0;
+            const equity = stats && stats.balance_history && stats.balance_history.length > 0 
+                ? stats.balance_history[stats.balance_history.length - 1].equity 
+                : 0;
+            let currentAssetVal = 0;
             
             // Just for demonstration logic based on Positions
-            let btcVal = 0, ethVal = 0, altsVal = 0;
             positions.forEach(pos => {
                 const price = (sparklinesObj && sparklinesObj[pos.symbol]) ? sparklinesObj[pos.symbol][sparklinesObj[pos.symbol].length - 1] : pos.entry_price;
                 const val = pos.size * price;
@@ -562,10 +564,15 @@ async function renderExposureAndPositions() {
 // ----------------------------------------------------
 function formatHoldTime(minutes) {
     if (minutes === null || minutes === undefined) return 'вЂ”';
-    if (minutes < 60) return `${Math.round(minutes)}m`;
-    if (minutes < 1440) return `${Math.round(minutes / 60)}h ${Math.round(minutes % 60)}m`;
-    const days = Math.floor(minutes / 1440);
-    const hrs = Math.round((minutes % 1440) / 60);
+    const totalMins = Math.round(minutes);
+    if (totalMins < 60) return `${totalMins}m`;
+    if (totalMins < 1440) {
+        const hrs = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+        return `${hrs}h ${mins}m`;
+    }
+    const days = Math.floor(totalMins / 1440);
+    const hrs = Math.floor((totalMins % 1440) / 60);
     return `${days}d ${hrs}h`;
 }
 
