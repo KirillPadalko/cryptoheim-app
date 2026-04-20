@@ -62,13 +62,16 @@
             <div class="container">
                 <div class="phones-container">
                     <div class="phone-mockup p1">
-                        <img src="./src/assets/Screenshot_20251205_111424.png" alt="App Screenshot 1">
+                        <img src="./src/assets/Screenshot_20260305_144255.png" alt="My Portfolio — balance and watchlist">
                     </div>
                     <div class="phone-mockup p2">
-                        <img src="./src/assets/Screenshot_20251205_111522.png" alt="App Screenshot 2">
+                        <img src="./src/assets/Screenshot_20260305_144345.png" alt="Market Overview — sentiment, radar and movers">
                     </div>
                     <div class="phone-mockup p3">
-                        <img src="./src/assets/Screenshot_20251205_111546.png" alt="App Screenshot 3">
+                        <img src="./src/assets/Screenshot_20260305_144401.png" alt="Fear & Greed, Altcoin Season and Market Dominance">
+                    </div>
+                    <div class="phone-mockup p4">
+                        <img src="./src/assets/Screenshot_20260305_144416.png" alt="Global markets and S&P 500">
                     </div>
                 </div>
             </div>
@@ -79,11 +82,14 @@
                 <h2 class="section-title">Release Notes</h2>
 
                 <div class="release-block">
-                    <div class="release-header">
-                        <span class="release-version">Pre-Alpha v0.1</span>
-                        <span class="release-date">20.12.2024</span>
+                    <div class="release-header" id="pre-alpha-toggle" onclick="togglePreAlpha()" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+                        <div>
+                            <span class="release-version">Pre-Alpha v0.1</span>
+                            <span class="release-date">20.12.2024</span>
+                        </div>
+                        <span id="pre-alpha-chevron" style="font-size:1.2rem; transition: transform 0.2s; display:inline-block; transform: rotate(180deg);">▾</span>
                     </div>
-                    <ul class="release-list">
+                    <ul class="release-list" id="pre-alpha-list" style="display:none;">
                         <li>Market Overview виджет</li>
                         <li>Обновлена иконка и название приложения (CryptoHeim)</li>
                         <li>Кнопка обратной связи через Telegram</li>
@@ -110,6 +116,16 @@
                 </div>
             </div>
         </section>
+
+        <script>
+            function togglePreAlpha() {
+                const list = document.getElementById('pre-alpha-list');
+                const chevron = document.getElementById('pre-alpha-chevron');
+                const open = list.style.display !== 'none';
+                list.style.display = open ? 'none' : '';
+                chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        </script>
 
         <section class="feedback-section" style="padding: 5rem 0; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center;">
             <div class="container" style="max-width: 800px;">
