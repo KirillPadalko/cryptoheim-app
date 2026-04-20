@@ -47,6 +47,7 @@ const I18N = {
         'tp': 'ТЕЙК-ПРОФИТ',
         'unpnl': 'НЕРЕАЛ. PNL',
         'chart_hint': 'Колесико для масштаба &nbsp;&bull;&nbsp; Тяните для перемещения &nbsp;&bull;&nbsp; Двойной клик для сброса',
+        'page_title': 'ДЭШБОРД АНАЛИТИКИ',
         
         // Dynamically used keys
         'dyn_no_active': 'Нет открытых позиций',

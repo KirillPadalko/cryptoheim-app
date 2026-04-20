@@ -6,10 +6,11 @@
     <link rel="icon" type="image/png" href="./src/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CryptoHeim Live | Analytics Dashboard</title>
+    <meta name="description" content="Live crypto market analytics dashboard — AI signals, open positions, market intelligence." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
         rel="stylesheet">
 
     <!-- Direct CSS links for static usage -->
@@ -21,50 +22,146 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <!-- Lightweight Charts (TradingView) for full-screen position modal -->
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+    <style>
+        /* ── Unified nav bar (mirrors model-quality.html) ── */
+        .top-nav {
+            border-bottom: 3px solid #000;
+            background: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .top-nav .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: #000;
+            white-space: nowrap;
+        }
+        .top-nav .nav-links {
+            display: flex;
+            gap: 0.75rem;
+            margin-left: auto;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .top-nav .nav-links a {
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: #555;
+            padding: 0.35rem 0.75rem;
+            border: 1px solid #000;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+        .top-nav .nav-links a:hover,
+        .top-nav .nav-links a.active {
+            background: #000;
+            color: #fff;
+        }
+        .top-nav .nav-lang {
+            display: flex;
+            border: 1px solid #000;
+        }
+        .top-nav .nav-lang .lang-btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: transparent;
+            font-family: 'Space Mono', monospace;
+            transition: background .15s, color .15s;
+        }
+        .top-nav .nav-lang .lang-btn.active {
+            background: #000;
+            color: #fff;
+        }
+        .top-nav .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.72rem;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #00c853;
+            white-space: nowrap;
+        }
+        .top-nav .live-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #00c853;
+            animation: livePulse 1.5s infinite;
+        }
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .top-nav .timer-chip {
+            font-size: 0.72rem;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            background: #f5f5f5;
+            border: 1px solid #000;
+            padding: 0.3rem 0.65rem;
+            white-space: nowrap;
+            color: #000;
+        }
+        /* Page header for indicators page */
+        .ind-page-header {
+            border-bottom: 3px solid #000;
+            background: #fff;
+            padding: 2rem 2rem 1.75rem;
+        }
+        .ind-page-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+        .ind-page-header p {
+            color: #555;
+            margin-top: 0.3rem;
+            font-size: 0.95rem;
+        }
+    </style>
 </head>
 
 <body>
+    <!-- ── UNIFIED NAV (matches model-quality.html) ── -->
+    <nav class="top-nav">
+        <a href="index.html" class="logo">⬡ CryptoHeim</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="indicators.html" class="active" data-i18n-nav="Indicators">Indicators</a>
+            <a href="model-quality.html" data-i18n-nav="AI Quality">AI Quality</a>
+            <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" data-i18n="app_btn">App ↗</a>
+        </div>
+        <div class="live-badge">
+            <div class="live-dot"></div>
+            <span data-i18n="live">LIVE</span>
+        </div>
+        <div class="timer-chip">
+            <span data-i18n="next_upd">NEXT</span> <span id="refresh-timer">—:——</span>
+        </div>
+        <div class="nav-lang" id="lang-switcher">
+            <div class="lang-btn active" data-lang="en">EN</div>
+            <div class="lang-btn" data-lang="ru">RU</div>
+        </div>
+    </nav>
+
+    <!-- ── PAGE HEADER ── -->
+    <div class="ind-page-header">
+        <h1 data-i18n="page_title">Analytics Dashboard</h1>
+        <p data-i18n="subtitle">AI signals, open positions & market intelligence — updated every 5 minutes</p>
+    </div>
+
     <div id="app" class="streaming-layout">
-        <!-- HEADER -->
-        <header class="dashboard-header">
-            <div class="header-left">
-                <div class="header-logo-box">
-                    <img src="./src/assets/logo.png" alt="Logo" class="mini-logo">
-                    <div class="header-titles">
-                        <h1>CRYPTOHEIM LIVE</h1>
-                        <p data-i18n="subtitle">ANALYTICS & INTELLIGENCE DASHBOARD</p>
-                    </div>
-                </div>
-                <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" class="play-store-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="margin-right: 8px;">
-                      <path d="M14.222 9.374c1.037-.61 1.037-2.137 0-2.748L11.528 5.04 8.32 8l3.208 2.96 2.694-1.586Zm-3.595 2.116L7.583 8.68 1.03 14.73c.201 1.029 1.36 1.61 2.303 1.055l7.294-4.295ZM1 13.396V2.603L6.846 8 1 13.396ZM1.03 1.27l6.553 6.05 3.044-2.81L3.333.215C2.39-.341 1.231.24 1.03 1.27Z"/>
-                    </svg>
-                    <span data-i18n="app_btn">APP ON GOOGLE PLAY</span>
-                </a>
-            </div>
-            <div class="header-right">
-                <div class="status-live">
-                    <div class="status-indicator"></div>
-                    <span data-i18n="live">LIVE</span>
-                </div>
-                <div id="lang-switcher" class="lang-switcher">
-                    <div class="lang-btn active" data-lang="en">EN</div>
-                    <div class="lang-btn" data-lang="ru">RU</div>
-                </div>
-                <div class="refresh-timer-box">
-                    <span class="timer-label" data-i18n="next_upd">NEXT UPDATE</span>
-                    <span id="refresh-timer" class="timer-value">04:51</span>
-                </div>
-                <!-- Menu / Back placeholder -->
-                <a href="index.html" class="burger-menu">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="3" stroke-linecap="square" stroke-linejoin="miter">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                    </svg>
-                </a>
-            </div>
-        </header>
 
         <!-- DECISION STRIP & NARRATIVE -->
         <div class="decision-wrapper">
@@ -262,6 +359,12 @@
 
     <!-- Scripts -->
     <script type="module" src="./src/scripts/main.js?v=2.0"></script>
+
+    <!-- Footer -->
+    <footer style="border-top: 3px solid #000; padding: 1.5rem 2rem; text-align: center; font-size: 0.78rem; color: #555; font-family: 'Space Mono', monospace;">
+        CryptoHeim &copy; 2025 &nbsp;&middot;&nbsp; <span data-i18n="subtitle">Analytics Dashboard</span> &nbsp;&middot;&nbsp;
+        <a href="model-quality.html" style="color: #555; text-decoration: none; border-bottom: 1px solid #ccc;" data-i18n-nav="AI Quality">AI Quality</a>
+    </footer>
 </body>
 
 </html>
