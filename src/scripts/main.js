@@ -41,6 +41,9 @@ const I18N = {
         'pnl': 'PNL',
         'chart': 'ГРАФИК',
         'sltp': 'SL/TP',
+        'time': 'ВРЕМЯ',
+        'opened': 'ОТКРЫТО',
+        'closed': 'ЗАКРЫТО',
         'allocation': 'АЛЛОКАЦИЯ',
         'recent_closes': 'НЕДАВНО ЗАКРЫТЫЕ',
         'sl': 'СТОП-ЛОСС',
@@ -48,6 +51,9 @@ const I18N = {
         'unpnl': 'НЕРЕАЛ. PNL',
         'chart_hint': 'Колесико для масштаба &nbsp;&bull;&nbsp; Тяните для перемещения &nbsp;&bull;&nbsp; Двойной клик для сброса',
         'page_title': 'ДЭШБОРД АНАЛИТИКИ',
+        'Indicators': 'Аналитика',
+        'AI Quality': 'Оценка модели',
+        'Expert': 'Мнение эксперта',
         
         // Dynamically used keys
         'dyn_no_active': 'Нет открытых позиций',
@@ -58,7 +64,27 @@ const I18N = {
         'dyn_cash': 'КЭШ',
         'dyn_cash_100': 'КЭШ 100%',
         'dyn_long': 'ЛОНГ',
-        'dyn_short': 'ШОРТ'
+        'dyn_short': 'ШОРТ',
+        'regime': 'РЕЖИМ',
+        'bias_label': 'БАЙЕС',
+        'rsi': 'RSI(1Д)',
+        'strength': 'СИЛА',
+        'risk_val': 'РИСК',
+        'logic': 'ЛОГИКА',
+        'analysis': 'АНАЛИЗ ИИ',
+        'exp_subtitle': 'Человеческий анализ против ИИ — Биткоин',
+        'exp_dir': 'Направление',
+        'exp_size': 'Сумма сделки (USD)',
+        'exp_targets': 'Цели (опционально)',
+        'exp_tp': 'ТЕЙК-ПРОФИТ',
+        'exp_sl': 'СТОП-ЛОСС',
+        'exp_reason': 'Обоснование (опционально)',
+        'exp_reason_placeholder': 'Почему этот вход?',
+        'exp_submit': 'Опубликовать прогноз',
+        'exp_human_hist': 'История прогнозов эксперта',
+        'exp_bot_hist': 'История ИИ бота по BTC',
+        'exp_active_label': 'АКТИВНЫЙ ПРОГНОЗ',
+        'exp_close_btn': 'ЗАКРЫТЬ'
     },
     'en': {
         // En defaults are already correctly written fallback in indicators.html, 
@@ -71,11 +97,35 @@ const I18N = {
         'dyn_cash': 'CASH',
         'dyn_cash_100': 'FLAT 100%',
         'dyn_long': 'LONG',
-        'dyn_short': 'SHORT'
+        'dyn_short': 'SHORT',
+        'regime': 'REGIME',
+        'bias_label': 'BIAS',
+        'rsi': 'RSI(1D)',
+        'strength': 'FORCE',
+        'risk_val': 'RISK',
+        'logic': 'LOGIC',
+        'analysis': 'AI ANALYSIS',
+        'time': 'TIME',
+        'opened': 'OPENED',
+        'closed': 'CLOSED',
+        'Expert': 'Expert',
+        'exp_subtitle': 'Human analysis vs AI Bot — BTC focus',
+        'exp_dir': 'Direction',
+        'exp_size': 'Purchase Size (USD)',
+        'exp_targets': 'Targets (Optional)',
+        'exp_tp': 'TAKE PROFIT',
+        'exp_sl': 'STOP LOSS',
+        'exp_reason': 'Rationale (Optional)',
+        'exp_reason_placeholder': 'Why this move?',
+        'exp_submit': 'Submit Forecast',
+        'exp_human_hist': 'Human Expert History',
+        'exp_bot_hist': 'AI Bot BTC History',
+        'exp_active_label': 'ACTIVE FORECAST',
+        'exp_close_btn': 'CLOSE'
     }
 };
 
-function getTr(key) {
+export function getTr(key) {
     if (window.appLang === 'ru' && I18N['ru'][key]) return I18N['ru'][key];
     if (I18N['en'][key]) return I18N['en'][key];
     return key;
@@ -91,6 +141,18 @@ function applyTranslations() {
             const key = el.getAttribute('data-i18n');
             if (I18N['ru'][key]) {
                 el.innerHTML = I18N['ru'][key];
+            }
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (I18N['ru'][key]) {
+                el.placeholder = I18N['ru'][key];
+            }
+        });
+        document.querySelectorAll('[data-i18n-nav]').forEach(el => {
+            const key = el.getAttribute('data-i18n-nav');
+            if (I18N['ru'][key]) {
+                el.innerText = I18N['ru'][key];
             }
         });
     }
@@ -219,6 +281,13 @@ async function renderDecisionStrip() {
         const directionBlock = document.getElementById('ds-direction-block');
 
         if (regimeCfg && biasEl) {
+            // Update top-most label of the first block
+            const firstBlockLabel = biasEl.parentElement.querySelector('.label');
+            if (firstBlockLabel) {
+                firstBlockLabel.innerText = "MARKET STATE";
+                firstBlockLabel.removeAttribute('data-i18n'); // prevent i18n from overriding
+            }
+
             // Primary: regime
             biasEl.innerText = regimeCfg.label;
             biasEl.style.color = regimeCfg.color;
@@ -358,8 +427,9 @@ async function renderTopSignals() {
                 const price = prices[matchSym] || prices[symUp] || '--';
                 const fPrice = (typeof price === 'number') ? (price < 1 ? price.toFixed(4) : price.toFixed(2)) : price;
 
-                // Hacky risk eval
-                const riskLevel = sStr.includes('strong') ? 'MEDIUM' : (sStr.includes('sell') ? 'HIGH' : 'LOW');
+                const lang = window.appLang || 'en';
+                const logicObj = s.risk_logic || {};
+                const logicStr = (typeof logicObj === 'string') ? logicObj : (logicObj[lang] || logicObj['en'] || "");
                 
                 htmlChunks.push(`
                     <div class="signal-row">
@@ -367,7 +437,10 @@ async function renderTopSignals() {
                         <div class="signal-main">
                             <div class="signal-info">
                                 <h3>${cleanSymbol(s.symbol)}</h3>
-                                <div class="signal-badge ${badgeClass}">${s.signal}</div>
+                                <div class="signal-badge-row">
+                                    <div class="signal-badge ${badgeClass}">${s.signal}</div>
+                                    ${logicStr ? `<div class="signal-logic-badge">${logicStr}</div>` : ''}
+                                </div>
                                 <div class="signal-desc"><b>Why:</b> ${s.reason}</div>
                             </div>
                         </div>
@@ -480,7 +553,7 @@ async function renderExposureAndPositions() {
         // Positions Table
         const tbody = document.getElementById('pos-table-body');
         if (!positions || positions.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">${getTr('dyn_no_active')}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">${getTr('dyn_no_active')}</td></tr>`;
             document.getElementById('exp-net-bias').innerText = getTr('dyn_cash_100');
             document.getElementById('exp-net-bias').className = `exp-value text-muted`;
         } else {
@@ -506,6 +579,7 @@ async function renderExposureAndPositions() {
                             ${cleanSymbol(pos.symbol)}
                             <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-${isLong ? 'green' : 'red'});">${isLong ? getTr('dyn_long') : getTr('dyn_short')}</div>
                         </td>
+                        <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${formatDateTime(pos.open_time)}</td>
                         <td>${pos.size.toFixed(3)}</td>
                         <td>$${pos.entry_price.toFixed(2)}</td>
                         <td>$${price.toFixed(2)}</td>
@@ -625,6 +699,26 @@ async function renderExposureAndPositions() {
 // ----------------------------------------------------
 // CLOSED ORDERS
 // ----------------------------------------------------
+function formatDateTime(val) {
+    if (!val) return '—';
+    // Handle Unix timestamp (seconds)
+    let d;
+    if (typeof val === 'number') {
+        d = new Date(val * 1000);
+    } else {
+        d = new Date(val); // ISO string
+    }
+    
+    if (isNaN(d.getTime())) return '—';
+
+    const hh = d.getHours().toString().padStart(2, '0');
+    const mm = d.getMinutes().toString().padStart(2, '0');
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mo = (d.getMonth() + 1).toString().padStart(2, '0');
+    
+    return `${hh}:${mm} ${dd}/${mo}`;
+}
+
 function formatHoldTime(minutes) {
     if (minutes === null || minutes === undefined) return 'вЂ”';
     const totalMins = Math.round(minutes);
@@ -669,6 +763,53 @@ async function renderClosedOrders() {
             const sideClass = isLong ? 'long' : 'short';
             const holdStr = formatHoldTime(t.hold_minutes);
 
+            let contextHtml = '';
+            if (t.open_context) {
+                let ctx = t.open_context;
+                // Safety: parse if it's a string
+                if (typeof ctx === 'string') {
+                    try { ctx = JSON.parse(ctx); } catch(e) { console.error("Failed to parse open_context", e); }
+                }
+
+                if (ctx && typeof ctx === 'object') {
+                    const analysis = ctx.coin_metrics || {};
+                    const cm = analysis.technical_indicators || {};
+                    const rsi = cm.rsi_1d ? Math.round(cm.rsi_1d) : '--';
+                    const str = cm.trend_strength ? String(cm.trend_strength).toUpperCase() : '--';
+                    const regime = ctx.market_regime ? String(ctx.market_regime).toUpperCase() : '--';
+                    const bias = ctx.market_bias ? String(ctx.market_bias).toUpperCase() : '--';
+                    const risk = ctx.risk_pct ? (ctx.risk_pct * 100).toFixed(1) + '%' : '--';
+                    const lev = ctx.leverage || '--';
+
+                    const lang = window.appLang || 'en';
+                    const logicObj = analysis.risk_logic || {};
+                    const logicStr = (typeof logicObj === 'string') ? logicObj : (logicObj[lang] || logicObj['en'] || "");
+                    const analysisObj = analysis.summary || {};
+                    const analysisStr = (typeof analysisObj === 'string') ? analysisObj : (analysisObj[lang] || analysisObj['en'] || "");
+
+                    contextHtml = `
+                        <div class="closed-order-context" style="grid-column: 1 / -1; font-size: 0.65rem; font-family: var(--font-mono); color: var(--text-muted); background: #fafafa; padding: 10px; border: 1px dashed #ccc; margin-top: 6px; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px;">
+                                <div><b style="color:#000">${getTr('regime')}:</b> ${regime}</div>
+                                <div><b style="color:#000">${getTr('bias_label')}:</b> ${bias}</div>
+                                <div><b style="color:#000">${getTr('rsi')}:</b> ${rsi}</div>
+                                <div><b style="color:#000">${getTr('strength')}:</b> ${str}</div>
+                                <div><b style="color:#000">${getTr('risk_val')}:</b> ${risk} (x${lev})</div>
+                            </div>
+                            ${logicStr ? `
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <b style="color:#000">${getTr('logic')}:</b>
+                                <span class="signal-logic-badge" style="background:#000; color:#fff; padding: 1px 5px; border:none;">${logicStr}</span>
+                            </div>` : ''}
+                            ${analysisStr ? `
+                            <div style="line-height: 1.3;">
+                                <b style="color:#000">${getTr('analysis')}:</b> ${analysisStr}
+                            </div>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
             return `
                 <div class="closed-order-row">
                     <div class="closed-order-icon ${iconClass}">${icon}</div>
@@ -678,8 +819,13 @@ async function renderClosedOrders() {
                             <span class="closed-order-side ${sideClass}">${sideLabel}</span>
                             <span class="closed-order-duration">⏱ ${holdStr}</span>
                         </div>
+                        <div class="closed-order-times">
+                            <span>${getTr('opened')}: ${formatDateTime(t.open_time)}</span>
+                            <span>${getTr('closed')}: ${formatDateTime(t.close_time)}</span>
+                        </div>
                     </div>
                     <div class="closed-order-pnl ${iconClass}">${pnlSign}$${t.pnl.toFixed(2)}</div>
+                    ${contextHtml}
                 </div>
             `;
         }).join('');

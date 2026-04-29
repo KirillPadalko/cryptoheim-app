@@ -24,6 +24,21 @@ async function fetchApi(endpoint) {
     }
 }
 
+async function postApi(endpoint, body) {
+    try {
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    } catch (e) {
+        console.error(`Post API Error for ${endpoint}:`, e);
+        return null;
+    }
+}
+
 export const API = {
     getAssets: () => fetchApi("/assets"),
     getSparklines: () => fetchApi("/klines/sparklines"),
@@ -41,5 +56,12 @@ export const API = {
     getMarketStats: () => fetchApi("/market-stats"),
     getMarketStatChart: (statId, limit = 30) => fetchApi(`/market-stats/${statId}/chart?limit=${limit}`),
     getMarketForecast: (lang = 'en') => fetchApi(`/market-forecast?lang=${lang}`),
-    getCryptoAnalysis: (lang = 'en') => fetchApi(`/crypto-analysis?lang=${lang}`)
+    getCryptoAnalysis: (lang = 'en') => fetchApi(`/crypto-analysis?lang=${lang}`),
+    
+    // Expert Page
+    getExpertCurrent: () => fetchApi("/api/expert/current"),
+    getExpertHistory: (limit = 20) => fetchApi(`/api/expert/history?limit=${limit}`),
+    getExpertStats: () => fetchApi("/api/expert/stats"),
+    submitExpertForecast: (side, reason, tp_price = null, sl_price = null) => postApi("/api/expert/forecast", { side, reason, tp_price, sl_price }),
+    closeExpertForecast: () => postApi("/api/expert/close", {})
 };

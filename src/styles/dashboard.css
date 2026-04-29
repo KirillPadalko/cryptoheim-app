@@ -281,6 +281,12 @@ a { text-decoration: none; color: inherit; }
     gap: 1rem;
 }
 .signal-info h3 { font-size: 1.5rem; display: inline-block; margin-right: 10px;}
+.signal-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
 .signal-badge {
     display: inline-block;
     padding: 2px 6px;
@@ -288,6 +294,16 @@ a { text-decoration: none; color: inherit; }
     font-weight: 700;
     border: var(--border-thin);
     text-transform: uppercase;
+}
+.signal-logic-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: #f0f0f0;
+    padding: 2px 5px;
+    font-family: var(--font-mono);
+    border: 1px dashed var(--text-muted);
 }
 .badge-green { background: var(--color-green); color: #000; }
 .badge-red { background: var(--color-red); color: #fff; }
@@ -481,6 +497,19 @@ a { text-decoration: none; color: inherit; }
 }
 .closed-order-side.long { background: var(--color-green); color: #000; }
 .closed-order-side.short { background: var(--color-red); color: #fff; }
+
+.closed-order-times {
+    display: flex;
+    gap: 10px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+.closed-order-times span {
+    white-space: nowrap;
+}
 
 .closed-order-duration {
     font-size: 0.65rem;

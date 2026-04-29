@@ -52,6 +52,156 @@ img {
   display: block;
 }
 
-.noise-overlay {
-  display: none;
+/* ─── UNIFIED NAV ─── */
+.top-nav {
+    border-bottom: var(--border-thick);
+    background: #fff;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
+.top-nav .logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #000;
+    white-space: nowrap;
+}
+.top-nav .nav-links {
+    display: flex;
+    gap: 0.75rem;
+    margin-left: auto;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.top-nav .nav-links a {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text-muted);
+    padding: 0.35rem 0.75rem;
+    border: var(--border-thin);
+    transition: all .15s;
+    white-space: nowrap;
+}
+.top-nav .nav-links a:hover,
+.top-nav .nav-links a.active {
+    background: #000;
+    color: #fff;
+}
+.top-nav .nav-lang {
+    display: flex;
+    border: var(--border-thin);
+}
+.top-nav .nav-lang .lang-btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: transparent;
+    font-family: var(--font-mono);
+    transition: background .15s, color .15s;
+    border: none;
+    color: var(--text-main);
+}
+.top-nav .nav-lang .lang-btn.active {
+    background: #000;
+    color: #fff;
+}
+.top-nav .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-green);
+    white-space: nowrap;
+}
+.top-nav .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--color-green);
+    animation: livePulse 1.5s infinite;
+}
+@keyframes livePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+.top-nav .timer-chip {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    background: #f5f5f5;
+    border: var(--border-thin);
+    padding: 0.3rem 0.65rem;
+    white-space: nowrap;
+    color: #000;
+}
+.top-nav .play-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #000;
+    border: 2px solid #000;
+    padding: 0.3rem 0.85rem;
+    background: #fff;
+    font-family: var(--font-main);
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+}
+.top-nav .play-btn:hover {
+    background: #000;
+    color: #fff;
+}
+.top-nav .play-btn svg { flex-shrink: 0; }
+
+@media (max-width: 768px) {
+    .top-nav { padding: 0.75rem 1rem; gap: 0.75rem; flex-wrap: wrap; }
+    .top-nav .logo { font-size: 1.1rem; }
+    .top-nav .nav-links { order: 3; width: 100%; justify-content: center; margin-left: 0; margin-top: 0.5rem; }
+}
+
+/* ─── SHARED PAGE HEADER ─── */
+.page-header {
+    border-bottom: var(--border-thick);
+    background: #fff;
+    padding: 2.25rem 2rem 1.75rem;
+}
+.page-header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+.page-header p {
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+    font-size: 1rem;
+}
+.header-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+.period-badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background: #000;
+    color: #fff;
+    padding: 0.35rem 0.85rem;
+    border: var(--border-thin);
+    text-transform: uppercase;
+    font-weight: 700;
+    white-space: nowrap;
+}

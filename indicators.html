@@ -24,115 +24,6 @@
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 
     <style>
-        /* ── Unified nav bar (mirrors model-quality.html) ── */
-        .top-nav {
-            border-bottom: 3px solid #000;
-            background: #fff;
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        .top-nav .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            text-decoration: none;
-            color: #000;
-            white-space: nowrap;
-        }
-        .top-nav .nav-links {
-            display: flex;
-            gap: 0.75rem;
-            margin-left: auto;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .top-nav .nav-links a {
-            font-size: 0.82rem;
-            font-weight: 600;
-            text-decoration: none;
-            color: #555;
-            padding: 0.35rem 0.75rem;
-            border: 1px solid #000;
-            transition: all .15s;
-            white-space: nowrap;
-        }
-        .top-nav .nav-links a:hover,
-        .top-nav .nav-links a.active {
-            background: #000;
-            color: #fff;
-        }
-        .top-nav .nav-lang {
-            display: flex;
-            border: 1px solid #000;
-        }
-        .top-nav .nav-lang .lang-btn {
-            padding: 0.3rem 0.6rem;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            background: transparent;
-            font-family: 'Space Mono', monospace;
-            transition: background .15s, color .15s;
-        }
-        .top-nav .nav-lang .lang-btn.active {
-            background: #000;
-            color: #fff;
-        }
-        .top-nav .live-badge {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.72rem;
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            color: #00c853;
-            white-space: nowrap;
-        }
-        .top-nav .live-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: #00c853;
-            animation: livePulse 1.5s infinite;
-        }
-        @keyframes livePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-        .top-nav .timer-chip {
-            font-size: 0.72rem;
-            font-family: 'Space Mono', monospace;
-            font-weight: 700;
-            background: #f5f5f5;
-            border: 1px solid #000;
-            padding: 0.3rem 0.65rem;
-            white-space: nowrap;
-            color: #000;
-        }
-        .top-nav .play-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-decoration: none;
-            color: #000;
-            border: 2px solid #000;
-            padding: 0.3rem 0.85rem;
-            background: #fff;
-            font-family: 'Space Grotesk', sans-serif;
-            transition: background .15s, color .15s;
-            white-space: nowrap;
-        }
-        .top-nav .play-btn:hover {
-            background: #000;
-            color: #fff;
-        }
-        .top-nav .play-btn svg { flex-shrink: 0; }
         /* Apply model-quality shadows to dashboard cards */
         .brutal-card   { box-shadow: 4px 4px 0 #000; }
         .risk-block    { box-shadow: 4px 4px 0 #000; }
@@ -148,6 +39,7 @@
             <a href="index.html">Home</a>
             <a href="indicators.html" class="active" data-i18n-nav="Indicators">Indicators</a>
             <a href="model-quality.html" data-i18n-nav="AI Quality">AI Quality</a>
+            <a href="expert.html" data-i18n-nav="Expert">Expert</a>
         </div>
         <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" class="play-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
@@ -167,6 +59,10 @@
             <div class="lang-btn" data-lang="ru">RU</div>
         </div>
     </nav>
+    <div class="page-header">
+        <h1 data-i18n="page_title">Analytics Dashboard</h1>
+        <p data-i18n="subtitle">AI signals, open positions & market intelligence — updated every 5 minutes</p>
+    </div>
 
     <div id="app" class="streaming-layout">
 
@@ -287,6 +183,7 @@
                             <thead>
                                 <tr>
                                     <th data-i18n="asset">ASSET</th>
+                                    <th data-i18n="time">TIME</th>
                                     <th data-i18n="size">SIZE</th>
                                     <th data-i18n="entry">ENTRY</th>
                                     <th data-i18n="price">PRICE</th>
@@ -296,7 +193,7 @@
                                 </tr>
                             </thead>
                             <tbody id="pos-table-body">
-                                <tr><td colspan="7" style="text-align: center;" data-i18n="loading">Loading...</td></tr>
+                                <tr><td colspan="8" style="text-align: center;" data-i18n="loading">Loading...</td></tr>
                             </tbody>
                         </table>
                     </div>

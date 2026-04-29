@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./src/assets/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CryptoHeim — Expert Forecasts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/styles/main.css?v=2.1">
+    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.1">
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        .expert-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+        .chart-container {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: 4px 4px 0 #000;
+            padding: 1rem;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .chart-tf-selector {
+            display: flex;
+            border: var(--border-thin);
+        }
+        .tf-btn {
+            padding: 0.3rem 0.8rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            font-family: var(--font-mono);
+        }
+        .tf-btn.active {
+            background: #000;
+            color: #fff;
+        }
+        #btc-chart {
+            flex-grow: 1;
+        }
+        .expert-controls {
+            border: var(--border-thick);
+            background: #fff;
+            box-shadow: 4px 4px 0 #000;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .control-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+        .side-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .side-btn {
+            padding: 0.75rem;
+            font-weight: 800;
+            border: var(--border-thick);
+            cursor: pointer;
+            background: #fff;
+            font-family: var(--font-main);
+        }
+        .side-btn.long.active { background: var(--color-green); color: #000; }
+        .side-btn.short.active { background: var(--color-red); color: #fff; }
+        
+        textarea {
+            width: 100%;
+            border: var(--border-thick);
+            padding: 0.75rem;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            resize: none;
+        }
+        .submit-btn {
+            background: #000;
+            color: #fff;
+            padding: 1rem;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            padding: 0 1.5rem 2rem;
+        }
+        .stats-block {
+            border: var(--border-thick);
+            background: #fff;
+            padding: 1rem;
+            box-shadow: 4px 4px 0 #000;
+        }
+        .stats-header {
+            font-size: 0.8rem;
+            font-weight: 800;
+            border-bottom: var(--border-thin);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .stats-val { font-family: var(--font-mono); font-weight: 700; }
+
+        @media (max-width: 1000px) {
+            .expert-layout { grid-template-columns: 1fr; }
+            .comparison-grid { grid-template-columns: 1fr; }
+        }
+        .active-forecast-banner {
+            background: #000;
+            color: #fff;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .close-forecast-btn {
+            color: #fff;
+            border: none;
+            padding: 0.4rem 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .levels-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .level-input {
+            width: 100%;
+            border: var(--border-thick);
+            padding: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .rr-badge {
+            display: inline-block;
+            background: #eee;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 800;
+            margin-top: 0.3rem;
+            font-family: var(--font-mono);
+        }
+        .active-levels {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+        .leverage-badge {
+            background: #eee;
+            color: #333;
+            padding: 0.1rem 0.4rem;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border-radius: 2px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">⬡ CryptoHeim</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="indicators.html" data-i18n-nav="Indicators">Indicators</a>
+            <a href="model-quality.html" data-i18n-nav="AI Quality">AI Quality</a>
+            <a href="expert.html" class="active" data-i18n-nav="Expert">Expert</a>
+        </div>
+        <div class="nav-lang" id="lang-switcher">
+            <div class="lang-btn active" data-lang="en">EN</div>
+            <div class="lang-btn" data-lang="ru">RU</div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <h1 data-i18n="Expert">Expert Forecasts</h1>
+        <p data-i18n="exp_subtitle">Human analysis vs AI Bot — BTC focus (Fixed 10x Leverage)</p>
+    </div>
+
+    <div class="expert-layout">
+        <div class="chart-container">
+            <div class="chart-header">
+                <div style="font-weight: 800;">BITCOIN / USDT</div>
+                <div class="chart-tf-selector" id="tf-selector">
+                    <button class="tf-btn" data-tf="15m">15M</button>
+                    <button class="tf-btn active" data-tf="1h">1H</button>
+                </div>
+            </div>
+            <div id="btc-chart"></div>
+        </div>
+
+        <div class="expert-panel">
+            <div id="active-forecast-container"></div>
+            
+            <div class="expert-controls" id="expert-controls">
+                <div class="control-group">
+                    <label data-i18n="exp_dir">Direction</label>
+                    <div class="side-btns">
+                        <button class="side-btn long" id="btn-long">LONG</button>
+                        <button class="side-btn short" id="btn-short">SHORT</button>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label data-i18n="exp_size">Virtual Position Size (USD)</label>
+                    <input type="number" id="forecast-size" class="level-input" value="10" min="1" max="100" step="5">
+                    <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 0.3rem;">Max $100 available. Fixed <span class="leverage-badge">10x</span> leverage applied.</div>
+                </div>
+                <div class="control-group">
+                    <label data-i18n="exp_targets">Targets (Optional)</label>
+                    <div class="levels-grid">
+                        <div>
+                            <div style="font-size: 0.6rem; opacity: 0.6;" data-i18n="exp_tp">TAKE PROFIT</div>
+                            <input type="number" id="tp-price" class="level-input" placeholder="Price">
+                        </div>
+                        <div>
+                            <div style="font-size: 0.6rem; opacity: 0.6;" data-i18n="exp_sl">STOP LOSS</div>
+                            <input type="number" id="sl-price" class="level-input" placeholder="Price">
+                        </div>
+                    </div>
+                    <div id="rr-display" class="rr-badge" style="display:none;">R/R: 0.00</div>
+                </div>
+                <div class="control-group">
+                    <label data-i18n="exp_reason">Rationale (Optional)</label>
+                    <textarea id="forecast-reason" rows="3" placeholder="Why this move?" data-i18n-placeholder="exp_reason_placeholder"></textarea>
+                </div>
+                <button class="submit-btn" id="btn-submit" data-i18n="exp_submit">Submit Forecast</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="comparison-grid">
+        <div class="stats-block">
+            <div class="stats-header">
+                <span data-i18n="exp_human_hist">Human Expert History</span>
+                <span id="expert-equity" style="font-family:var(--font-mono); font-weight:800;">$100.00</span>
+            </div>
+            <div id="expert-history-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+        <div class="stats-block">
+            <div class="stats-header">
+                <span data-i18n="exp_bot_hist">AI Bot BTC History</span>
+                <span id="bot-equity" style="font-family:var(--font-mono); font-weight:800;">$100.00</span>
+            </div>
+            <div id="bot-history-list">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/scripts/expert_main.js"></script>
+</body>
+</html>
