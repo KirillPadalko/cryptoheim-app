@@ -220,43 +220,56 @@ async function updateCurrentForecast() {
 
 async function updateStats() {
     const data = await API.getExpertStats();
-    const botHistory = await API.getBotHistory(100); 
     
-    if (data) {
-        // 1. Expert Equity
-        const expEquity = document.getElementById('expert-equity');
-        const eq = data.expert.equity || 100.0;
-        expEquity.textContent = `$${eq.toFixed(2)}`;
-        expEquity.className = eq >= 100 ? 'text-green' : 'text-red';
+    if (!data) return;
+    
+    // 1. Expert Equity
+    const expEquity = document.getElementById('expert-equity');
+    const eq = data.expert.equity || 100.0;
+    expEquity.textContent = `$${eq.toFixed(2)}`;
+    expEquity.className = eq >= 100 ? 'text-green' : 'text-red';
 
-        // 2. Bot Equity (Normalized to virtual $100)
-        // We calculate virtual PnL for each BTC trade as if it was $10 (10% of $100 bank) with 10x leverage.
-        const btcTrades = botHistory ? botHistory.filter(t => t.symbol === 'BTCUSDT') : [];
-        let botVirtualPnl = 0;
-        
-        btcTrades.forEach(t => {
-            // Assume bot enters with 10% of virtual bank ($10) with 10x leverage
-            // In reality, we could just sum the real PnL % if bot was trading 10x leverage.
-            // But let's assume a fixed 10% allocation per trade for this dashboard.
-            const tradeSize = 10.0; // $10 from $100
-            const leverage = 10.0;
-            const pnlPctNoLev = (t.pnl / (t.entry_price * t.size)) * 100; // Not always accurate if size is missing
-            // Simpler: use real PnL percentage if available, otherwise estimate.
-            // Most consistent: bot PnL on $100 is just cumulative.
-            botVirtualPnl += (t.pnl || 0) * (100.0 / 200.0); // Estimate normalization if real bank is ~$200
-            // Actually, let's just use 10% of bank per trade logic for bot here:
-            // botVirtualPnl += (t.pnl_pct || 0) * tradeSize * leverage / 100;
-        });
-        
-        // For now, let's just show $100 for bot until more trades come in today.
-        const botEquity = document.getElementById('bot-equity');
-        botEquity.textContent = `$100.00`; 
-    }
+    // 2. Bot Equity — show $100 base + virtual PnL from open position
+    const botEquity = document.getElementById('bot-equity');
+    const botPos = data.bot?.current_position;
+    const botLivePnl = botPos ? (botPos.pnl || 0) : 0;
+    const botEq = 100.0 + botLivePnl;
+    botEquity.textContent = `$${botEq.toFixed(2)}`;
+    botEquity.className = botEq >= 100 ? 'text-green' : 'text-red';
+
+    // 3. Render Bot open position banner above history
+    renderBotCurrentPosition(botPos);
+}
+
+function renderBotCurrentPosition(pos) {
+    const botList = document.getElementById('bot-history-list');
+    // Remove any existing open position banner
+    const existingBanner = document.getElementById('bot-open-position-banner');
+    if (existingBanner) existingBanner.remove();
+
+    if (!pos) return;
+
+    const pnlClass = pos.pnl >= 0 ? 'text-green' : 'text-red';
+    const sideLabel = String(pos.side).toUpperCase() === 'BUY' ? 'LONG' : 'SHORT';
+    const banner = document.createElement('div');
+    banner.id = 'bot-open-position-banner';
+    banner.style.cssText = 'background:#000; color:#fff; padding:0.75rem 1rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;';
+    banner.innerHTML = `
+        <div>
+            <div style="font-size:0.65rem; opacity:0.6;">🤖 AI BOT — ACTIVE</div>
+            <div style="font-weight:800; font-size:0.9rem;">${sideLabel} $${pos.virtual_size} <span class="leverage-badge">x10</span> @ ${pos.entry_price}</div>
+        </div>
+        <div style="text-align:right;">
+            <div class="${pnlClass}" style="font-weight:800; font-size:1.1rem;">${pos.pnl > 0 ? '+' : ''}$${pos.pnl}</div>
+            <div style="font-size:0.65rem; opacity:0.6;">vs $${pos.current_price}</div>
+        </div>
+    `;
+    botList.parentElement.insertBefore(banner, botList);
 }
 
 async function updateHistory() {
     const expertHistory = await API.getExpertHistory();
-    const botHistory = await API.getBotHistory(10); // We'll filter BTC on backend or here
+    const botHistory = await API.getBotHistory(10);
     
     const expList = document.getElementById('expert-history-list');
     if (expertHistory && expertHistory.length > 0) {
