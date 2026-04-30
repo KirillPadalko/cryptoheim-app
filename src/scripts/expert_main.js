@@ -249,19 +249,30 @@ function renderBotCurrentPosition(pos) {
 
     if (!pos) return;
 
-    const pnlClass = pos.pnl >= 0 ? 'text-green' : 'text-red';
     const sideLabel = String(pos.side).toUpperCase() === 'BUY' ? 'LONG' : 'SHORT';
+    const entryPrice = pos.entry_price ?? '—';
+    const currentPrice = pos.current_price != null ? `$${pos.current_price}` : 'Loading...';
+    const virtualSize = pos.virtual_size != null ? `$${pos.virtual_size}` : '$10';
+    
+    let pnlHtml = '';
+    if (pos.pnl != null) {
+        const pnlClass = pos.pnl >= 0 ? 'text-green' : 'text-red';
+        pnlHtml = `<div class="${pnlClass}" style="font-weight:800; font-size:1.1rem;">${pos.pnl > 0 ? '+' : ''}$${pos.pnl.toFixed(2)}</div>`;
+    } else {
+        pnlHtml = `<div style="font-size:0.8rem; opacity:0.6;">Calculating...</div>`;
+    }
+
     const banner = document.createElement('div');
     banner.id = 'bot-open-position-banner';
     banner.style.cssText = 'background:#000; color:#fff; padding:0.75rem 1rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;';
     banner.innerHTML = `
         <div>
             <div style="font-size:0.65rem; opacity:0.6;">🤖 AI BOT — ACTIVE</div>
-            <div style="font-weight:800; font-size:0.9rem;">${sideLabel} $${pos.virtual_size} <span class="leverage-badge">x10</span> @ ${pos.entry_price}</div>
+            <div style="font-weight:800; font-size:0.9rem;">${sideLabel} ${virtualSize} <span class="leverage-badge">x10</span> @ ${entryPrice}</div>
         </div>
         <div style="text-align:right;">
-            <div class="${pnlClass}" style="font-weight:800; font-size:1.1rem;">${pos.pnl > 0 ? '+' : ''}$${pos.pnl}</div>
-            <div style="font-size:0.65rem; opacity:0.6;">vs $${pos.current_price}</div>
+            ${pnlHtml}
+            <div style="font-size:0.65rem; opacity:0.6;">vs ${currentPrice}</div>
         </div>
     `;
     botList.parentElement.insertBefore(banner, botList);
