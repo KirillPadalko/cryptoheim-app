@@ -338,7 +338,8 @@ async function renderDecisionStrip() {
         // --- DIRECTION BADGE (inside TREND block) ---
         const dirBtn = document.getElementById('ds-direction-btn');
         if (dirBtn && direction) {
-            const isWait = direction.toUpperCase() === 'WAIT';
+            const dirUpper = direction.toUpperCase();
+            const isWait = dirUpper === 'WAIT' || dirUpper === 'ЖДАТЬ' || dirUpper === 'ОЖИДАНИЕ';
             const icon = isWait ? '<span class="icon">⌛</span>' : '';
             const dirText = getTr('dyn_' + direction.toLowerCase()) || direction;
             dirBtn.innerHTML = `${icon}<span>${dirText}</span>`;
@@ -347,6 +348,7 @@ async function renderDecisionStrip() {
         } else if (dirBtn) {
             dirBtn.style.display = 'none';
         }
+
 
 
         // --- FEAR & GREED ---
@@ -405,14 +407,21 @@ async function renderTopSignals() {
             API.getSparklines() // or klines summary
         ]);
 
-        if (forecastRes.status === "fulfilled" && forecastRes.value?.forecast?.top_signals) {
-            const signals = forecastRes.value.forecast.top_signals.slice(0, 4); // Max 4
+        if (forecastRes.status === "fulfilled" && forecastRes.value && forecastRes.value.forecast) {
+            const forecast = forecastRes.value.forecast;
+            console.log("Forecast data received:", forecast);
+            
+            if (!forecast.top_signals || forecast.top_signals.length === 0) {
+                list.innerHTML = '<p style="padding: 20px; color: var(--text-muted); font-style: italic;">No active signals found in the latest forecast.</p>';
+                return;
+            }
+
+            const signals = forecast.top_signals.slice(0, 4); // Max 4
             let htmlChunks = [];
             
             // Get prices block
             let prices = {};
             if (klinesRes.status === "fulfilled" && klinesRes.value) {
-                // sparklines usually dictionary of symbol -> array
                 for (const symbol in klinesRes.value) {
                     const arr = klinesRes.value[symbol];
                     if (arr && arr.length > 0) {
@@ -428,6 +437,7 @@ async function renderTopSignals() {
                 if(sStr.includes('sell')) badgeClass = 'badge-red';
 
                 const symUp = String(s.symbol).toUpperCase();
+                // Match symbol with or without USDT suffix
                 const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
                 const price = prices[matchSym] || prices[symUp] || '--';
                 const fPrice = (typeof price === 'number') ? (price < 1 ? price.toFixed(4) : price.toFixed(2)) : price;
@@ -466,14 +476,18 @@ async function renderTopSignals() {
             // Draw charts
             if (klinesRes.status === "fulfilled" && klinesRes.value) {
                 signals.forEach((s, i) => {
-                    const sparklineData = klinesRes.value[s.symbol];
+                    const symUp = String(s.symbol).toUpperCase();
+                    const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
+                    const sparklineData = klinesRes.value[matchSym] || klinesRes.value[symUp];
+                    
                     if (sparklineData && sparklineData.length > 0) {
                         drawBrutalSparkline(`top-sig-chart-${i}`, sparklineData);
                     }
                 });
             }
         } else {
-            list.innerHTML = '<p>No signals generated yet.</p>';
+            console.error("Forecast failed or returned no data:", forecastRes);
+            list.innerHTML = '<p style="padding: 20px; color: var(--color-red);">Error loading signals. Please check server status.</p>';
         }
     } catch(e) {
         console.error("Top signals error:", e);
