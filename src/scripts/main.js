@@ -335,14 +335,19 @@ async function renderDecisionStrip() {
         if (confEl) confEl.innerText = `${conf}%`;
         if (confFill) confFill.style.width = `${conf}%`;
 
-        // --- DIRECTION BUTTON (from forecast) ---
+        // --- DIRECTION BADGE (inside TREND block) ---
         const dirBtn = document.getElementById('ds-direction-btn');
         if (dirBtn && direction) {
-            dirBtn.innerText = direction;
-            dirBtn.className = direction === 'LONG' ? 'direction-btn long'
-                : direction === 'SHORT' ? 'direction-btn short'
-                : 'direction-btn wait';
+            const isWait = direction.toUpperCase() === 'WAIT';
+            const icon = isWait ? '<span class="icon">⌛</span>' : '';
+            const dirText = getTr('dyn_' + direction.toLowerCase()) || direction;
+            dirBtn.innerHTML = `${icon}<span>${dirText}</span>`;
+            dirBtn.className = `direction-badge ${direction.toLowerCase()}`;
+            dirBtn.style.display = 'inline-flex';
+        } else if (dirBtn) {
+            dirBtn.style.display = 'none';
         }
+
 
         // --- FEAR & GREED ---
         if (fngIndex.status === "fulfilled" && fngIndex.value) {
@@ -447,7 +452,7 @@ async function renderTopSignals() {
                         <div class="signal-price-col">
                             PRICE
                             <div class="signal-price">$${fPrice}</div>
-                            <div class="signal-risk">RISK: ${riskLevel}</div>
+                            <div class="signal-risk">RISK: ${s.risk || '--'}</div>
                         </div>
                         <div class="signal-chart-col">
                             <canvas id="top-sig-chart-${i}"></canvas>

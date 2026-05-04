@@ -185,6 +185,36 @@ a { text-decoration: none; color: inherit; }
     text-overflow: ellipsis;
 }
 
+.value-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0.2rem 0;
+}
+
+.direction-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border: 1.5px solid #000;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 #000;
+    white-space: nowrap;
+}
+
+.direction-badge.wait { background: var(--color-yellow); color: #000; }
+.direction-badge.long { background: var(--color-green); color: #000; } /* Use black text for better readability on green in brutalist style */
+.direction-badge.short { background: var(--color-red); color: #fff; }
+
+.direction-badge .icon { font-size: 0.9rem; }
+
+
 .decision-block .subtext {
     font-size: 0.65rem;
     text-transform: uppercase;
