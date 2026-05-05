@@ -1,7 +1,7 @@
 // In production (e.g. GitHub Pages), it directly calls the backend.
 // Note: Backend MUST have CORS configured to allow the frontend origin.
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const BASE_URL = isLocal ? "/api" : "https://mesh-online.org";
+const BASE_URL = isLocal ? "" : "https://vidget.coinheim.io";
 
 /**
  * Common fetch utility with Accept-Language header
@@ -9,12 +9,7 @@ const BASE_URL = isLocal ? "/api" : "https://mesh-online.org";
 async function fetchApi(endpoint) {
     const language = navigator.language || "en";
     try {
-        // Fix for localhost: avoid double /api/api if endpoint already starts with /api
-        let url = endpoint;
-        if (isLocal && endpoint.startsWith('/api') && BASE_URL === '/api') {
-            url = endpoint.substring(4);
-        }
-        const response = await fetch(`${BASE_URL}${url}`, {
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
             headers: {
                 "Accept-Language": language
             }
@@ -31,11 +26,7 @@ async function fetchApi(endpoint) {
 
 async function postApi(endpoint, body) {
     try {
-        let url = endpoint;
-        if (isLocal && endpoint.startsWith('/api') && BASE_URL === '/api') {
-            url = endpoint.substring(4);
-        }
-        const response = await fetch(`${BASE_URL}${url}`, {
+        const response = await fetch(`${BASE_URL}${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)

@@ -990,7 +990,6 @@ async function renderBalanceChart() {
                     }
                 }
             }
-            }
         });
 
         const box = document.getElementById('balance-chart-box');
