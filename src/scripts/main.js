@@ -313,14 +313,16 @@ async function renderDecisionStrip() {
 
             // Direction block color based on regime
             const regimeLower = regime || '';
-            if (regimeLower === 'trend') {
-                directionBlock.className = bias === 'bearish'
-                    ? 'decision-block primary-bias-block bear'
-                    : 'decision-block primary-bias-block';
-            } else if (regimeLower === 'high_volatility' || regimeLower === 'event') {
-                directionBlock.className = 'decision-block primary-bias-block bear';
-            } else {
-                directionBlock.className = 'decision-block primary-bias-block neutral';
+            if (directionBlock) {
+                if (regimeLower === 'trend') {
+                    directionBlock.className = bias === 'bearish'
+                        ? 'decision-block primary-bias-block bear'
+                        : 'decision-block primary-bias-block';
+                } else if (regimeLower === 'high_volatility' || regimeLower === 'event') {
+                    directionBlock.className = 'decision-block primary-bias-block bear';
+                } else {
+                    directionBlock.className = 'decision-block primary-bias-block neutral';
+                }
             }
 
         } else if (analysis.status === "fulfilled" && analysis.value) {
@@ -973,7 +975,21 @@ async function renderBalanceChart() {
                         }
                     }
                 },
-                interaction: { intersect: false, mode: 'index' }
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            wheel: { enabled: true },
+                            pinch: { enabled: true },
+                            mode: 'x',
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'x',
+                        }
+                    }
+                }
+            }
             }
         });
 
@@ -1149,6 +1165,19 @@ function openBalanceModal() {
                     ticks: {
                         font: { family: 'var(--font-mono)', size: 11, weight: 'bold' },
                         callback: (v) => v.toFixed(1) + '%'
+                    }
+                }
+            },
+            plugins: {
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: true },
+                        pinch: { enabled: true },
+                        mode: 'xy',
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy',
                     }
                 }
             }

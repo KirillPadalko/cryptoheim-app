@@ -20,6 +20,7 @@
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <!-- Lightweight Charts (TradingView) for full-screen position modal -->
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 
@@ -69,7 +70,7 @@
         <!-- DECISION STRIP & NARRATIVE -->
         <div class="decision-wrapper">
             <div class="decision-strip" id="decision-strip">
-                <div class="decision-block">
+                <div class="decision-block" id="ds-direction-block">
                     <div class="label" data-i18n="mkt_bias">MARKET BIAS</div>
                     <div class="value text-green" id="ds-bias">...</div>
                     <div class="subtext" data-i18n="short_outlook">SHORT-TERM OUTLOOK</div>
