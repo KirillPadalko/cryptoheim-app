@@ -9,7 +9,12 @@ const BASE_URL = isLocal ? "/api" : "https://mesh-online.org";
 async function fetchApi(endpoint) {
     const language = navigator.language || "en";
     try {
-        const response = await fetch(`${BASE_URL}${endpoint}`, {
+        // Fix for localhost: avoid double /api/api if endpoint already starts with /api
+        let url = endpoint;
+        if (isLocal && endpoint.startsWith('/api') && BASE_URL === '/api') {
+            url = endpoint.substring(4);
+        }
+        const response = await fetch(`${BASE_URL}${url}`, {
             headers: {
                 "Accept-Language": language
             }
@@ -26,7 +31,11 @@ async function fetchApi(endpoint) {
 
 async function postApi(endpoint, body) {
     try {
-        const response = await fetch(`${BASE_URL}${endpoint}`, {
+        let url = endpoint;
+        if (isLocal && endpoint.startsWith('/api') && BASE_URL === '/api') {
+            url = endpoint.substring(4);
+        }
+        const response = await fetch(`${BASE_URL}${url}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
@@ -47,7 +56,7 @@ export const API = {
     getBotStats: () => fetchApi("/api/trading/stats"),
     getBotHistory: (limit = 10) => fetchApi(`/api/trading/history?limit=${limit}`),
     getKlinesSummary: (symbols) => fetchApi(`/klines${symbols ? '?symbols='+symbols : ''}`),
-    getKlinesForSymbol: (symbol, timeframe = "15m") => fetchApi(`/klines/${symbol}?timeframe=${timeframe}`),
+    getKlinesForSymbol: (symbol, timeframe = "15m", limit = 500) => fetchApi(`/klines/${symbol}?timeframe=${timeframe}&limit=${limit}`),
     getMarketScan: () => fetchApi("/analytics/market-scan"),
     getFearGreedIndex: () => fetchApi("/market-stats/fear-greed-index"),
     getAltcoinSeasonIndex: () => fetchApi("/market-stats/altcoin-season"),

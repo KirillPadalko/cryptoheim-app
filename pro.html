@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./src/assets/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CryptoHeim PRO | Unlock Elite Features</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+
+    <!-- Direct CSS links for static usage -->
+    <link rel="stylesheet" href="./src/styles/main.css?v=2.0">
+    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.0">
+
+    <style>
+        .pro-container {
+            max-width: 800px;
+            margin: 4rem auto;
+            padding: 0 1rem;
+        }
+
+        .pro-hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .pro-hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+        }
+
+        .pro-hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .pro-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        @media (max-width: 768px) {
+            .pro-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pro-card {
+            background: #fff;
+            border: var(--border-thick);
+            box-shadow: 8px 8px 0 #000;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .pro-card h2 {
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            border-bottom: var(--border-thick);
+            padding-bottom: 0.5rem;
+        }
+
+        .pro-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .pro-card ul li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .pro-card ul li::before {
+            content: "✦";
+            color: var(--color-green);
+        }
+
+        .activation-box {
+            background: var(--color-yellow);
+            border: var(--border-thick);
+            box-shadow: 8px 8px 0 #000;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .brutal-input {
+            border: var(--border-thick);
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .brutal-btn {
+            background: #000;
+            color: #fff;
+            border: var(--border-thick);
+            padding: 1rem 2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .brutal-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 #333;
+        }
+
+        .brutal-btn:active {
+            transform: translate(0, 0);
+            box-shadow: none;
+        }
+
+        .code-display {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: #000;
+            color: var(--color-green);
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            font-weight: 800;
+            border: var(--border-thick);
+            display: none;
+        }
+
+        .error-msg {
+            color: var(--color-red);
+            font-weight: 800;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin: 1rem auto;
+            width: 30px;
+            height: 30px;
+            border: 4px solid #000;
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="top-nav">
+        <a href="index.html" class="logo">⬡ CryptoHeim</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="indicators.html">Indicators</a>
+            <a href="model-quality.html">AI Quality</a>
+            <a href="pro.html" class="active">PRO Access</a>
+        </div>
+    </nav>
+
+    <div class="pro-container">
+        <div class="pro-hero">
+            <h1>Upgrade to PRO</h1>
+            <p>Support the project and get exclusive access to real-time bot signals, AI analytics, and ad-free experience.</p>
+        </div>
+
+        <div class="pro-grid">
+            <div class="pro-card">
+                <h2>Free Tier</h2>
+                <ul>
+                    <li>Delayed Market Indicators</li>
+                    <li>Basic Asset Stats</li>
+                    <li>Limited News Summaries</li>
+                    <li>Community Support</li>
+                </ul>
+            </div>
+            <div class="pro-card" style="background: var(--color-green);">
+                <h2>PRO Tier</h2>
+                <ul>
+                    <li>Real-time Bot Positions</li>
+                    <li>Advanced AI Portfolio Analytics</li>
+                    <li>No Advertisements</li>
+                    <li>Priority Signal Alerts</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="activation-box">
+            <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;">Step 1: Subscribe on Boosty</h2>
+            <p style="margin-bottom: 2rem; font-weight: 600;">Make sure you have an active paid subscription on our <a href="https://boosty.to/cryptoheim" target="_blank" style="text-decoration: underline;">Boosty page</a>.</p>
+            
+            <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;">Step 2: Get Activation Code</h2>
+            <div class="input-group">
+                <label for="boosty-nick">Your Boosty Nickname</label>
+                <input type="text" id="boosty-nick" class="brutal-input" placeholder="e.g. ivan_trade">
+            </div>
+            <button id="get-code-btn" class="brutal-btn">Generate My Code</button>
+            
+            <div class="loading-spinner" id="spinner"></div>
+            <div class="error-msg" id="error-msg">Subscription not found. Please check your nickname.</div>
+            
+            <div class="code-display" id="code-display">
+                PRO-XXXX-YYYY
+            </div>
+            
+            <div id="success-hint" style="display: none; margin-top: 1.5rem; font-weight: 700;">
+                Copy this code and enter it in the "Activate PRO" section of the mobile app!
+            </div>
+        </div>
+    </div>
+
+    <footer style="border-top: 3px solid #000; padding: 2rem; text-align: center; font-family: 'Space Mono', monospace;">
+        CryptoHeim © 2025 · Premium Intelligence
+    </footer>
+
+    <script type="module">
+        // Minimal API handler
+        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const API_BASE = isLocal ? "/api/boosty" : "https://mesh-online.org/api/boosty";
+
+        const btn = document.getElementById('get-code-btn');
+        const nickInput = document.getElementById('boosty-nick');
+        const codeDisplay = document.getElementById('code-display');
+        const errorMsg = document.getElementById('error-msg');
+        const spinner = document.getElementById('spinner');
+        const hint = document.getElementById('success-hint');
+
+        btn.addEventListener('click', async () => {
+            const nickname = nickInput.value.trim();
+            if (!nickname) return;
+
+            // Reset UI
+            errorMsg.style.display = 'none';
+            codeDisplay.style.display = 'none';
+            hint.style.display = 'none';
+            spinner.style.display = 'block';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/check-subscription`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    codeDisplay.innerText = data.code;
+                    codeDisplay.style.display = 'block';
+                    hint.style.display = 'block';
+                } else {
+                    errorMsg.innerText = data.detail || "Error checking subscription.";
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.innerText = "Server connection error.";
+                errorMsg.style.display = 'block';
+            } finally {
+                spinner.style.display = 'none';
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

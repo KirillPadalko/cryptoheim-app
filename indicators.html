@@ -14,8 +14,8 @@
         rel="stylesheet">
 
     <!-- Direct CSS links for static usage -->
-    <link rel="stylesheet" href="./src/styles/main.css?v=2.0">
-    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.0">
+    <link rel="stylesheet" href="./src/styles/main.css?v=2.2">
+    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.2">
 
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -178,6 +178,11 @@
                         </div>
                     </div>
 
+                    <div class="balance-chart-container" id="balance-chart-box" style="border-top: var(--border-thick); padding: 1rem 1.5rem; height: 160px; cursor: pointer; position: relative;">
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); position: absolute; top: 10px; left: 24px; z-index: 10; text-transform: uppercase;">Growth Curve (%)</div>
+                        <canvas id="balance-chart"></canvas>
+                    </div>
+
                     <div class="pos-table-wrapper" style="border-top: var(--border-thick);">
                         <table class="pos-table" id="pos-table">
                             <thead>
@@ -257,6 +262,37 @@
                 <button class="chart-modal-close" id="chart-modal-close-btn">✕</button>
             </div>
             <div id="chart-modal-chart" class="chart-modal-chart"></div>
+            <div class="chart-modal-hint" data-i18n="chart_hint">Scroll to zoom &nbsp;&bull;&nbsp; Drag to pan &nbsp;&bull;&nbsp; Double-click to reset</div>
+        </div>
+    </div>
+
+    <!-- BALANCE CHART MODAL -->
+    <div id="balance-modal" class="chart-modal-overlay">
+        <div class="chart-modal-card" style="max-width: 1100px; height: min(85vh, 700px);">
+            <div class="chart-modal-header">
+                <div class="chart-modal-title">
+                    <span class="chart-modal-symbol" data-i18n="pnl_growth">PNL GROWTH</span>
+                    <span id="balance-modal-range" class="closed-order-side long" style="margin-left: 10px;">ALL TIME</span>
+                </div>
+                <div class="chart-modal-stats">
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label" data-i18n="winrate">WIN RATE</span>
+                        <span class="chart-modal-stat-value" id="balance-modal-winrate">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label" data-i18n="trades">TOTAL TRADES</span>
+                        <span class="chart-modal-stat-value" id="balance-modal-trades">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label">TOTAL RETURN</span>
+                        <span class="chart-modal-stat-value" id="balance-modal-return">--</span>
+                    </div>
+                </div>
+                <button class="chart-modal-close" id="balance-modal-close-btn">✕</button>
+            </div>
+            <div style="flex: 1; padding: 2rem; position: relative;">
+                <canvas id="balance-modal-canvas"></canvas>
+            </div>
             <div class="chart-modal-hint" data-i18n="chart_hint">Scroll to zoom &nbsp;&bull;&nbsp; Drag to pan &nbsp;&bull;&nbsp; Double-click to reset</div>
         </div>
     </div>

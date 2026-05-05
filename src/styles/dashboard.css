@@ -449,6 +449,16 @@ a { text-decoration: none; color: inherit; }
 .td-chart canvas { display: block; width: 100% !important; height: 100% !important; }
 .td-sltp { font-size: 0.75rem; color: var(--text-muted); }
 
+/* BALANCE CHART */
+.balance-chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.balance-chart-container:hover {
+    background: rgba(0,0,0,0.02);
+}
+
 /* RISK BLOCK */
 .risk-block {
     background: var(--color-yellow);

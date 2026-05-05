@@ -46,7 +46,7 @@ function initChart() {
 }
 
 async function loadChartData() {
-    const data = await API.getKlinesForSymbol('BTCUSDT', currentTf);
+    const data = await API.getKlinesForSymbol('BTCUSDT', currentTf, 1000);
     if (data && data.klines && data.klines.length > 0) {
         const formatted = data.klines.map(d => ({
             time: d.open_time,
@@ -280,7 +280,7 @@ function renderBotCurrentPosition(pos) {
 
 async function updateHistory() {
     const expertHistory = await API.getExpertHistory();
-    const botHistory = await API.getBotHistory(10);
+    const botHistory = await API.getBotHistory(200);
     
     const expList = document.getElementById('expert-history-list');
     if (expertHistory && expertHistory.length > 0) {

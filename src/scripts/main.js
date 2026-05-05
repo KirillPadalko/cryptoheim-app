@@ -84,7 +84,8 @@ const I18N = {
         'exp_human_hist': 'История прогнозов эксперта',
         'exp_bot_hist': 'История ИИ бота по BTC',
         'exp_active_label': 'АКТИВНЫЙ ПРОГНОЗ',
-        'exp_close_btn': 'ЗАКРЫТЬ'
+        'exp_close_btn': 'ЗАКРЫТЬ',
+        'pnl_growth': 'РОСТ ПОРТФЕЛЯ'
     },
     'en': {
         // En defaults are already correctly written fallback in indicators.html, 
@@ -121,7 +122,8 @@ const I18N = {
         'exp_human_hist': 'Human Expert History',
         'exp_bot_hist': 'AI Bot BTC History',
         'exp_active_label': 'ACTIVE FORECAST',
-        'exp_close_btn': 'CLOSE'
+        'exp_close_btn': 'CLOSE',
+        'pnl_growth': 'PNL GROWTH'
     }
 };
 
@@ -185,6 +187,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.appLang === 'ru') applyTranslations();
     
+    // Balance Modal events
+    const balModal = document.getElementById('balance-modal');
+    const balCloseBtn = document.getElementById('balance-modal-close-btn');
+    if (balCloseBtn) balCloseBtn.addEventListener('click', closeBalanceModal);
+    if (balModal) balModal.addEventListener('click', (e) => {
+        if (e.target === balModal) closeBalanceModal();
+    });
+
     startDashboard();
 
     // Modal events
@@ -225,7 +235,8 @@ async function updateDashboardData() {
         renderNarrativeEngine(),
         renderLatestNews(),
         renderExposureAndPositions(),
-        renderClosedOrders()
+        renderClosedOrders(),
+        renderBalanceChart()
     ]);
 }
 
@@ -718,6 +729,19 @@ async function renderExposureAndPositions() {
 // ----------------------------------------------------
 // CLOSED ORDERS
 // ----------------------------------------------------
+function formatAxisTime(val) {
+    if (!val) return '';
+    const d = (typeof val === 'number') ? new Date(val * 1000) : new Date(val);
+    if (isNaN(d.getTime())) return '';
+
+    const hh = d.getHours().toString().padStart(2, '0');
+    const mm = d.getMinutes().toString().padStart(2, '0');
+    const dd = d.getDate().toString().padStart(2, '0');
+    const mo = (d.getMonth() + 1).toString().padStart(2, '0');
+    
+    return [`${hh}:${mm}`, `${dd}/${mo}`];
+}
+
 function formatDateTime(val) {
     if (!val) return '—';
     // Handle Unix timestamp (seconds)
@@ -854,6 +878,288 @@ async function renderClosedOrders() {
         console.error('Closed orders error:', e);
         listEl.innerHTML = `<div class="closed-order-empty">${getTr('dyn_err_trades')}</div>`;
     }
+}
+
+async function renderBalanceChart() {
+    const canvas = document.getElementById('balance-chart');
+    if (!canvas) return;
+
+    try {
+        const stats = await API.getBotStats();
+        if (!stats) return;
+
+        // Increased history depth to 200 trades
+        const history = await API.getBotHistory(200);
+        const trades = history?.history || stats.last_10_trades || [];
+        
+        if (trades.length === 0) {
+            canvas.parentElement.style.display = 'none';
+            return;
+        }
+
+        // Sort by time ascending
+        const sortedTrades = [...trades].sort((a, b) => {
+            const timeA = typeof a.close_time === 'number' ? a.close_time : new Date(a.close_time).getTime() / 1000;
+            const timeB = typeof b.close_time === 'number' ? b.close_time : new Date(b.close_time).getTime() / 1000;
+            return timeA - timeB;
+        });
+
+        const currentBalance = stats.total_balance_usdt || 100;
+        const totalPnl = sortedTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+        const initialBalance = Math.max(1, currentBalance - totalPnl);
+
+        let runningBalance = initialBalance;
+        const dataPoints = [0]; // Start at 0%
+        const labels = ['Start'];
+        
+        const chartData = sortedTrades.map(t => {
+            runningBalance += (t.pnl || 0);
+            const pctChange = ((runningBalance - initialBalance) / initialBalance) * 100;
+            dataPoints.push(pctChange);
+            labels.push(formatAxisTime(t.close_time));
+            return {
+                symbol: t.symbol,
+                pnl: t.pnl,
+                pct: pctChange,
+                time: t.close_time
+            };
+        });
+
+        // Store for modal
+        window._balanceChartData = {
+            dataPoints,
+            labels,
+            trades: sortedTrades,
+            initialBalance,
+            stats
+        };
+
+        const ctx = canvas.getContext('2d');
+        // Destroy existing chart if any
+        if (window._balChartInst) window._balChartInst.destroy();
+
+        window._balChartInst = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataPoints,
+                    borderColor: '#000',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    fill: {
+                        target: 'origin',
+                        above: 'rgba(0,0,0,0.03)',
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        display: true,
+                        position: 'right',
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 9, weight: '800', family: 'var(--font-mono)' },
+                            callback: (v) => v.toFixed(1) + '%'
+                        }
+                    }
+                },
+                interaction: { intersect: false, mode: 'index' }
+            }
+        });
+
+        const box = document.getElementById('balance-chart-box');
+        if (box) {
+            box.onclick = () => openBalanceModal();
+        }
+
+    } catch (e) {
+        console.error('Balance chart error:', e);
+    }
+}
+
+let _balModalChart = null;
+function openBalanceModal() {
+    const data = window._balanceChartData;
+    if (!data) return;
+
+    const modal = document.getElementById('balance-modal');
+    if (modal) {
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Update header stats
+    document.getElementById('balance-modal-winrate').textContent = `${(data.stats.win_rate_pct || 0).toFixed(1)}%`;
+    document.getElementById('balance-modal-trades').textContent = data.stats.total_closed_trades || data.trades.length;
+    
+    const lastPct = data.dataPoints[data.dataPoints.length - 1];
+    const returnEl = document.getElementById('balance-modal-return');
+    returnEl.textContent = `${lastPct >= 0 ? '+' : ''}${lastPct.toFixed(2)}%`;
+    returnEl.className = `chart-modal-stat-value ${lastPct >= 0 ? 'text-green' : 'text-red'}`;
+
+    const canvas = document.getElementById('balance-modal-canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (_balModalChart) _balModalChart.destroy();
+
+    _balModalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'PNL %',
+                data: data.dataPoints,
+                borderColor: '#000',
+                borderWidth: 2,
+                tension: 0.15,
+                pointRadius: (ctx) => {
+                    if (ctx.dataIndex === 0) return 0;
+                    const trades = window._balanceChartData.trades;
+                    const trade = trades[ctx.dataIndex - 1];
+                    // Make significant trades larger
+                    return Math.abs(trade.pnl) > 5 ? 5 : 3;
+                },
+                pointHoverRadius: 8,
+                pointBackgroundColor: (context) => {
+                    const idx = context.dataIndex;
+                    if (idx === 0) return '#000';
+                    const trade = data.trades[idx - 1];
+                    return trade.pnl >= 0 ? '#00E676' : '#FF1744'; // Neon Green / Bright Red
+                },
+                pointBorderColor: '#000',
+                pointBorderWidth: 1.5,
+                fill: true,
+                backgroundColor: 'rgba(0,0,0,0.01)'
+            }]
+        },
+        plugins: [{
+            id: 'tradeFlags',
+            afterDraw: (chart) => {
+                const { ctx, scales: { x, y } } = chart;
+                const trades = data.trades;
+                const points = data.dataPoints;
+
+                // Identify trades to label: top 3 wins, top 3 losses, and 3 most recent
+                const sortedWins = [...trades].sort((a,b) => b.pnl - a.pnl).slice(0, 3);
+                const sortedLoss = [...trades].sort((a,b) => a.pnl - b.pnl).slice(0, 3);
+                const recent = trades.slice(-3);
+                
+                const labelSet = new Set([...sortedWins, ...sortedLoss, ...recent]);
+
+                ctx.save();
+                trades.forEach((t, i) => {
+                    if (!labelSet.has(t)) return;
+
+                    const dataIdx = i + 1; // offset by start point
+                    const xPx = x.getPixelForValue(data.labels[dataIdx]);
+                    const yPx = y.getPixelForValue(points[dataIdx]);
+                    const isWin = t.pnl >= 0;
+                    const color = isWin ? '#00C853' : '#D50000';
+
+                    // Draw flag stem
+                    ctx.beginPath();
+                    ctx.moveTo(xPx, yPx);
+                    const stemLen = isWin ? -30 : 30;
+                    ctx.lineTo(xPx, yPx + stemLen);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Draw flag box
+                    const label = t.symbol.replace('USDT', '');
+                    const pnlText = (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(1);
+                    const fullText = `${label} ${pnlText}`;
+                    
+                    ctx.font = 'bold 10px var(--font-mono)';
+                    const textWidth = ctx.measureText(fullText).width;
+                    const boxW = textWidth + 10;
+                    const boxH = 18;
+                    const boxX = xPx - boxW / 2;
+                    const boxY = yPx + stemLen + (isWin ? -boxH : 0);
+
+                    // Shadow
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillRect(boxX + 2, boxY + 2, boxW, boxH);
+
+                    // Box background
+                    ctx.fillStyle = isWin ? '#00E676' : '#FF1744';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 1.5;
+                    ctx.fillRect(boxX, boxY, boxW, boxH);
+                    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+                    // Text
+                    ctx.fillStyle = isWin ? '#000' : '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(fullText, xPx, boxY + boxH / 2);
+                });
+                ctx.restore();
+            }
+        }],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#000',
+                    titleFont: { family: 'var(--font-mono)', size: 12 },
+                    bodyFont: { family: 'var(--font-mono)', size: 14, weight: 'bold' },
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        title: (items) => {
+                            const idx = items[0].dataIndex;
+                            if (idx === 0) return 'INITIAL';
+                            const t = data.trades[idx - 1];
+                            const timeStr = formatDateTime(t.close_time);
+                            return `${t.symbol.replace('USDT', '')} | ${timeStr}`;
+                        },
+                        label: (item) => {
+                            const idx = item.dataIndex;
+                            if (idx === 0) return '0.00%';
+                            const t = data.trades[idx - 1];
+                            const pnlSign = t.pnl >= 0 ? '+' : '';
+                            return [
+                                `PNL: ${pnlSign}$${t.pnl.toFixed(2)}`,
+                                `CUMULATIVE: ${item.formattedValue}%`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: { font: { family: 'var(--font-mono)', size: 10 } }
+                },
+                y: {
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    ticks: {
+                        font: { family: 'var(--font-mono)', size: 11, weight: 'bold' },
+                        callback: (v) => v.toFixed(1) + '%'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function closeBalanceModal() {
+    const modal = document.getElementById('balance-modal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
 }
 
 // ----------------------------------------------------

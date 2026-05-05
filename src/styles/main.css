@@ -57,7 +57,7 @@ img {
     border-bottom: var(--border-thick);
     background: #fff;
     padding: 1rem 2rem;
-    display: flex;
+    display: flex !important;
     align-items: center;
     gap: 1.5rem;
     position: sticky;
@@ -87,6 +87,8 @@ img {
     border: var(--border-thin);
     transition: all .15s;
     white-space: nowrap;
+    min-width: 130px; /* Fixed width to prevent shifting */
+    text-align: center;
 }
 .top-nav .nav-links a:hover,
 .top-nav .nav-links a.active {
