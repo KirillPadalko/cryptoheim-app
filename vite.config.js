@@ -5,36 +5,40 @@ export default defineConfig({
         proxy: {
             // These endpoints require the /api prefix on the backend
             '/api': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             // These endpoints are at the root on the backend
             '/klines': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             '/assets': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             '/news': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             '/analytics': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             '/market-stats': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             '/market-forecast': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
+                changeOrigin: true
+            },
+            '/model-quality': {
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             },
             '/crypto-analysis': {
-                target: 'https://vidget.coinheim.io',
+                target: 'https://mesh-online.org',
                 changeOrigin: true
             }
         }

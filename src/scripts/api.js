@@ -1,7 +1,8 @@
 // In production (e.g. GitHub Pages), it directly calls the backend.
 // Note: Backend MUST have CORS configured to allow the frontend origin.
-const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const BASE_URL = isLocal ? "" : "https://vidget.coinheim.io";
+const isProduction = window.location.hostname.includes("coinheim.io") || window.location.hostname.includes("mesh-online.org");
+const BASE_URL = isProduction ? "https://mesh-online.org" : "";
+console.log(`[API] Host: ${window.location.hostname}, Base: ${BASE_URL || '(local proxy)'}`);
 
 /**
  * Common fetch utility with Accept-Language header

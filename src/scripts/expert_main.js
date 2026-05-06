@@ -186,35 +186,40 @@ async function updateCurrentForecast() {
     const controls = document.getElementById('expert-controls');
     
     if (data) {
-        controls.style.display = 'none';
+        if (controls) controls.style.display = 'none';
         const pnlClass = data.pnl >= 0 ? 'text-green' : 'text-red';
-        container.innerHTML = `
-            <div class="active-forecast-banner">
-                <div>
-                    <div style="font-size:0.7rem; opacity:0.7;">${getTr('exp_active_label')}</div>
-                    <div style="font-weight:800;">${data.side} ${data.size}$ <span class="leverage-badge">x10</span> @ ${data.entry_price}</div>
+        if (container) {
+            container.innerHTML = `
+                <div class="active-forecast-banner">
+                    <div>
+                        <div style="font-size:0.7rem; opacity:0.7;">${getTr('exp_active_label')}</div>
+                        <div style="font-weight:800;">${data.side} ${data.size}$ <span class="leverage-badge">x10</span> @ ${data.entry_price}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="${pnlClass}" style="font-weight:800; font-size:1.2rem;">${data.pnl > 0 ? '+' : ''}$${data.pnl}</div>
+                        <button class="close-forecast-btn" id="btn-close-forecast" style="background:var(--color-red);">${getTr('exp_close_btn')}</button>
+                    </div>
                 </div>
-                <div style="text-align:right;">
-                    <div class="${pnlClass}" style="font-weight:800; font-size:1.2rem;">${data.pnl > 0 ? '+' : ''}$${data.pnl}</div>
-                    <button class="close-forecast-btn" id="btn-close-forecast" style="background:var(--color-red);">${getTr('exp_close_btn')}</button>
+                <div class="active-levels" style="margin-bottom: 0.5rem; padding: 0 0.5rem;">
+                    ${data.tp_price ? `<span style="color:#00C853;">TP: ${data.tp_price}</span>` : ''}
+                    ${data.sl_price ? `<span style="color:#FF1744;">SL: ${data.sl_price}</span>` : ''}
                 </div>
-            </div>
-            <div class="active-levels" style="margin-bottom: 0.5rem; padding: 0 0.5rem;">
-                ${data.tp_price ? `<span style="color:#00C853;">TP: ${data.tp_price}</span>` : ''}
-                ${data.sl_price ? `<span style="color:#FF1744;">SL: ${data.sl_price}</span>` : ''}
-            </div>
-            ${data.reason ? `<div style="font-size:0.85rem; margin-bottom:1rem; padding:0.5rem; background:#f5f5f5; border-left:3px solid #000;">"${data.reason}"</div>` : ''}
-        `;
-        
-        document.getElementById('btn-close-forecast').addEventListener('click', async () => {
-            if (confirm('Close this forecast?')) {
-                await API.closeExpertForecast();
-                await updateAll();
+                ${data.reason ? `<div style="font-size:0.85rem; margin-bottom:1rem; padding:0.5rem; background:#f5f5f5; border-left:3px solid #000;">"${data.reason}"</div>` : ''}
+            `;
+            
+            const closeBtn = document.getElementById('btn-close-forecast');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', async () => {
+                    if (confirm('Close this forecast?')) {
+                        await API.closeExpertForecast();
+                        await updateAll();
+                    }
+                });
             }
-        });
+        }
     } else {
-        controls.style.display = 'flex';
-        container.innerHTML = '';
+        if (controls) controls.style.display = 'flex';
+        if (container) container.innerHTML = '';
     }
 }
 
@@ -232,19 +237,23 @@ async function updateStats() {
     const expEquity = document.getElementById('expert-equity');
     const expBaseEq = data.expert.equity || 100.0;
     const expLivePnl = expCurrent ? (expCurrent.pnl || 0) : 0;
-    const expTotalEq = expBaseEq + expLivePnl;
+    const eq = expBaseEq + expLivePnl;
     
-    expEquity.textContent = `$${expTotalEq.toFixed(2)}`;
-    expEquity.className = expTotalEq >= 100 ? 'text-green' : 'text-red';
+    if (expEquity) {
+        expEquity.textContent = `$${eq.toFixed(2)}`;
+        expEquity.className = eq >= 100 ? 'text-green' : 'text-red';
+    }
 
     // 2. Bot Equity (History + Live)
     const botEquity = document.getElementById('bot-equity');
     const botBaseEq = data.bot.equity || 100.0;
     const botLivePnl = botPos ? (botPos.pnl || 0) : 0;
-    const botTotalEq = botBaseEq + botLivePnl;
+    const botEq = botBaseEq + botLivePnl;
     
-    botEquity.textContent = `$${botTotalEq.toFixed(2)}`;
-    botEquity.className = botTotalEq >= 100 ? 'text-green' : 'text-red';
+    if (botEquity) {
+        botEquity.textContent = `$${botEq.toFixed(2)}`;
+        botEquity.className = botEq >= 100 ? 'text-green' : 'text-red';
+    }
 
     // 3. Render Bot open position banner above history
     renderBotCurrentPosition(botPos);

@@ -252,8 +252,9 @@
 
     <script type="module">
         // Minimal API handler
-        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-        const API_BASE = isLocal ? "/api/boosty" : "https://mesh-online.org/api/boosty";
+        const isProduction = window.location.hostname.includes("coinheim.io") || window.location.hostname.includes("mesh-online.org");
+        const API_BASE = isProduction ? "https://mesh-online.org/api/boosty" : "/api/boosty";
+        console.log(`[PRO] Host: ${window.location.hostname}, Base: ${API_BASE}`);
 
         const btn = document.getElementById('get-code-btn');
         const nickInput = document.getElementById('boosty-nick');
