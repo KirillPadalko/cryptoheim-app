@@ -1,16 +1,23 @@
-// In production (e.g. GitHub Pages), it directly calls the backend.
-// Note: Backend MUST have CORS configured to allow the frontend origin.
-const isProduction = window.location.hostname.includes("coinheim.io") || window.location.hostname.includes("mesh-online.org");
-const BASE_URL = isProduction ? "https://mesh-online.org" : "";
-console.log(`[API] Host: ${window.location.hostname}, Base: ${BASE_URL || '(local proxy)'}`);
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const BASE_URL = isLocal ? "" : "https://mesh-online.org";
+
+function getFullUrl(endpoint) {
+    if (!BASE_URL) return endpoint;
+    const base = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+    const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    return base + path;
+}
+
+console.log(`[API] Host: ${window.location.hostname}, Mode: ${isLocal ? 'Local' : 'Production'}, Base: ${BASE_URL || '(local proxy)'}`);
 
 /**
  * Common fetch utility with Accept-Language header
  */
 async function fetchApi(endpoint) {
     const language = navigator.language || "en";
+    const fullUrl = getFullUrl(endpoint);
     try {
-        const response = await fetch(`${BASE_URL}${endpoint}`, {
+        const response = await fetch(fullUrl, {
             headers: {
                 "Accept-Language": language
             }
@@ -20,14 +27,15 @@ async function fetchApi(endpoint) {
         }
         return await response.json();
     } catch (e) {
-        console.error(`Fetch API Error for ${endpoint}:`, e);
+        console.error(`Fetch API Error for ${fullUrl}:`, e);
         return null;
     }
 }
 
 async function postApi(endpoint, body) {
+    const fullUrl = getFullUrl(endpoint);
     try {
-        const response = await fetch(`${BASE_URL}${endpoint}`, {
+        const response = await fetch(fullUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
@@ -35,7 +43,7 @@ async function postApi(endpoint, body) {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (e) {
-        console.error(`Post API Error for ${endpoint}:`, e);
+        console.error(`Post API Error for ${fullUrl}:`, e);
         return null;
     }
 }

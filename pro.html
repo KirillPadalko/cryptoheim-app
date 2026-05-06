@@ -13,8 +13,8 @@
         rel="stylesheet">
 
     <!-- Direct CSS links for static usage -->
-    <link rel="stylesheet" href="./src/styles/main.css?v=2.0">
-    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.0">
+    <link rel="stylesheet" href="./src/styles/main.css?v=2.1">
+    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.1">
 
     <style>
         .pro-container {
@@ -252,9 +252,18 @@
 
     <script type="module">
         // Minimal API handler
-        const isProduction = window.location.hostname.includes("coinheim.io") || window.location.hostname.includes("mesh-online.org");
-        const API_BASE = isProduction ? "https://mesh-online.org/api/boosty" : "/api/boosty";
-        console.log(`[PRO] Host: ${window.location.hostname}, Base: ${API_BASE}`);
+        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const API_BASE = isLocal ? "/api/boosty" : "https://mesh-online.org/api/boosty";
+        
+        function getFullUrl(endpoint) {
+            // In PRO, the API_BASE already includes /api/boosty
+            if (isLocal) return endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+            const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+            const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+            return base + path;
+        }
+
+        console.log(`[PRO] Host: ${window.location.hostname}, Mode: ${isLocal ? 'Local' : 'Production'}, Base: ${API_BASE}`);
 
         const btn = document.getElementById('get-code-btn');
         const nickInput = document.getElementById('boosty-nick');
@@ -275,7 +284,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(`${API_BASE}/check-subscription`, {
+                const response = await fetch(getFullUrl('/check-subscription'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nickname })

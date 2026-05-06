@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    <link rel="stylesheet" href="./src/styles/main.css?v=3.0">
-    <link rel="stylesheet" href="./src/styles/dashboard.css?v=3.0">
+    <link rel="stylesheet" href="./src/styles/main.css?v=3.1">
+    <link rel="stylesheet" href="./src/styles/dashboard.css?v=3.1">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -211,13 +211,21 @@
 </footer>
 
 <script>
-    const isProduction = window.location.hostname.includes("coinheim.io") || window.location.hostname.includes("mesh-online.org");
-    const API_BASE = isProduction ? "https://mesh-online.org" : "";
-    console.log(`[API Quality] Host: ${window.location.hostname}, Base: ${API_BASE || '(local proxy)'}`);
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const API_BASE = isLocal ? "" : "https://mesh-online.org";
+    
+    function getFullUrl(endpoint) {
+        if (!API_BASE) return endpoint;
+        const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+        const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+        return base + path;
+    }
+
+    console.log(`[API Quality] Host: ${window.location.hostname}, Mode: ${isLocal ? 'Local' : 'Production'}, Base: ${API_BASE || '(local proxy)'}`);
 
     async function start() {
         try {
-            const res = await fetch(`${API_BASE}/model-quality`);
+            const res = await fetch(getFullUrl('/model-quality'));
             if (!res.ok) throw new Error("API Offline");
             const data = await res.json();
             render(data);
