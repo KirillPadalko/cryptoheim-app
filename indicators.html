@@ -19,7 +19,7 @@
 
     <!-- Chart.js for data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <!-- Lightweight Charts (TradingView) for full-screen position modal -->
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
@@ -60,47 +60,40 @@
             <div class="lang-btn" data-lang="ru">RU</div>
         </div>
     </nav>
-    <div class="page-header">
-        <h1 data-i18n="page_title">Analytics Dashboard</h1>
-        <p data-i18n="subtitle">AI signals, open positions & market intelligence — updated every 5 minutes</p>
-    </div>
+
 
     <div id="app" class="streaming-layout">
 
         <!-- DECISION STRIP & NARRATIVE -->
         <div class="decision-wrapper">
             <div class="decision-strip" id="decision-strip">
-                <div class="decision-block" id="ds-direction-block">
-                    <div class="label" data-i18n="mkt_bias">MARKET BIAS</div>
-                    <div class="value text-green" id="ds-bias">...</div>
-                    <div class="subtext" data-i18n="short_outlook">SHORT-TERM OUTLOOK</div>
-                </div>
-                <div class="decision-block">
-                    <div class="label" data-i18n="confidence">CONFIDENCE</div>
-                    <div class="value" id="ds-confidence">...</div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" id="ds-confidence-fill" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="decision-block">
-                    <div class="label" data-i18n="fng">FEAR & GREED</div>
-                    <div class="value text-red" id="ds-fng-val">...</div>
-                    <div class="subtext" id="ds-fng-label">...</div>
-                </div>
-                <div class="decision-block">
-                    <div class="label" data-i18n="trend">TREND</div>
-                    <div class="value-row">
-                        <div class="value" id="ds-trend">...</div>
-                        <div id="ds-direction-btn" class="direction-badge"></div>
-                    </div>
-                    <div class="subtext" data-i18n="reversal">POTENTIAL REVERSAL</div>
-                </div>
-                <div class="decision-block">
-                    <div class="label" data-i18n="btc_dom">BTC DOMINANCE</div>
-                    <div class="value" id="ds-btc-dom">...</div>
-                    <div class="subtext" id="ds-volatility">...</div>
+                <!-- UNIFIED MARKET STATE & TREND -->
+                <div class="decision-block" id="ds-state-block">
+                    <div class="label">MARKET STATE</div>
+                    <div class="value" id="ds-state-val">...</div>
+                    <div class="subtext" id="ds-state-sub">...</div>
                 </div>
 
+                <div class="decision-block" id="ds-trend-block">
+                    <div class="label">TREND & DIRECTION</div>
+                    <div class="value-row">
+                        <div class="value" id="ds-trend-val">...</div>
+                        <div id="ds-trend-badge" class="direction-badge"></div>
+                    </div>
+                    <div class="subtext" id="ds-trend-sub">...</div>
+                </div>
+
+                <div class="decision-block">
+                    <div class="label" data-i18n="fng">FEAR & GREED</div>
+                    <div class="value" id="ds-fng-val">...</div>
+                    <div class="subtext" id="ds-fng-label">...</div>
+                </div>
+
+                <div class="decision-block">
+                    <div class="label">MARKET VOLATILITY</div>
+                    <div class="value" id="ds-vol-val">...</div>
+                    <div class="subtext" id="ds-btc-dom">...</div>
+                </div>
             </div>
             <div class="narrative-text" id="narrative-summary">
                 ...
@@ -117,7 +110,10 @@
                 <div class="brutal-card">
                     <div class="brutal-title">
                         <span><span data-i18n="top_signals">TOP SIGNALS</span> <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);" data-i18n="priority">(PRIORITY)</span></span>
-                        <button style="border: var(--border-thick); background: #fff; padding: 5px 15px; font-weight: 800; cursor: pointer; font-family: var(--font-main);" data-i18n="see_all">SEE ALL</button>
+                        <div class="header-actions" style="display: flex; gap: 10px;">
+                            <button id="btn-copy-mode" class="btn-copy-mode">Copy mode ⚙</button>
+                            <button style="border: var(--border-thick); background: #fff; padding: 5px 15px; font-weight: 800; cursor: pointer; font-family: var(--font-main);" data-i18n="see_all">SEE ALL</button>
+                        </div>
                     </div>
                     <div class="signals-list" id="signals-list">
                         <!-- Populated by JS -->
@@ -179,51 +175,25 @@
                         </div>
                     </div>
 
-                    <div class="balance-chart-container" id="balance-chart-box" style="border-top: var(--border-thick); padding: 1rem 1.5rem; height: 160px; cursor: pointer; position: relative;">
+                    <!-- ALLOCATION REMOVED -->
+
+                    <div class="balance-chart-container" id="balance-chart-box" style="border-top: var(--border-thick); padding: 1rem 1.5rem; height: 220px; cursor: pointer; position: relative;">
                         <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); position: absolute; top: 10px; left: 24px; z-index: 10; text-transform: uppercase;">Growth Curve (%)</div>
                         <canvas id="balance-chart"></canvas>
                     </div>
 
-                    <div class="pos-table-wrapper" style="border-top: var(--border-thick);">
-                        <table class="pos-table" id="pos-table">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="asset">ASSET</th>
-                                    <th data-i18n="time">TIME</th>
-                                    <th data-i18n="size">SIZE</th>
-                                    <th data-i18n="entry">ENTRY</th>
-                                    <th data-i18n="price">PRICE</th>
-                                    <th data-i18n="pnl">PNL</th>
-                                    <th data-i18n="chart">CHART</th>
-                                    <th data-i18n="sltp">SL/TP</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pos-table-body">
-                                <tr><td colspan="8" style="text-align: center;" data-i18n="loading">Loading...</td></tr>
-                            </tbody>
-                        </table>
+                    <div class="compact-trades-header" style="border-top: var(--border-thick); border-bottom: var(--border-thin); padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                        <span style="font-weight: 800; font-size: 0.7rem; text-transform: uppercase;">Active & Recent Trades</span>
+                        <span style="font-size: 0.65rem; font-weight: 600; color: var(--text-muted);">CLICK FOR DETAILS</span>
                     </div>
-                </div>
 
-                <!-- ALLOCATION BAR -->
-                <div class="brutal-card" style="padding: 1rem 1.5rem;">
-                    <div style="font-size: 0.8rem; font-weight: 800; margin-bottom: 0.5rem; text-transform: uppercase;" data-i18n="allocation">Allocation</div>
-                    <div id="allocation-bar" style="display: flex; height: 32px; border: var(--border-thick); overflow: hidden; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; color: #fff;">
-                        <!-- populated by JS -->
+                    <div id="unified-trades-list" style="max-height: 400px; overflow-y: auto; background: #fff;">
+                        <!-- Unified list of active and closed trades -->
+                        <div style="padding: 2rem; text-align: center; color: var(--text-muted); font-style: italic;">Loading trades...</div>
                     </div>
                 </div>
 
                 <!-- RECENT CLOSED ORDERS -->
-                <div class="brutal-card" style="padding: 0;">
-                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.75rem; border-bottom: var(--border-thick); margin-bottom: 0;">
-                        <span data-i18n="recent_closes">RECENT CLOSES</span>
-                        <span id="closed-count-badge" class="closed-count-badge">0</span>
-                    </div>
-                    <div id="closed-orders-list" class="closed-orders-list">
-                        <div class="closed-order-empty" data-i18n="loading">Loading...</div>
-                    </div>
-                </div>
-
             </div>
         </main>
     </div>
@@ -263,7 +233,7 @@
                 <button class="chart-modal-close" id="chart-modal-close-btn">✕</button>
             </div>
             <div id="chart-modal-chart" class="chart-modal-chart"></div>
-            <div class="chart-modal-hint" data-i18n="chart_hint">Scroll to zoom &nbsp;&bull;&nbsp; Drag to pan &nbsp;&bull;&nbsp; Double-click to reset</div>
+            <div class="chart-modal-hint" data-i18n="chart_hint">Drag to pan &bull; Double-click to reset</div>
         </div>
     </div>
 
@@ -273,7 +243,12 @@
             <div class="chart-modal-header">
                 <div class="chart-modal-title">
                     <span class="chart-modal-symbol" data-i18n="pnl_growth">PNL GROWTH</span>
-                    <span id="balance-modal-range" class="closed-order-side long" style="margin-left: 10px;">ALL TIME</span>
+                    <div class="chart-tf-selector" id="bal-modal-tf-selector" style="margin-left: 15px;">
+                        <button class="tf-btn" data-tf="10h">10H</button>
+                        <button class="tf-btn" data-tf="24h">24H</button>
+                        <button class="tf-btn active" data-tf="7d">7D</button>
+                        <button class="tf-btn" data-tf="all">ALL</button>
+                    </div>
                 </div>
                 <div class="chart-modal-stats">
                     <div class="chart-modal-stat">
@@ -285,16 +260,82 @@
                         <span class="chart-modal-stat-value" id="balance-modal-trades">--</span>
                     </div>
                     <div class="chart-modal-stat">
-                        <span class="chart-modal-stat-label">TOTAL RETURN</span>
+                        <span class="chart-modal-stat-label">REALIZED PNL</span>
+                        <span class="chart-modal-stat-value" id="balance-modal-realized">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label">UNREALIZED</span>
+                        <span class="chart-modal-stat-value" id="balance-modal-unrealized">--</span>
+                    </div>
+                    <div class="chart-modal-stat">
+                        <span class="chart-modal-stat-label">TOTAL PNL</span>
                         <span class="chart-modal-stat-value" id="balance-modal-return">--</span>
                     </div>
                 </div>
                 <button class="chart-modal-close" id="balance-modal-close-btn">✕</button>
             </div>
-            <div style="flex: 1; padding: 2rem; position: relative;">
-                <canvas id="balance-modal-canvas"></canvas>
+            <div style="flex: 1; padding: 1.5rem; position: relative; min-height: 350px;">
+                <canvas id="balance-modal-canvas" style="width: 100%; height: 100%; cursor: grab; user-select: none; touch-action: none;"></canvas>
             </div>
-            <div class="chart-modal-hint" data-i18n="chart_hint">Scroll to zoom &nbsp;&bull;&nbsp; Drag to pan &nbsp;&bull;&nbsp; Double-click to reset</div>
+            <div class="chart-modal-hint" data-i18n="chart_hint">Drag to pan &bull; Double-click to reset</div>
+        </div>
+    </div>
+
+    <!-- TRADE DETAIL MODAL -->
+    <div id="trade-detail-modal" class="chart-modal-overlay">
+        <div class="chart-modal-card" style="max-width: 400px; height: auto;">
+            <div class="chart-modal-header">
+                <div>
+                    <span id="tdm-symbol" class="chart-modal-symbol">ASSET</span>
+                    <span id="tdm-side" class="direction-badge" style="margin-left: 10px;">SIDE</span>
+                </div>
+                <button class="chart-modal-close" id="tdm-close-btn">✕</button>
+            </div>
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Entry Price</div>
+                        <div id="tdm-entry" style="font-size: 1.1rem; font-weight: 800; font-family: var(--font-mono);">$0.00</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Current/Exit Price</div>
+                        <div id="tdm-exit" style="font-size: 1.1rem; font-weight: 800; font-family: var(--font-mono);">$0.00</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Size</div>
+                        <div id="tdm-size" style="font-size: 1.1rem; font-weight: 800; font-family: var(--font-mono);">$0.00</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Result</div>
+                        <div id="tdm-pnl" style="font-size: 1.1rem; font-weight: 800; font-family: var(--font-mono);">0.00%</div>
+                    </div>
+                </div>
+                <div style="border-top: var(--border-thin); padding-top: 1rem;">
+                    <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Execution Time</div>
+                    <div id="tdm-time" style="font-size: 0.85rem; font-weight: 600;">--:--:--</div>
+                </div>
+                <div id="tdm-status-box" style="padding: 0.75rem; background: #f5f5f5; border: var(--border-thin); text-align: center; font-weight: 800; text-transform: uppercase; font-size: 0.75rem;">
+                    STATUS: ACTIVE
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COPY MODE MODAL -->
+    <div id="copy-mode-modal" class="chart-modal-overlay">
+        <div class="chart-modal-card" style="max-width: 500px; height: auto; padding: 2rem;">
+            <div class="chart-modal-header" style="border-bottom: none; padding: 0; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.8rem; font-weight: 800;">Copy Mode Access</h2>
+                <button class="chart-modal-close" id="copy-mode-close-btn">✕</button>
+            </div>
+            <p style="font-weight: 500; line-height: 1.5; margin-bottom: 2rem;">
+                Automate your trading with our Copy Mode. Follow professional signals and bot trades automatically.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <button class="brutal-btn" style="background: var(--color-green); color: #000;" id="cm-login-btn">Login to Account</button>
+                <div style="text-align: center; font-weight: 800; font-size: 0.8rem; color: var(--text-muted);">OR</div>
+                <button class="brutal-btn" style="background: var(--color-yellow); color: #000;" id="cm-buy-btn">Get PRO Subscription</button>
+            </div>
         </div>
     </div>
 

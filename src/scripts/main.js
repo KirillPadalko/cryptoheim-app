@@ -164,6 +164,7 @@ function applyTranslations() {
 // Position data store for modal chart
 const _posChartData = {};
 let _lwChart = null;  // active Lightweight Charts instance
+let _balModalChart = null; // active Portfolio Chart instance
 let _currentModalCanvasId = null;
 let _currentModalTF = '15m';
 
@@ -195,6 +196,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === balModal) closeBalanceModal();
     });
 
+    // Register Chart.js zoom plugin if available
+    if (typeof Chart !== 'undefined' && window['chartjs-plugin-zoom']) {
+        Chart.register(window['chartjs-plugin-zoom']);
+    }
+
+    // Balance Modal timeframe switching
+    const balTfBtns = document.querySelectorAll('#bal-modal-tf-selector .tf-btn');
+    balTfBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.classList.contains('active')) return;
+            balTfBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            window._balModalTF = btn.dataset.tf;
+            openBalanceModal();
+        });
+    });
+
     startDashboard();
 
     // Modal events
@@ -221,7 +239,48 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Copy Mode CTA
+    const btnCopyMode = document.getElementById('btn-copy-mode');
+    const copyModeModal = document.getElementById('copy-mode-modal');
+    const copyModeClose = document.getElementById('copy-mode-close-btn');
+    
+    if (btnCopyMode) {
+        btnCopyMode.addEventListener('click', () => {
+            if (isAuthorized()) {
+                alert("Copy Mode settings coming soon!");
+            } else {
+                if (copyModeModal) copyModeModal.classList.add('open');
+            }
+        });
+    }
+    
+    if (copyModeClose) {
+        copyModeClose.addEventListener('click', () => {
+            if (copyModeModal) copyModeModal.classList.remove('open');
+        });
+    }
+    
+    const cmLoginBtn = document.getElementById('cm-login-btn');
+    const cmBuyBtn = document.getElementById('cm-buy-btn');
+    
+    if (cmLoginBtn) {
+        cmLoginBtn.addEventListener('click', () => {
+            alert("Login feature coming soon!");
+        });
+    }
+    
+    if (cmBuyBtn) {
+        cmBuyBtn.addEventListener('click', () => {
+            window.location.href = 'pro.html';
+        });
+    }
 });
+
+function isAuthorized() {
+    // Simple check for proToken in localStorage
+    return localStorage.getItem('proToken') !== null;
+}
 
 async function startDashboard() {
     await updateDashboardData();
@@ -236,7 +295,8 @@ async function updateDashboardData() {
         renderLatestNews(),
         renderExposureAndPositions(),
         renderClosedOrders(),
-        renderBalanceChart()
+        renderBalanceChart(),
+        renderRiskScenario()
     ]);
 }
 
@@ -258,11 +318,12 @@ function startRefreshTimer() {
 // ----------------------------------------------------
 // DECISION STRIP
 // ----------------------------------------------------
+// DECISION STRIP
+// ----------------------------------------------------
 async function renderDecisionStrip() {
     try {
         const lang = window.appLang || 'en';
         
-        // Parallel fetch all required data
         const [analysis, fngIndex, marketScan, domStream, forecastRes] = await Promise.allSettled([
             API.getCryptoAnalysis(lang),
             API.getFearGreedIndex(),
@@ -271,7 +332,6 @@ async function renderDecisionStrip() {
             API.getMarketForecast(lang)
         ]);
 
-        // --- MARKET STATE (regime) — data-driven, primary ---
         const forecastData = forecastRes.status === "fulfilled" && forecastRes.value?.forecast
             ? forecastRes.value.forecast : null;
 
@@ -280,122 +340,128 @@ async function renderDecisionStrip() {
         const direction = forecastData?.direction || null;
         const confidence = forecastData?.confidence ?? null;
 
+        // --- 1. MARKET STATE ---
+        const stateValEl = document.getElementById('ds-state-val');
+        const stateSubEl = document.getElementById('ds-state-sub');
+        const stateHeader = document.querySelector('#ds-state-block .label');
+        
+        const isRu = lang === 'ru';
+        if (stateHeader) stateHeader.innerText = isRu ? "СОСТОЯНИЕ РЫНКА" : "MARKET STATE";
+
         const regimeConfig = {
-            "trend":           { label: "TRENDING",   color: "var(--color-green)", desc: "Directional trend confirmed" },
-            "chop":            { label: "SIDEWAYS",    color: "var(--text-muted)", desc: "No clear direction" },
-            "high_volatility": { label: "VOLATILE",    color: "var(--color-red)",  desc: "High market volatility" },
-            "event":           { label: "EVENT",       color: "var(--color-red)",  desc: "Extreme Fear or Greed" },
+            "trend":           { 
+                label: isRu ? "ТРЕНД" : "TRENDING",   
+                color: "var(--color-green)", 
+                desc: isRu ? "Направленный поток" : "Directional flow" 
+            },
+            "chop":            { 
+                label: isRu ? "БОКОВИК" : "SIDEWAYS",    
+                color: "var(--text-muted)", 
+                desc: isRu ? "Диапазон" : "Range bound" 
+            },
+            "high_volatility": { 
+                label: isRu ? "ВОЛАТИЛЬНОСТЬ" : "VOLATILE",    
+                color: "var(--color-red)",  
+                desc: isRu ? "Высокий риск" : "High risk" 
+            },
+            "event":           { 
+                label: isRu ? "СОБЫТИЕ" : "EVENT",       
+                color: "var(--color-red)",  
+                desc: isRu ? "Событие / Черный лебедь" : "Black swan/Event" 
+            },
         };
-        const regimeCfg = regime ? regimeConfig[regime] : null;
 
-        const biasEl = document.getElementById('ds-bias');
-        const directionBlock = document.getElementById('ds-direction-block');
-
-        if (regimeCfg && biasEl) {
-            // Update top-most label of the first block
-            const firstBlockLabel = biasEl.parentElement.querySelector('.label');
-            if (firstBlockLabel) {
-                firstBlockLabel.innerText = "MARKET STATE";
-                firstBlockLabel.removeAttribute('data-i18n'); // prevent i18n from overriding
+        if (stateValEl && regime) {
+            const cfg = regimeConfig[regime] || { label: regime.toUpperCase(), color: "#000", desc: "" };
+            stateValEl.innerText = cfg.label;
+            stateValEl.style.color = cfg.color;
+            
+            let subtext = cfg.desc;
+            if (bias) {
+                const biasTr = isRu ? (bias === 'bullish' ? 'БЫЧИЙ' : bias === 'bearish' ? 'МЕДВЕЖИЙ' : 'НЕЙТРАЛЬНЫЙ') : bias.toUpperCase();
+                subtext += ` · ${biasTr}`;
             }
-
-            // Primary: regime
-            biasEl.innerText = regimeCfg.label;
-            biasEl.style.color = regimeCfg.color;
-
-            // Secondary: LLM bias label
-            const biasLabel = bias
-                ? `${regimeCfg.desc} · ${bias.toUpperCase()}`
-                : regimeCfg.desc;
-            if (directionBlock) {
-                directionBlock.querySelector('.label').innerText = `MARKET STATE: ${biasLabel}`;
-            }
-
-            // Direction block color based on regime
-            const regimeLower = regime || '';
-            if (directionBlock) {
-                if (regimeLower === 'trend') {
-                    directionBlock.className = bias === 'bearish'
-                        ? 'decision-block primary-bias-block bear'
-                        : 'decision-block primary-bias-block';
-                } else if (regimeLower === 'high_volatility' || regimeLower === 'event') {
-                    directionBlock.className = 'decision-block primary-bias-block bear';
-                } else {
-                    directionBlock.className = 'decision-block primary-bias-block neutral';
-                }
-            }
-
-        } else if (analysis.status === "fulfilled" && analysis.value) {
-            // Fallback to old behavior if forecast unavailable
-            const data = analysis.value;
-            const headline = data.widget_long?.headline || "NEUTRAL";
-            if (biasEl) biasEl.innerText = headline;
-            if (directionBlock) {
-                directionBlock.querySelector('.label').innerText = `BIAS: ${headline}`;
-                const hl = headline.toLowerCase();
-                directionBlock.className = hl.includes('bull') ? 'decision-block primary-bias-block'
-                    : hl.includes('bear') ? 'decision-block primary-bias-block bear'
-                    : 'decision-block primary-bias-block neutral';
-            }
+            if (confidence) subtext += ` (${confidence}%)`;
+            stateSubEl.innerText = subtext;
         }
 
-        // --- CONFIDENCE (from forecast, fallback to crypto-analysis) ---
-        const conf = confidence
-            ?? analysis.value?.widget_long?.confidence_pct
-            ?? 50;
-        const confEl = document.getElementById('ds-confidence');
-        const confFill = document.getElementById('ds-confidence-fill');
-        if (confEl) confEl.innerText = `${conf}%`;
-        if (confFill) confFill.style.width = `${conf}%`;
+        // --- 2. TREND & DIRECTION ---
+        const trendValEl = document.getElementById('ds-trend-val');
+        const trendBadgeEl = document.getElementById('ds-trend-badge');
+        const trendSubEl = document.getElementById('ds-trend-sub');
+        const trendHeader = document.querySelector('#ds-trend-block .label');
+        if (trendHeader) trendHeader.innerText = isRu ? "ТРЕНД И НАПРАВЛЕНИЕ" : "TREND & DIRECTION";
 
-        // --- DIRECTION BADGE (inside TREND block) ---
-        const dirBtn = document.getElementById('ds-direction-btn');
-        if (dirBtn && direction) {
-            const dirUpper = direction.toUpperCase();
-            const isWait = dirUpper === 'WAIT' || dirUpper === 'ЖДАТЬ' || dirUpper === 'ОЖИДАНИЕ';
-            const icon = isWait ? '<span class="icon">⌛</span>' : '';
-            const dirText = getTr('dyn_' + direction.toLowerCase()) || direction;
-            dirBtn.innerHTML = `${icon}<span>${dirText}</span>`;
-            dirBtn.className = `direction-badge ${direction.toLowerCase()}`;
-            dirBtn.style.display = 'inline-flex';
-        } else if (dirBtn) {
-            dirBtn.style.display = 'none';
+        if (marketScan.status === "fulfilled" && marketScan.value) {
+            let mood = marketScan.value.breadth?.mood || "NEUTRAL";
+            if (isRu) {
+                if (mood.toUpperCase() === 'NEUTRAL') mood = 'НЕЙТРАЛЬНО';
+                else if (mood.toUpperCase() === 'BULLISH') mood = 'БЫЧИЙ';
+                else if (mood.toUpperCase() === 'BEARISH') mood = 'МЕДВЕЖИЙ';
+            }
+            if (trendValEl) trendValEl.innerText = mood.toUpperCase();
         }
 
+        if (trendBadgeEl && direction) {
+            let dirText = direction.toUpperCase();
+            if (isRu) {
+                if (dirText === 'WAIT') dirText = 'ЖДАТЬ';
+                if (dirText === 'LONG') dirText = 'ЛОНГ';
+                if (dirText === 'SHORT') dirText = 'ШОРТ';
+            }
+            trendBadgeEl.innerText = dirText;
+            trendBadgeEl.className = `direction-badge ${direction.toLowerCase()}`;
+            trendBadgeEl.style.display = 'inline-flex';
+        }
 
+        if (trendSubEl) {
+            let st = forecastData?.short_term_outlook || "Stable market conditions";
+            if (isRu && st === "Stable market conditions") st = "СТАБИЛЬНЫЕ РЫНОЧНЫЕ УСЛОВИЯ";
+            trendSubEl.innerText = st.toUpperCase();
+        }
 
-        // --- FEAR & GREED ---
+        // --- 3. FEAR & GREED ---
         if (fngIndex.status === "fulfilled" && fngIndex.value) {
             const fngValEl = document.getElementById('ds-fng-val');
             const fngLblEl = document.getElementById('ds-fng-label');
-            if (fngValEl) fngValEl.innerText = fngIndex.value.current_value;
-            if (fngLblEl) fngLblEl.innerText = fngIndex.value.current_classification;
-        }
+            const fngHeader = fngValEl?.closest('.decision-block')?.querySelector('.label');
+            if (fngHeader) fngHeader.innerText = isRu ? "СТРАХ И ЖАДНОСТЬ" : "FEAR & GREED";
 
-        // --- TREND (from market-scan breadth) ---
-        if (marketScan.status === "fulfilled" && marketScan.value) {
-            const mood = marketScan.value.breadth?.mood || "SIDEWAYS";
-            const trendEl = document.getElementById('ds-trend');
-            if (trendEl) trendEl.innerText = mood;
-        }
-
-        // --- BTC DOMINANCE + VOLATILITY ---
-        if (domStream.status === "fulfilled" && domStream.value) {
-            const data = domStream.value.data || [];
-            if (data.length > 0) {
-                const latest = data[data.length - 1];
-                const btcEl = document.getElementById('ds-btc-dom');
-                if (btcEl) btcEl.innerText = `${latest.btc_dominance.toFixed(1)}%`;
+            if (fngValEl) {
+                fngValEl.innerText = fngIndex.value.current_value;
+                const val = parseInt(fngIndex.value.current_value);
+                fngValEl.style.color = val > 70 ? 'var(--color-green)' : val < 30 ? 'var(--color-red)' : 'inherit';
             }
-            const marketCapChange = forecastData?.market_cap_24h_change
-                ?? domStream.value.market_cap_24h_change;
-            if (marketCapChange !== undefined) {
-                const volEl = document.getElementById('ds-volatility');
-                const isHigh = Math.abs(marketCapChange) > 3;
-                if (volEl) {
-                    volEl.innerText = isHigh ? "HIGH VOLATILITY" : "LOW VOLATILITY";
-                    volEl.style.color = isHigh ? "var(--color-red)" : "var(--text-muted)";
+            if (fngLblEl) {
+                let cls = fngIndex.value.current_classification;
+                if (isRu) {
+                    if (cls.toUpperCase() === 'NEUTRAL') cls = 'НЕЙТРАЛЬНО';
+                    else if (cls.toUpperCase().includes('GREED')) cls = 'ЖАДНОСТЬ';
+                    else if (cls.toUpperCase().includes('FEAR')) cls = 'СТРАХ';
                 }
+                fngLblEl.innerText = cls.toUpperCase();
+            }
+        }
+
+        // --- 4. VOLATILITY & BTC DOM ---
+        const volValEl = document.getElementById('ds-vol-val');
+        const btcDomEl = document.getElementById('ds-btc-dom');
+        const volHeader = volValEl?.closest('.decision-block')?.querySelector('.label');
+        if (volHeader) volHeader.innerText = isRu ? "ВОЛАТИЛЬНОСТЬ РЫНКА" : "MARKET VOLATILITY";
+
+        if (domStream.status === "fulfilled" && domStream.value) {
+            const latest = domStream.value.data?.[domStream.value.data.length - 1];
+            if (btcDomEl && latest) btcDomEl.innerText = `BTC DOM: ${latest.btc_dominance.toFixed(1)}%`;
+            
+            const mc24 = forecastData?.market_cap_24h_change ?? domStream.value.market_cap_24h_change;
+            if (volValEl && mc24 !== undefined) {
+                const isHigh = Math.abs(mc24) > 2.5;
+                if (isRu) {
+                    volValEl.innerText = isHigh ? "ВЫСОКАЯ" : "НОРМА";
+                } else {
+                    volValEl.innerText = isHigh ? "HIGH" : "NORMAL";
+                }
+                volValEl.style.color = isHigh ? "var(--color-red)" : "var(--color-green)";
             }
         }
 
@@ -404,6 +470,33 @@ async function renderDecisionStrip() {
     }
 }
 
+
+// RISK SCENARIO
+// ----------------------------------------------------
+async function renderRiskScenario() {
+    const list = document.getElementById('risk-list');
+    if (!list) return;
+
+    try {
+        const lang = window.appLang || 'en';
+        const res = await API.getMarketForecast(lang);
+        if (res && res.forecast && res.forecast.risks) {
+            const risks = res.forecast.risks;
+            if (Array.isArray(risks)) {
+                list.innerHTML = risks.map(r => `<div>• ${r}</div>`).join('');
+            } else if (typeof risks === 'string') {
+                // Split by newline or bullet points if it's a long string
+                const lines = risks.split('\n').filter(l => l.trim().length > 0);
+                list.innerHTML = lines.map(l => `<div>${l.startsWith('•') || l.startsWith('-') ? '' : '• '}${l}</div>`).join('');
+            }
+        } else {
+            list.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">No immediate risks identified.</div>';
+        }
+    } catch (e) {
+        console.error("Risk scenario error:", e);
+        list.innerHTML = '<div style="color: var(--color-red);">Error loading risks.</div>';
+    }
+}
 
 // ----------------------------------------------------
 // TOP SIGNALS
@@ -415,9 +508,10 @@ async function renderTopSignals() {
     if (!list) return;
 
     try {
-        const [forecastRes, klinesRes] = await Promise.allSettled([
+        const [forecastRes, klinesRes, positionsRes] = await Promise.allSettled([
             API.getMarketForecast(window.appLang || 'en'),
-            API.getSparklines() // or klines summary
+            API.getSparklines(),
+            API.getBotPositions()
         ]);
 
         if (forecastRes.status === "fulfilled" && forecastRes.value && forecastRes.value.forecast) {
@@ -443,6 +537,8 @@ async function renderTopSignals() {
                 }
             }
 
+            const activePositions = (positionsRes.status === "fulfilled" && positionsRes.value) ? positionsRes.value : [];
+
             signals.forEach((s, i) => {
                 const sStr = String(s.signal).toLowerCase();
                 let badgeClass = 'badge-yellow';
@@ -459,12 +555,22 @@ async function renderTopSignals() {
                 const logicObj = s.risk_logic || {};
                 const logicStr = (typeof logicObj === 'string') ? logicObj : (logicObj[lang] || logicObj['en'] || "");
                 
+                // Identify if signal is bot-active
+                // 1. Check if backend says so explicitly
+                // 2. OR check if there's an active position for this asset
+                const isBotActive = s.is_bot_trade || s.bot_enabled || activePositions.some(p => p.symbol === matchSym || p.symbol === symUp);
+
                 htmlChunks.push(`
-                    <div class="signal-row">
-                        <div class="signal-rank">${i + 1}</div>
+                    <div class="signal-row ${isBotActive ? 'bot-active' : ''}">
+                        <div class="signal-rank">
+                            ${i + 1}
+                        </div>
                         <div class="signal-main">
                             <div class="signal-info">
-                                <h3>${cleanSymbol(s.symbol)}</h3>
+                                <h3>
+                                    ${cleanSymbol(s.symbol)}
+                                    ${isBotActive ? `<span class="bot-badge">BOT</span>` : ''}
+                                </h3>
                                 <div class="signal-badge-row">
                                     <div class="signal-badge ${badgeClass}">${s.signal}</div>
                                     ${logicStr ? `<div class="signal-logic-badge">${logicStr}</div>` : ''}
@@ -574,158 +680,150 @@ async function renderLatestNews() {
 // ----------------------------------------------------
 async function renderExposureAndPositions() {
     try {
-        const [stats, positions, sparklinesObj] = await Promise.all([
+        const [stats, positions] = await Promise.all([
             API.getBotStats().catch(()=>null),
-            API.getBotPositions().catch(()=>[]),
-            API.getSparklines().catch(()=>null)
+            API.getBotPositions().catch(()=>[])
         ]);
 
-        let unrealizedPnl = 0;
+        const unifiedList = document.getElementById('unified-trades-list');
+        if (!unifiedList) return;
 
-        // Positions Table
-        const tbody = document.getElementById('pos-table-body');
-        if (!positions || positions.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">${getTr('dyn_no_active')}</td></tr>`;
-            document.getElementById('exp-net-bias').innerText = getTr('dyn_cash_100');
-            document.getElementById('exp-net-bias').className = `exp-value text-muted`;
-        } else {
-            let html = '';
+        let unrealizedPnl = 0;
+        let htmlChunks = [];
+
+        // 1. ACTIVE POSITIONS
+        if (positions && positions.length > 0) {
             let longSize = 0, shortSize = 0;
 
-            for(let i=0; i<positions.length; i++) {
-                const pos = positions[i];
-                const isLong = pos.side.toLowerCase() === 'buy';
-                
-                if(isLong) longSize += pos.size;
-                else shortSize += pos.size;
-
-                const price = (sparklinesObj && sparklinesObj[pos.symbol]) ? sparklinesObj[pos.symbol][sparklinesObj[pos.symbol].length - 1] : pos.entry_price;
-                const pnlValue = isLong ? (price - pos.entry_price)*pos.size : (pos.entry_price - price)*pos.size;
-                const pnlClass = pnlValue >= 0 ? 'text-green' : 'text-red';
-                
-                unrealizedPnl += pnlValue;
-
-                html += `
-                    <tr>
-                        <td>
-                            ${cleanSymbol(pos.symbol)}
-                            <div style="font-size: 0.7rem; font-weight: 800; color: var(--color-${isLong ? 'green' : 'red'});">${isLong ? getTr('dyn_long') : getTr('dyn_short')}</div>
-                        </td>
-                        <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${formatDateTime(pos.open_time)}</td>
-                        <td>${pos.size.toFixed(3)}</td>
-                        <td>$${pos.entry_price.toFixed(2)}</td>
-                        <td>$${price.toFixed(2)}</td>
-                        <td class="${pnlClass}">${pnlValue > 0 ? '+' : ''}${pnlValue.toFixed(2)}</td>
-                        <td class="td-chart"><canvas id="pos-chart-${pos.id}"></canvas></td>
-                        <td class="td-sltp">
-                            <span class="text-red">SL $${pos.sl_price.toFixed(2)}</span><br/>
-                            <span class="text-green">TP $${pos.tp_price.toFixed(2)}</span>
-                        </td>
-                    </tr>
-                `;
-            }
-            tbody.innerHTML = html;
-
-            // Net Bias Tracker
-            const total = longSize + shortSize;
-            if(total > 0) {
-                const lPct = (longSize / total) * 100;
-                document.getElementById('exp-net-bias').innerText = `${lPct >= 50 ? 'LONG' : 'SHORT'} ${Math.max(lPct, 100-lPct).toFixed(0)}%`;
-                document.getElementById('exp-net-bias').className = `exp-value ${lPct >= 50 ? 'text-green' : 'text-red'}`;
-            }
-
             positions.forEach(pos => {
-                const sparklineData = sparklinesObj && sparklinesObj[pos.symbol] ? sparklinesObj[pos.symbol] : null;
-                const isLong = pos.side.toLowerCase() === 'buy';
-                const price = sparklineData ? sparklineData[sparklineData.length - 1] : pos.entry_price;
-                const pnlValue = isLong ? (price - pos.entry_price) * pos.size
-                                        : (pos.entry_price - price) * pos.size;
+                const uPnl = parseFloat(pos.pnl_usdt || pos.unrealized_pnl || pos.unrealizedProfit || 0);
+                unrealizedPnl += uPnl;
+                
+                const amount = parseFloat(pos.size || pos.positionAmt || pos.amount || 0);
+                const isLong = amount > 0;
+                const side = isLong ? 'LONG' : 'SHORT';
+                const sideClass = isLong ? 'long' : 'short';
+                const pnlPct = parseFloat(pos.pnl_pct || pos.unrealizedPnlPct || 0);
+                const pnlClass = 'text-blue';
+                const pnlText = 'ACTIVE';
+                
+                const notional = Math.abs(parseFloat(pos.notional || (amount * (pos.entry_price || 0)) || 0));
+                if (isLong) longSize += notional;
+                else shortSize += notional;
 
-                if (sparklineData) {
-                    drawBrutalSparkline(`pos-chart-${pos.id}`, sparklineData, isLong, {
-                        entry: pos.entry_price,
-                        sl: pos.sl_price,
-                        tp: pos.tp_price
-                    });
-                    // Store for modal
-                    _posChartData[`pos-chart-${pos.id}`] = { pos, sparklineData, currentPrice: price, pnlValue };
+                htmlChunks.push(`
+                    <div class="trade-row-compact active" onclick='openTradeDetailModal(${JSON.stringify(pos)}, true)'>
+                        <div class="asset-info">
+                            <div class="symbol">${cleanSymbol(pos.symbol)}</div>
+                            <div class="side-badge ${sideClass}">${side}</div>
+                        </div>
+                        <div class="pnl-pct ${pnlClass}">${pnlText}</div>
+                    </div>
+                `);
+            });
+
+            // Update net bias
+            const netBias = longSize - shortSize;
+            const biasEl = document.getElementById('exp-net-bias');
+            if (biasEl) {
+                biasEl.innerText = (netBias >= 0 ? 'LONG' : 'SHORT') + ' ' + Math.abs(netBias).toFixed(0);
+                biasEl.className = `exp-value ${netBias >= 0 ? 'text-green' : 'text-red'}`;
+            }
+        }
+
+        // 2. CLOSED ORDERS (HISTORY)
+        const rawHistory = await API.getBotHistory(200).catch(() => []);
+        const history = Array.isArray(rawHistory) ? rawHistory : (rawHistory?.history || []);
+        
+        if (history && history.length > 0) {
+            history.forEach(order => {
+                const pnlAbs = parseFloat(order.pnl || 0);
+                const entryPrice = parseFloat(order.entry_price || order.price || 0);
+                const sizeVal = parseFloat(order.size || order.amount || 0);
+                
+                let pnlPct = parseFloat(order.pnl_pct || order.realizedPnlPct || 0);
+                if (pnlPct === 0 && pnlAbs !== 0 && entryPrice > 0 && sizeVal > 0) {
+                    pnlPct = (pnlAbs / (entryPrice * sizeVal)) * 100;
                 }
-
-                // Make chart cell open modal on click
-                const td = document.getElementById(`pos-chart-${pos.id}`)?.parentElement;
-                if (td) td.addEventListener('click', () => openPositionModal(`pos-chart-${pos.id}`));
-            });
-
-            // Calculate detailed allocation
-            let allocHtml = '';
-            let btcVal = 0, ethVal = 0, altsVal = 0;
-            const equity = stats && stats.balance_history && stats.balance_history.length > 0 
-                ? stats.balance_history[stats.balance_history.length - 1].equity 
-                : 0;
-            let currentAssetVal = 0;
-            
-            // Just for demonstration logic based on Positions
-            positions.forEach(pos => {
-                const price = (sparklinesObj && sparklinesObj[pos.symbol]) ? sparklinesObj[pos.symbol][sparklinesObj[pos.symbol].length - 1] : pos.entry_price;
-                const val = pos.size * price;
-                currentAssetVal += val;
                 
-                if(pos.symbol.includes('BTC')) btcVal += val;
-                else if(pos.symbol.includes('ETH')) ethVal += val;
-                else altsVal += val;
+                const pnlClass = pnlPct >= 0 ? 'text-green' : 'text-red';
+                const sideRaw = String(order.side || '').toUpperCase();
+                const isLong = sideRaw === 'BUY' || sideRaw === 'LONG' || parseFloat(order.positionAmt || 0) > 0;
+                const side = isLong ? 'LONG' : 'SHORT';
+                const sideClass = isLong ? 'long' : 'short';
+                
+                const t = order.time || order.updateTime || order.close_time;
+                const date = new Date(typeof t === 'number' && t < 10000000000 ? t * 1000 : t);
+                const timeStr = isNaN(date.getTime()) ? '--:--' : 
+                    `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+                htmlChunks.push(`
+                    <div class="trade-row-compact" onclick='openTradeDetailModal(${JSON.stringify(order)}, false)'>
+                        <div class="asset-info">
+                            <div class="symbol">${cleanSymbol(order.symbol)}</div>
+                            <div class="side-badge ${sideClass}">${side}</div>
+                            <div class="time-ago">${timeStr}</div>
+                        </div>
+                        <div class="pnl-pct ${pnlClass}">${(pnlPct >= 0 ? '+' : '')}${pnlPct.toFixed(2)}%</div>
+                    </div>
+                `);
             });
-            
-            const cashVal = Math.max(0, equity - currentAssetVal);
-            const sumVal = btcVal + ethVal + altsVal + cashVal;
-
-            if (sumVal > 0) {
-                const bPct = (btcVal / sumVal) * 100;
-                const ePct = (ethVal / sumVal) * 100;
-                const aPct = (altsVal / sumVal) * 100;
-                const cPct = (cashVal / sumVal) * 100;
-
-                if (bPct > 0) allocHtml += `<div style="width:${bPct}%; background:var(--color-yellow); color:#000; display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">BTC ${bPct.toFixed(0)}%</div>`;
-                if (ePct > 0) allocHtml += `<div style="width:${ePct}%; background:var(--color-blue); display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">ETH ${ePct.toFixed(0)}%</div>`;
-                if (aPct > 0) allocHtml += `<div style="width:${aPct}%; background:var(--text-main); display:flex; align-items:center; justify-content:center; border-right: var(--border-thin);">ALTS ${aPct.toFixed(0)}%</div>`;
-                if (cPct > 0) allocHtml += `<div style="width:${cPct}%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">${getTr('dyn_cash')} ${cPct.toFixed(0)}%</div>`;
-            } else {
-                allocHtml = `<div style="width:100%; background:var(--color-green); color:#000; display:flex; align-items:center; justify-content:center;">${getTr('dyn_cash_100')}</div>`;
-            }
-
-            document.getElementById('allocation-bar').innerHTML = allocHtml;
         }
 
-        // Stats Box
+        if (htmlChunks.length === 0) {
+            unifiedList.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--text-muted); font-style: italic;">No recent activity.</div>`;
+        } else {
+            unifiedList.innerHTML = htmlChunks.join('');
+        }
+
+        // Update Stats Grid
         if (stats) {
-            const totalPnl = (stats.total_pnl_usdt || 0) + unrealizedPnl;
-            document.getElementById('exp-pnl').innerText = `$${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}`;
-            document.getElementById('exp-pnl').className = `exp-value ${totalPnl >= 0 ? 'text-green' : 'text-red'}`;
+            const pnlEl = document.getElementById('exp-pnl');
+            // stats.total_pnl_usdt is the realized PNL
+            const relPnl = parseFloat(stats.total_pnl_usdt || stats.total_realized_pnl || stats.realized_pnl || 0);
+            const allTimePnl = relPnl + unrealizedPnl;
             
-            const exposure = stats.total_exposure_usdt || 0;
-            document.getElementById('exp-exposure').innerText = `$${exposure.toFixed(2)}`;
+            if (pnlEl) {
+                const currentBalance = parseFloat(stats.total_balance_usdt || stats.balance || 100);
+                const totalPct = (allTimePnl / Math.max(1, currentBalance - allTimePnl)) * 100;
+                pnlEl.innerText = `${(totalPct >= 0 ? '+' : '')}${totalPct.toFixed(2)}%`;
+                pnlEl.className = `exp-value ${totalPct >= 0 ? 'text-green' : 'text-red'}`;
+            }
 
-            // Extended Stats
-            document.getElementById('exp-winrate').innerText = `${(stats.win_rate_pct || 0).toFixed(1)}%`;
-            document.getElementById('exp-trades').innerText = stats.total_closed_trades || 0;
-            document.getElementById('exp-accuracy').innerText = `${(stats.ai_accuracy_pct || 0).toFixed(1)}%`;
+            const expEl = document.getElementById('exp-exposure');
+            if (expEl) {
+                const exposure = parseFloat(stats.total_exposure_usdt || stats.current_exposure || stats.exposure || 0);
+                expEl.innerText = `$${Math.round(exposure)}`;
+            }
 
-            const hist = stats.balance_history;
-            if(hist && hist.length > 0) {
-                const liveEquity = hist[hist.length - 1].equity + unrealizedPnl;
-                document.getElementById('exp-equity').innerText = `$${liveEquity.toFixed(2)}`;
-                document.getElementById('exp-equity').className = `exp-value`;
+            const wrEl = document.getElementById('exp-winrate');
+            if (wrEl) {
+                const wr = parseFloat(stats.win_rate_pct || stats.win_rate || stats.winrate || 0);
+                wrEl.innerText = `${(wr > 1 ? wr : wr * 100).toFixed(1)}%`;
+            }
+
+            const trEl = document.getElementById('exp-trades');
+            if (trEl) trEl.innerText = stats.total_closed_trades || stats.total_trades || stats.trades_count || '0';
+
+            const accEl = document.getElementById('exp-accuracy');
+            if (accEl) {
+                const acc = parseFloat(stats.ai_accuracy_pct || stats.ai_accuracy || stats.accuracy || 0);
+                accEl.innerText = `${(acc > 1 ? acc : acc * 100).toFixed(1)}%`;
             }
         }
 
-        // Risks
-        const forecastRes = await API.getMarketForecast(window.appLang || 'en');
-        if(forecastRes && forecastRes.forecast && forecastRes.forecast.risks) {
-            const risksHtml = forecastRes.forecast.risks.replace(/\n/g, '<br/>');
-            const el = document.getElementById('risk-list');
-            if (el) el.innerHTML = risksHtml;
+        // Re-render chart if needed
+        if (stats && stats.equity_curve) {
+            renderEquityChart(stats.equity_curve);
         }
 
-    } catch(e) { console.error(e); }
+    } catch(e) {
+        console.error("Error in renderExposureAndPositions:", e);
+    }
+}
+
+async function renderClosedOrders() {
+    // Consolidated into renderExposureAndPositions
 }
 
 // ----------------------------------------------------
@@ -765,7 +863,7 @@ function formatDateTime(val) {
 }
 
 function formatHoldTime(minutes) {
-    if (minutes === null || minutes === undefined) return 'вЂ”';
+    if (minutes === null || minutes === undefined) return '—';
     const totalMins = Math.round(minutes);
     if (totalMins < 60) return `${totalMins}m`;
     if (totalMins < 1440) {
@@ -778,109 +876,6 @@ function formatHoldTime(minutes) {
     return `${days}d ${hrs}h`;
 }
 
-async function renderClosedOrders() {
-    const listEl = document.getElementById('closed-orders-list');
-    const badgeEl = document.getElementById('closed-count-badge');
-    if (!listEl) return;
-
-    try {
-        // last_10_trades comes from /stats вЂ” already fetched in renderExposureAndPositions,
-        // but we fetch independently to keep functions decoupled.
-        const stats = await API.getBotStats().catch(() => null);
-
-        const trades = stats?.last_10_trades;
-        if (!trades || trades.length === 0) {
-            listEl.innerHTML = `<div class="closed-order-empty">${getTr('dyn_no_closed')}</div>`;
-            if (badgeEl) badgeEl.textContent = '0';
-            return;
-        }
-
-        if (badgeEl) badgeEl.textContent = trades.length;
-
-        const html = trades.map(t => {
-            const isWin = t.pnl >= 0;
-            const iconClass = isWin ? 'win' : 'loss';
-            const icon = isWin ? '✓' : '✕';
-            const pnlSign = t.pnl > 0 ? '+' : '';
-            const sym = String(t.symbol).replace('USDT', '');
-            const isLong = String(t.side).toLowerCase() === 'buy';
-            const sideLabel = isLong ? 'LONG' : 'SHORT';
-            const sideClass = isLong ? 'long' : 'short';
-            const holdStr = formatHoldTime(t.hold_minutes);
-
-            let contextHtml = '';
-            if (t.open_context) {
-                let ctx = t.open_context;
-                // Safety: parse if it's a string
-                if (typeof ctx === 'string') {
-                    try { ctx = JSON.parse(ctx); } catch(e) { console.error("Failed to parse open_context", e); }
-                }
-
-                if (ctx && typeof ctx === 'object') {
-                    const analysis = ctx.coin_metrics || {};
-                    const cm = analysis.technical_indicators || {};
-                    const rsi = cm.rsi_1d ? Math.round(cm.rsi_1d) : '--';
-                    const str = cm.trend_strength ? String(cm.trend_strength).toUpperCase() : '--';
-                    const regime = ctx.market_regime ? String(ctx.market_regime).toUpperCase() : '--';
-                    const bias = ctx.market_bias ? String(ctx.market_bias).toUpperCase() : '--';
-                    const risk = ctx.risk_pct ? (ctx.risk_pct * 100).toFixed(1) + '%' : '--';
-                    const lev = ctx.leverage || '--';
-
-                    const lang = window.appLang || 'en';
-                    const logicObj = analysis.risk_logic || {};
-                    const logicStr = (typeof logicObj === 'string') ? logicObj : (logicObj[lang] || logicObj['en'] || "");
-                    const analysisObj = analysis.summary || {};
-                    const analysisStr = (typeof analysisObj === 'string') ? analysisObj : (analysisObj[lang] || analysisObj['en'] || "");
-
-                    contextHtml = `
-                        <div class="closed-order-context" style="grid-column: 1 / -1; font-size: 0.65rem; font-family: var(--font-mono); color: var(--text-muted); background: #fafafa; padding: 10px; border: 1px dashed #ccc; margin-top: 6px; display: flex; flex-direction: column; gap: 8px;">
-                            <div style="display: flex; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px;">
-                                <div><b style="color:#000">${getTr('regime')}:</b> ${regime}</div>
-                                <div><b style="color:#000">${getTr('bias_label')}:</b> ${bias}</div>
-                                <div><b style="color:#000">${getTr('rsi')}:</b> ${rsi}</div>
-                                <div><b style="color:#000">${getTr('strength')}:</b> ${str}</div>
-                                <div><b style="color:#000">${getTr('risk_val')}:</b> ${risk} (x${lev})</div>
-                            </div>
-                            ${logicStr ? `
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <b style="color:#000">${getTr('logic')}:</b>
-                                <span class="signal-logic-badge" style="background:#000; color:#fff; padding: 1px 5px; border:none;">${logicStr}</span>
-                            </div>` : ''}
-                            ${analysisStr ? `
-                            <div style="line-height: 1.3;">
-                                <b style="color:#000">${getTr('analysis')}:</b> ${analysisStr}
-                            </div>` : ''}
-                        </div>
-                    `;
-                }
-            }
-
-            return `
-                <div class="closed-order-row">
-                    <div class="closed-order-icon ${iconClass}">${icon}</div>
-                    <div class="closed-order-info">
-                        <div class="closed-order-symbol">${sym}</div>
-                        <div class="closed-order-meta">
-                            <span class="closed-order-side ${sideClass}">${sideLabel}</span>
-                            <span class="closed-order-duration">⏱ ${holdStr}</span>
-                        </div>
-                        <div class="closed-order-times">
-                            <span>${getTr('opened')}: ${formatDateTime(t.open_time)}</span>
-                            <span>${getTr('closed')}: ${formatDateTime(t.close_time)}</span>
-                        </div>
-                    </div>
-                    <div class="closed-order-pnl ${iconClass}">${pnlSign}$${t.pnl.toFixed(2)}</div>
-                    ${contextHtml}
-                </div>
-            `;
-        }).join('');
-
-        listEl.innerHTML = html;
-    } catch(e) {
-        console.error('Closed orders error:', e);
-        listEl.innerHTML = `<div class="closed-order-empty">${getTr('dyn_err_trades')}</div>`;
-    }
-}
 
 async function renderBalanceChart() {
     const canvas = document.getElementById('balance-chart');
@@ -891,8 +886,8 @@ async function renderBalanceChart() {
         if (!stats) return;
 
         // Increased history depth to 200 trades
-        const history = await API.getBotHistory(200);
-        const trades = history?.history || stats.last_10_trades || [];
+        const rawHistory = await API.getBotHistory(200).catch(() => []);
+        const trades = (Array.isArray(rawHistory) ? rawHistory : (rawHistory?.history || []));
         
         if (trades.length === 0) {
             canvas.parentElement.style.display = 'none';
@@ -911,49 +906,45 @@ async function renderBalanceChart() {
         const initialBalance = Math.max(1, currentBalance - totalPnl);
 
         let runningBalance = initialBalance;
-        const dataPoints = [0]; // Start at 0%
-        const labels = ['Start'];
-        
-        const chartData = sortedTrades.map(t => {
+        const timeSeriesPoints = sortedTrades.map(t => {
+            const timeVal = typeof t.close_time === 'number' ? t.close_time : new Date(t.close_time).getTime() / 1000;
             runningBalance += (t.pnl || 0);
             const pctChange = ((runningBalance - initialBalance) / initialBalance) * 100;
-            dataPoints.push(pctChange);
-            labels.push(formatAxisTime(t.close_time));
             return {
-                symbol: t.symbol,
+                x: timeVal * 1000,
+                y: pctChange,
                 pnl: t.pnl,
-                pct: pctChange,
-                time: t.close_time
+                symbol: t.symbol,
+                close_time: timeVal
             };
         });
 
         // Store for modal
         window._balanceChartData = {
-            dataPoints,
-            labels,
             trades: sortedTrades,
+            points: timeSeriesPoints,
             initialBalance,
             stats
         };
 
         const ctx = canvas.getContext('2d');
-        // Destroy existing chart if any
-        if (window._balChartInst) window._balChartInst.destroy();
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(0, 200, 83, 0.2)');   // Green top
+        gradient.addColorStop(0.5, 'rgba(0, 200, 83, 0.02)'); // Fade to center
+        gradient.addColorStop(0.5, 'rgba(213, 0, 0, 0.02)');  // Red center
+        gradient.addColorStop(1, 'rgba(213, 0, 0, 0.2)');    // Red bottom
 
         window._balChartInst = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
                 datasets: [{
-                    data: dataPoints,
+                    data: timeSeriesPoints,
                     borderColor: '#000',
                     borderWidth: 2,
                     tension: 0.3,
                     pointRadius: 0,
-                    fill: {
-                        target: 'origin',
-                        above: 'rgba(0,0,0,0.03)',
-                    }
+                    fill: true,
+                    backgroundColor: gradient
                 }]
             },
             options: {
@@ -961,10 +952,27 @@ async function renderBalanceChart() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: { enabled: false }
+                    tooltip: { enabled: false },
+                    zoom: {
+                        zoom: { wheel: { enabled: false }, pinch: { enabled: false }, mode: 'x' },
+                        pan: { enabled: true, mode: 'x', threshold: 10 }
+                    }
                 },
                 scales: {
-                    x: { display: false },
+                    x: {
+                        type: 'time',
+                        display: true,
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: {
+                            maxTicksLimit: 2,
+                            autoSkip: true,
+                            maxRotation: 0,
+                            font: { size: 8, family: 'var(--font-mono)' },
+                            color: '#999',
+                            padding: 0
+                        }
+                    },
                     y: { 
                         display: true,
                         position: 'right',
@@ -975,20 +983,7 @@ async function renderBalanceChart() {
                         }
                     }
                 },
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                    zoom: {
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'x',
-                        },
-                        pan: {
-                            enabled: true,
-                            mode: 'x',
-                        }
-                    }
-                }
+                interaction: { intersect: false, mode: 'index' }
             }
         });
 
@@ -1002,54 +997,103 @@ async function renderBalanceChart() {
     }
 }
 
-let _balModalChart = null;
 function openBalanceModal() {
+    if (typeof Chart !== 'undefined' && window['chartjs-plugin-zoom']) {
+        Chart.register(window['chartjs-plugin-zoom']);
+    }
     const data = window._balanceChartData;
     if (!data) return;
 
     const modal = document.getElementById('balance-modal');
-    if (modal) {
+    if (modal && !modal.classList.contains('open')) {
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
     }
 
-    // Update header stats
-    document.getElementById('balance-modal-winrate').textContent = `${(data.stats.win_rate_pct || 0).toFixed(1)}%`;
-    document.getElementById('balance-modal-trades').textContent = data.stats.total_closed_trades || data.trades.length;
+    const tf = window._balModalTF || '7d';
+    const trades = data.trades;
+    const nowSec = Date.now() / 1000;
     
-    const lastPct = data.dataPoints[data.dataPoints.length - 1];
+    // Filter stats for the selected period
+    let periodTrades = trades;
+    if (tf === '10h') periodTrades = trades.filter(t => t.close_time > (nowSec - 36000));
+    else if (tf === '24h') periodTrades = trades.filter(t => t.close_time > (nowSec - 86400));
+    else if (tf === '7d') periodTrades = trades.filter(t => t.close_time > (nowSec - 86400 * 7));
+
+    const wins = periodTrades.filter(t => t.pnl > 0).length;
+    const winRate = periodTrades.length > 0 ? (wins / periodTrades.length * 100) : 0;
+    const realizedPnl = periodTrades.reduce((sum, t) => sum + parseFloat(t.pnl || 0), 0);
+    const unrealizedPnl = (tf === 'all' || tf === '10h' || tf === '24h') ? (data.stats.total_unrealized_pnl || 0) : 0;
+    const totalPnl = realizedPnl + unrealizedPnl;
+    const initBal = data.initialBalance || 100;
+
+    const relPct = (realizedPnl / initBal) * 100;
+    const unrelPct = (unrealizedPnl / initBal) * 100;
+    const totalPct = (totalPnl / initBal) * 100;
+
+    document.getElementById('balance-modal-winrate').textContent = `${winRate.toFixed(1)}%`;
+    document.getElementById('balance-modal-trades').textContent = periodTrades.length;
+
+    const relEl = document.getElementById('balance-modal-realized');
+    if (relEl) {
+        relEl.textContent = `${relPct >= 0 ? '+' : ''}${relPct.toFixed(2)}%`;
+        relEl.className = `chart-modal-stat-value ${relPct >= 0 ? 'text-green' : 'text-red'}`;
+    }
+
+    const unrelEl = document.getElementById('balance-modal-unrealized');
+    if (unrelEl) {
+        unrelEl.textContent = `${unrelPct >= 0 ? '+' : ''}${unrelPct.toFixed(2)}%`;
+        unrelEl.className = `chart-modal-stat-value ${unrelPct >= 0 ? 'text-green' : 'text-red'}`;
+    }
+
     const returnEl = document.getElementById('balance-modal-return');
-    returnEl.textContent = `${lastPct >= 0 ? '+' : ''}${lastPct.toFixed(2)}%`;
-    returnEl.className = `chart-modal-stat-value ${lastPct >= 0 ? 'text-green' : 'text-red'}`;
+    if (returnEl) {
+        returnEl.textContent = `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`;
+        returnEl.className = `chart-modal-stat-value ${totalPct >= 0 ? 'text-green' : 'text-red'}`;
+    }
+
+    const points = data.points;
+    const nowMs = Date.now();
+    let minTime = points.length > 0 ? points[0].x : nowMs - 36000000;
+    let maxTime = nowMs;
+
+    // If 10h is empty, but we have data, maybe auto-switch to ALL?
+    // User requested 10h default, so we respect it but handle empty state.
+    if (tf === '10h') minTime = nowMs - (10 * 3600 * 1000);
+    else if (tf === '24h') minTime = nowMs - (24 * 3600 * 1000);
+    else if (tf === '7d') minTime = nowMs - (7 * 24 * 3600 * 1000);
+    else { minTime = undefined; maxTime = undefined; }
+
+    console.log(`[Chart] Rendering ${tf} view. Range: ${minTime} to ${maxTime}`);
 
     const canvas = document.getElementById('balance-modal-canvas');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    if (_balModalChart) _balModalChart.destroy();
+    try {
+        if (_balModalChart) {
+            _balModalChart.destroy();
+            _balModalChart = null;
+        }
 
-    _balModalChart = new Chart(ctx, {
+        _balModalChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.labels,
             datasets: [{
                 label: 'PNL %',
-                data: data.dataPoints,
+                data: data.points,
                 borderColor: '#000',
                 borderWidth: 2,
                 tension: 0.15,
                 pointRadius: (ctx) => {
-                    if (ctx.dataIndex === 0) return 0;
-                    const trades = window._balanceChartData.trades;
-                    const trade = trades[ctx.dataIndex - 1];
-                    // Make significant trades larger
-                    return Math.abs(trade.pnl) > 5 ? 5 : 3;
+                    const pt = data.points[ctx.dataIndex];
+                    return (pt && Math.abs(pt.pnl) > 5) ? 5 : 3;
                 },
                 pointHoverRadius: 8,
                 pointBackgroundColor: (context) => {
-                    const idx = context.dataIndex;
-                    if (idx === 0) return '#000';
-                    const trade = data.trades[idx - 1];
-                    return trade.pnl >= 0 ? '#00E676' : '#FF1744'; // Neon Green / Bright Red
+                    const pt = data.points[context.dataIndex];
+                    if (!pt) return '#000';
+                    return pt.pnl >= 0 ? '#00E676' : '#FF1744';
                 },
                 pointBorderColor: '#000',
                 pointBorderWidth: 1.5,
@@ -1061,27 +1105,22 @@ function openBalanceModal() {
             id: 'tradeFlags',
             afterDraw: (chart) => {
                 const { ctx, scales: { x, y } } = chart;
-                const trades = data.trades;
-                const points = data.dataPoints;
-
-                // Identify trades to label: top 3 wins, top 3 losses, and 3 most recent
-                const sortedWins = [...trades].sort((a,b) => b.pnl - a.pnl).slice(0, 3);
-                const sortedLoss = [...trades].sort((a,b) => a.pnl - b.pnl).slice(0, 3);
-                const recent = trades.slice(-3);
-                
+                const points = data.points;
+                const sortedWins = [...points].sort((a,b) => b.pnl - a.pnl).slice(0, 3);
+                const sortedLoss = [...points].sort((a,b) => a.pnl - b.pnl).slice(0, 3);
+                const recent = points.slice(-3);
                 const labelSet = new Set([...sortedWins, ...sortedLoss, ...recent]);
 
                 ctx.save();
-                trades.forEach((t, i) => {
-                    if (!labelSet.has(t)) return;
-
-                    const dataIdx = i + 1; // offset by start point
-                    const xPx = x.getPixelForValue(data.labels[dataIdx]);
-                    const yPx = y.getPixelForValue(points[dataIdx]);
-                    const isWin = t.pnl >= 0;
+                points.forEach((pt) => {
+                    if (!labelSet.has(pt)) return;
+                    const xPx = x.getPixelForValue(pt.x);
+                    const yPx = y.getPixelForValue(pt.y);
+                    if (xPx < x.left || xPx > x.right) return;
+                    
+                    const isWin = pt.pnl >= 0;
                     const color = isWin ? '#00C853' : '#D50000';
 
-                    // Draw flag stem
                     ctx.beginPath();
                     ctx.moveTo(xPx, yPx);
                     const stemLen = isWin ? -30 : 30;
@@ -1090,9 +1129,9 @@ function openBalanceModal() {
                     ctx.lineWidth = 1;
                     ctx.stroke();
 
-                    // Draw flag box
-                    const label = t.symbol.replace('USDT', '');
-                    const pnlText = (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(1);
+                    const label = pt.symbol.replace('USDT', '');
+                    const pnlPctVal = (pt.pnl / (data.initialBalance || 100)) * 100;
+                    const pnlText = (pnlPctVal >= 0 ? '+' : '') + pnlPctVal.toFixed(2) + '%';
                     const fullText = `${label} ${pnlText}`;
                     
                     ctx.font = 'bold 10px var(--font-mono)';
@@ -1102,18 +1141,13 @@ function openBalanceModal() {
                     const boxX = xPx - boxW / 2;
                     const boxY = yPx + stemLen + (isWin ? -boxH : 0);
 
-                    // Shadow
                     ctx.fillStyle = 'rgba(0,0,0,0.2)';
                     ctx.fillRect(boxX + 2, boxY + 2, boxW, boxH);
-
-                    // Box background
                     ctx.fillStyle = isWin ? '#00E676' : '#FF1744';
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 1.5;
                     ctx.fillRect(boxX, boxY, boxW, boxH);
                     ctx.strokeRect(boxX, boxY, boxW, boxH);
-
-                    // Text
                     ctx.fillStyle = isWin ? '#000' : '#fff';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -1135,27 +1169,39 @@ function openBalanceModal() {
                     displayColors: false,
                     callbacks: {
                         title: (items) => {
-                            const idx = items[0].dataIndex;
-                            if (idx === 0) return 'INITIAL';
-                            const t = data.trades[idx - 1];
-                            const timeStr = formatDateTime(t.close_time);
-                            return `${t.symbol.replace('USDT', '')} | ${timeStr}`;
+                            const pt = items[0].raw;
+                            return `${pt.symbol.replace('USDT', '')} | ${formatDateTime(pt.close_time)}`;
                         },
                         label: (item) => {
-                            const idx = item.dataIndex;
-                            if (idx === 0) return '0.00%';
-                            const t = data.trades[idx - 1];
-                            const pnlSign = t.pnl >= 0 ? '+' : '';
+                            const pt = item.raw;
                             return [
-                                `PNL: ${pnlSign}$${t.pnl.toFixed(2)}`,
                                 `CUMULATIVE: ${item.formattedValue}%`
                             ];
                         }
                     }
+                },
+                zoom: {
+                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                        threshold: 5,
+                        modifierKey: null
+                    }
                 }
+            },
+            onClick: (e, items, chart) => {
+                if (e.native.detail === 2) chart.resetZoom();
             },
             scales: {
                 x: {
+                    type: 'time',
+                    min: tf === 'all' ? undefined : minTime,
+                    max: tf === 'all' ? undefined : maxTime,
+                    time: {
+                        unit: 'hour',
+                        displayFormats: { hour: 'HH:mm', day: 'dd/MM' }
+                    },
                     grid: { color: 'rgba(0,0,0,0.05)' },
                     ticks: { font: { family: 'var(--font-mono)', size: 10 } }
                 },
@@ -1166,22 +1212,12 @@ function openBalanceModal() {
                         callback: (v) => v.toFixed(1) + '%'
                     }
                 }
-            },
-            plugins: {
-                zoom: {
-                    zoom: {
-                        wheel: { enabled: true },
-                        pinch: { enabled: true },
-                        mode: 'xy',
-                    },
-                    pan: {
-                        enabled: true,
-                        mode: 'xy',
-                    }
-                }
             }
         }
     });
+} catch (err) {
+    console.error('Balance modal chart error:', err);
+}
 }
 
 function closeBalanceModal() {
@@ -1511,4 +1547,64 @@ function closePositionModal() {
     document.body.style.overflow = '';
     if (_lwChart) { _lwChart.remove(); _lwChart = null; }
 }
+
+// ----------------------------------------------------
+// TRADE DETAIL MODAL
+// ----------------------------------------------------
+window.openTradeDetailModal = function(data, isActive) {
+    const modal = document.getElementById('trade-detail-modal');
+    if (!modal) return;
+
+    document.getElementById('tdm-symbol').innerText = cleanSymbol(data.symbol);
+    const sideRaw = String(data.side || '').toUpperCase();
+    const amount = parseFloat(data.positionAmt || data.amount || data.qty || 0);
+    const isLong = isActive ? (amount > 0) : (sideRaw === 'BUY' || sideRaw === 'LONG' || amount > 0);
+    const side = isLong ? 'LONG' : 'SHORT';
+    const sideEl = document.getElementById('tdm-side');
+    sideEl.innerText = side;
+    sideEl.className = `direction-badge ${side.toLowerCase()}`;
+
+    const entryPrice = parseFloat(data.entry_price || data.entryPrice || data.avg_price || data.price || 0);
+    const markPrice = parseFloat(data.mark_price || data.markPrice || data.price || 0);
+    const price = parseFloat(data.price || 0);
+    const exitPrice = isActive ? (markPrice || price) : price;
+
+    let pnlPct = parseFloat(isActive ? 
+        (data.pnl_pct || data.unrealizedPnlPct || data.pnlPct || 0) : 
+        (data.pnl_pct || data.realizedPnlPct || 0));
+
+    const qty = parseFloat(data.size || data.qty || data.positionAmt || data.amount || 0);
+    const size = Math.abs(parseFloat(data.notional || data.size_usd || (qty * entryPrice) || 0));
+
+    // Fallback: calculate % if absolute PNL is available but % is 0/missing
+    const pnlAbs = parseFloat(data.pnl || data.pnl_usdt || data.unrealizedPnl || 0);
+    if (pnlPct === 0 && pnlAbs !== 0 && entryPrice > 0 && qty > 0) {
+        pnlPct = (pnlAbs / (entryPrice * qty)) * 100;
+    }
+
+    document.getElementById('tdm-entry').innerText = `$${entryPrice.toFixed(2)}`;
+    document.getElementById('tdm-exit').innerText = `$${exitPrice.toFixed(2)}`;
+    document.getElementById('tdm-size').innerText = `$${size.toFixed(2)}`;
+    document.getElementById('tdm-pnl').innerText = `${(pnlPct >= 0 ? '+' : '')}${pnlPct.toFixed(2)}%`;
+    document.getElementById('tdm-pnl').className = pnlPct >= 0 ? 'text-green' : 'text-red';
+
+    const t = data.time || data.updateTime || data.close_time;
+    const date = new Date(typeof t === 'number' && t < 10000000000 ? t * 1000 : (t || Date.now()));
+    document.getElementById('tdm-time').innerText = date.toLocaleString();
+
+    const statusBox = document.getElementById('tdm-status-box');
+    statusBox.innerText = isActive ? 'STATUS: ACTIVE' : 'STATUS: CLOSED';
+    statusBox.style.background = isActive ? 'rgba(0, 200, 83, 0.1)' : '#f5f5f5';
+
+    modal.classList.add('open');
+};
+
+// Modal Close logic
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('tdm-close-btn');
+    const modal = document.getElementById('trade-detail-modal');
+    if (closeBtn && modal) {
+        closeBtn.onclick = () => modal.classList.remove('open');
+    }
+});
 
