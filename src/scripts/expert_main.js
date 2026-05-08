@@ -224,18 +224,25 @@ async function updateCurrentForecast() {
 }
 
 async function updateStats() {
-    const data = await API.getExpertStats();
-    if (!data) return;
-    
-    // Get current live positions for both
-    const [expCurrent, botPos] = await Promise.all([
-        API.getExpertCurrent(),
-        Promise.resolve(data.bot?.current_position)
+    const [data, expertHistory, botHistory, expCurrent] = await Promise.all([
+        API.getExpertStats(),
+        API.getExpertHistory(),
+        API.getBotHistory(200),
+        API.getExpertCurrent()
     ]);
-
+    
     // 1. Expert Equity (History + Live)
     const expEquity = document.getElementById('expert-equity');
-    const expBaseEq = data.expert.equity || 100.0;
+    let expBaseEq = 100.0;
+    
+    if (data && data.expert && data.expert.equity != null) {
+        expBaseEq = data.expert.equity;
+    } else if (expertHistory && expertHistory.length > 0) {
+        // Fallback: calculate from history
+        const historyPnl = expertHistory.reduce((sum, h) => sum + (h.pnl || 0), 0);
+        expBaseEq = 100.0 + historyPnl;
+    }
+    
     const expLivePnl = expCurrent ? (expCurrent.pnl || 0) : 0;
     const eq = expBaseEq + expLivePnl;
     
@@ -246,7 +253,27 @@ async function updateStats() {
 
     // 2. Bot Equity (History + Live)
     const botEquity = document.getElementById('bot-equity');
-    const botBaseEq = data.bot.equity || 100.0;
+    let botBaseEq = 100.0;
+    
+    const botPos = data?.bot?.current_position || null;
+
+    if (data && data.bot && data.bot.equity != null) {
+        botBaseEq = data.bot.equity;
+    } else if (botHistory && botHistory.length > 0) {
+        // Fallback: calculate from BTC history
+        const btcTrades = botHistory.filter(t => t.symbol === 'BTCUSDT');
+        let virtualPnl = 0;
+        btcTrades.forEach(t => {
+            if (t.entry_price && t.entry_price > 0 && t.close_price) {
+                let diff = t.close_price - t.entry_price;
+                if (String(t.side).toUpperCase() === 'SELL' || String(t.side).toUpperCase() === 'SHORT') diff = -diff;
+                // Virtual $10 size, 10x leverage => $100 contract
+                virtualPnl += 100.0 * (diff / t.entry_price);
+            }
+        });
+        botBaseEq = 100.0 + virtualPnl;
+    }
+    
     const botLivePnl = botPos ? (botPos.pnl || 0) : 0;
     const botEq = botBaseEq + botLivePnl;
     
@@ -311,11 +338,12 @@ async function updateHistory() {
     const expList = document.getElementById('expert-history-list');
     if (expertHistory && expertHistory.length > 0) {
         expList.innerHTML = expertHistory.map(h => {
-            const pnlClass = h.pnl >= 0 ? 'text-green' : 'text-red';
+            const pnlVal = h.pnl || 0;
+            const pnlClass = pnlVal >= 0 ? 'text-green' : 'text-red';
             return `
                 <div class="stats-row" style="border-bottom:1px dashed #eee; padding:0.5rem 0;">
                     <span>${formatDate(h.close_time * 1000)} <b>${h.side}</b></span>
-                    <span class="stats-val ${pnlClass}">${h.pnl > 0 ? '+' : ''}$${h.pnl.toFixed(2)}</span>
+                    <span class="stats-val ${pnlClass}">${pnlVal > 0 ? '+' : ''}$${pnlVal.toFixed(2)}</span>
                 </div>
             `;
         }).join('');

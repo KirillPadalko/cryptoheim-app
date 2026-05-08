@@ -699,8 +699,9 @@ async function renderExposureAndPositions() {
                 const uPnl = parseFloat(pos.pnl_usdt || pos.unrealized_pnl || pos.unrealizedProfit || 0);
                 unrealizedPnl += uPnl;
                 
-                const amount = parseFloat(pos.size || pos.positionAmt || pos.amount || 0);
-                const isLong = amount > 0;
+                const amount = parseFloat(pos.positionAmt || pos.amount || pos.qty || 0);
+                const sideRaw = String(pos.side || '').toUpperCase();
+                const isLong = sideRaw ? (sideRaw === 'BUY' || sideRaw === 'LONG') : (amount > 0);
                 const side = isLong ? 'LONG' : 'SHORT';
                 const sideClass = isLong ? 'long' : 'short';
                 const pnlPct = parseFloat(pos.pnl_pct || pos.unrealizedPnlPct || 0);
@@ -1339,7 +1340,9 @@ async function openPositionModal(canvasId, timeframe = '15m') {
         if (!data) return;
 
         const { pos, sparklineData, pnlValue } = data;
-        const isLong = pos?.side?.toLowerCase() === 'buy';
+        const sideRaw = String(pos?.side || '').toUpperCase();
+        const amount = parseFloat(pos?.positionAmt || pos?.amount || pos?.qty || 0);
+        const isLong = sideRaw ? (sideRaw === 'BUY' || sideRaw === 'LONG') : (amount > 0);
         const sym = pos?.symbol ? String(pos.symbol).replace('USDT', '') : '--';
 
         // Populate header
@@ -1558,7 +1561,7 @@ window.openTradeDetailModal = function(data, isActive) {
     document.getElementById('tdm-symbol').innerText = cleanSymbol(data.symbol);
     const sideRaw = String(data.side || '').toUpperCase();
     const amount = parseFloat(data.positionAmt || data.amount || data.qty || 0);
-    const isLong = isActive ? (amount > 0) : (sideRaw === 'BUY' || sideRaw === 'LONG' || amount > 0);
+    const isLong = sideRaw ? (sideRaw === 'BUY' || sideRaw === 'LONG') : (amount > 0);
     const side = isLong ? 'LONG' : 'SHORT';
     const sideEl = document.getElementById('tdm-side');
     sideEl.innerText = side;
@@ -1582,11 +1585,17 @@ window.openTradeDetailModal = function(data, isActive) {
         pnlPct = (pnlAbs / (entryPrice * qty)) * 100;
     }
 
-    document.getElementById('tdm-entry').innerText = `$${entryPrice.toFixed(2)}`;
-    document.getElementById('tdm-exit').innerText = `$${exitPrice.toFixed(2)}`;
-    document.getElementById('tdm-size').innerText = `$${size.toFixed(2)}`;
-    document.getElementById('tdm-pnl').innerText = `${(pnlPct >= 0 ? '+' : '')}${pnlPct.toFixed(2)}%`;
-    document.getElementById('tdm-pnl').className = pnlPct >= 0 ? 'text-green' : 'text-red';
+    const fmtP = (v) => {
+        if (!v && v !== 0) return '$0.00';
+        if (v >= 1000) return `$${v.toFixed(2)}`;
+        if (v >= 1)    return `$${v.toFixed(4)}`;
+        return `$${v.toFixed(6)}`;
+    };
+    document.getElementById('tdm-entry').innerText = fmtP(entryPrice);
+    document.getElementById('tdm-exit').innerText  = fmtP(exitPrice);
+    document.getElementById('tdm-size').innerText  = `$${size.toFixed(2)}`;
+    document.getElementById('tdm-pnl').innerText   = `${(pnlPct >= 0 ? '+' : '')}${pnlPct.toFixed(2)}%`;
+    document.getElementById('tdm-pnl').className   = pnlPct >= 0 ? 'text-green' : 'text-red';
 
     const t = data.time || data.updateTime || data.close_time;
     const date = new Date(typeof t === 'number' && t < 10000000000 ? t * 1000 : (t || Date.now()));
