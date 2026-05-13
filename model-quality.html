@@ -121,9 +121,14 @@
         <div class="nav-links">
             <a href="index.html">Market</a>
             <a href="indicators.html">Indicators</a>
-            <a href="model-quality.html" class="active">AI Analytics</a>
             <a href="pro.html">PRO</a>
         </div>
+        <a href="pro.html" class="pro-btn" style="margin-left: 1.5rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <span id="nav-pro-cta">ПОЛУЧИТЬ PRO ДОСТУП</span>
+        </a>
     </div>
 </nav>
 
@@ -250,6 +255,13 @@
         document.getElementById('kpi-strong').innerText = Math.round((d.precision_strong || 0) * 100) + '%';
         document.getElementById('kpi-bias').innerText = d.avg_rr ? d.avg_rr.toFixed(2) : '0.00';
         document.getElementById('kpi-conf').innerText = Math.round((d.precision_strong || 0) * 100) + '%';
+        
+        // Navigation translations
+        const lang = window.localStorage.getItem('appLang') || 'en';
+        const ctaText = document.getElementById('nav-pro-cta');
+        if (ctaText) {
+            ctaText.innerText = lang === 'ru' ? 'ПОЛУЧИТЬ PRO ДОСТУП' : 'GET PRO ACCESS';
+        }
         
         const topAsset = d.top_symbols_by_accuracy?.[0];
         document.getElementById('kpi-top-asset').innerText = topAsset ? topAsset.symbol : '—';

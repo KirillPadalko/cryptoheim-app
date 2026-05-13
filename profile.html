@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./src/assets/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CryptoHeim | User Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+
+    <!-- Direct CSS links for static usage -->
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/dashboard.css">
+
+    <style>
+        .profile-container {
+            max-width: 600px;
+            margin: 4rem auto;
+            padding: 0 1rem;
+        }
+
+        .profile-card {
+            background: #fff;
+            border: var(--border-thick);
+            box-shadow: 8px 8px 0 #000;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .profile-icon {
+            width: 80px;
+            height: 80px;
+            background: #f5f5f5;
+            border: var(--border-thick);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .profile-icon svg {
+            width: 40px;
+            height: 40px;
+            color: #000;
+        }
+
+        .profile-card h1 {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 0.9rem;
+            border: var(--border-thin);
+            background: #f5f5f5;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .status-badge.active {
+            background: var(--color-green);
+            color: #000;
+        }
+
+        .profile-section {
+            text-align: left;
+            border-top: var(--border-thin);
+            padding-top: 1.5rem;
+        }
+
+        .profile-section h3 {
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .brutal-btn-boosty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: #e76f51; /* Boosty brand color approximation */
+            color: #fff;
+            border: var(--border-thick);
+            padding: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .brutal-btn-boosty:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 #333;
+        }
+
+    </style>
+</head>
+
+<body>
+    <nav class="top-nav">
+        <!-- LEFT: Logo and App -->
+        <div class="nav-left">
+            <a href="index.html" class="logo">⬡ CryptoHeim</a>
+            <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" class="play-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M14.222 9.374c1.037-.61 1.037-2.137 0-2.748L11.528 5.04 8.32 8l3.208 2.96 2.694-1.586Zm-3.595 2.116L7.583 8.68 1.03 14.73c.201 1.029 1.36 1.61 2.303 1.055l7.294-4.295ZM1 13.396V2.603L6.846 8 1 13.396ZM1.03 1.27l6.553 6.05 3.044-2.81L3.333.215C2.39-.341 1.231.24 1.03 1.27Z"/>
+                </svg>
+                <span data-i18n="app_btn">APP ON GOOGLE PLAY</span>
+            </a>
+        </div>
+
+        <!-- CENTER: Navigation Links -->
+        <div class="nav-center">
+            <div class="nav-links">
+                <a href="indicators.html" data-i18n-nav="Signals">Signals</a>
+                <a href="expert.html" data-i18n-nav="Battle">Battle</a>
+                <a href="pro.html" class="pro-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span data-i18n="pro_cta">GET PRO ACCESS</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- RIGHT: Tools & Profile -->
+        <div class="nav-right">
+            <a href="profile.html" class="profile-btn" style="background:#000; color:#fff;" title="Profile">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <div class="profile-card">
+            <div>
+                <div class="profile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+                <h1>My Profile</h1>
+                <div class="status-badge">FREE TIER</div>
+            </div>
+
+            <div class="profile-section">
+                <h3>Subscription</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;">
+                    Unlock premium features, remove ads, and get access to real-time bot signals by subscribing on Boosty.
+                </p>
+                <a href="https://boosty.to/cryptoheim" target="_blank" class="brutal-btn-boosty">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    Manage Boosty Subscription
+                </a>
+            </div>
+
+            <div class="profile-section">
+                <h3>Already subscribed?</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                    If you have an active subscription, you can get your activation code on the PRO page.
+                </p>
+                <a href="pro.html" style="font-weight: 800; color: #000; text-decoration: underline;">Go to Activation Page &rarr;</a>
+            </div>
+        </div>
+    </div>
+
+    <footer style="border-top: 3px solid #000; padding: 2rem; text-align: center; font-family: 'Space Mono', monospace;">
+        CryptoHeim © 2025 · Premium Intelligence
+    </footer>
+</body>
+</html>

@@ -4,303 +4,237 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="./src/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CryptoHeim — Expert Forecasts</title>
+    <title>CryptoHeim — Expert vs Bot</title>
+    <meta name="description" content="Real-time competitive crypto trading: Human Expert vs AI Bot. Follow, copy, or compete live on BTC/USDT." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./src/styles/main.css?v=2.2">
-    <link rel="stylesheet" href="./src/styles/dashboard.css?v=2.2">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/styles/main.css">
+    <link rel="stylesheet" href="./src/styles/dashboard.css">
+    <link rel="stylesheet" href="./src/styles/expert.css">
     <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
-    <style>
-        .expert-layout {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 1.5rem;
-            padding: 1.5rem;
-        }
-        .chart-container {
-            border: var(--border-thick);
-            background: #fff;
-            box-shadow: 4px 4px 0 #000;
-            padding: 1rem;
-            height: 600px;
-            display: flex;
-            flex-direction: column;
-        }
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .chart-tf-selector {
-            display: flex;
-            border: var(--border-thin);
-        }
-        .tf-btn {
-            padding: 0.3rem 0.8rem;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            font-family: var(--font-mono);
-        }
-        .tf-btn.active {
-            background: #000;
-            color: #fff;
-        }
-        #btc-chart {
-            flex-grow: 1;
-        }
-        .expert-controls {
-            border: var(--border-thick);
-            background: #fff;
-            box-shadow: 4px 4px 0 #000;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .control-group label {
-            display: block;
-            font-size: 0.75rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-        }
-        .side-btns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-        .side-btn {
-            padding: 0.75rem;
-            font-weight: 800;
-            border: var(--border-thick);
-            cursor: pointer;
-            background: #fff;
-            font-family: var(--font-main);
-        }
-        .side-btn.long.active { background: var(--color-green); color: #000; }
-        .side-btn.short.active { background: var(--color-red); color: #fff; }
-        
-        textarea {
-            width: 100%;
-            border: var(--border-thick);
-            padding: 0.75rem;
-            font-family: var(--font-main);
-            font-size: 0.9rem;
-            resize: none;
-        }
-        .submit-btn {
-            background: #000;
-            color: #fff;
-            padding: 1rem;
-            font-weight: 800;
-            border: none;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
-
-        .comparison-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            padding: 0 1.5rem 2rem;
-        }
-        .stats-block {
-            border: var(--border-thick);
-            background: #fff;
-            padding: 1rem;
-            box-shadow: 4px 4px 0 #000;
-        }
-        .stats-header {
-            font-size: 0.8rem;
-            font-weight: 800;
-            border-bottom: var(--border-thin);
-            padding-bottom: 0.5rem;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            display: flex;
-            justify-content: space-between;
-        }
-        .stats-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .stats-val { font-family: var(--font-mono); font-weight: 700; }
-
-        @media (max-width: 1000px) {
-            .expert-layout { grid-template-columns: 1fr; }
-            .comparison-grid { grid-template-columns: 1fr; }
-        }
-        .active-forecast-banner {
-            background: #000;
-            color: #fff;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .close-forecast-btn {
-            color: #fff;
-            border: none;
-            padding: 0.4rem 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.75rem;
-        }
-        .levels-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-        .level-input {
-            width: 100%;
-            border: var(--border-thick);
-            padding: 0.5rem;
-            font-family: var(--font-mono);
-            font-size: 0.8rem;
-        }
-        .rr-badge {
-            display: inline-block;
-            background: #eee;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 800;
-            margin-top: 0.3rem;
-            font-family: var(--font-mono);
-        }
-        .active-levels {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.7rem;
-            font-family: var(--font-mono);
-            margin-top: 0.5rem;
-            opacity: 0.8;
-        }
-        .leverage-badge {
-            background: #eee;
-            color: #333;
-            padding: 0.1rem 0.4rem;
-            font-size: 0.65rem;
-            font-weight: 800;
-            border-radius: 2px;
-            vertical-align: middle;
-        }
-    </style>
 </head>
 <body>
+    <!-- NAV -->
     <nav class="top-nav">
-        <a href="index.html" class="logo">⬡ CryptoHeim</a>
-        <div class="nav-links">
-            <a href="index.html">Home</a>
-            <a href="indicators.html" data-i18n-nav="Indicators">Indicators</a>
-            <a href="model-quality.html" data-i18n-nav="AI Quality">AI Quality</a>
-            <a href="expert.html" class="active" data-i18n-nav="Expert">Expert</a>
+        <!-- LEFT: Logo and App -->
+        <div class="nav-left">
+            <a href="index.html" class="logo">⬡ CryptoHeim</a>
+            <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" class="play-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M14.222 9.374c1.037-.61 1.037-2.137 0-2.748L11.528 5.04 8.32 8l3.208 2.96 2.694-1.586Zm-3.595 2.116L7.583 8.68 1.03 14.73c.201 1.029 1.36 1.61 2.303 1.055l7.294-4.295ZM1 13.396V2.603L6.846 8 1 13.396ZM1.03 1.27l6.553 6.05 3.044-2.81L3.333.215C2.39-.341 1.231.24 1.03 1.27Z"/></svg>
+                <span>APP ON GOOGLE PLAY</span>
+            </a>
         </div>
-        <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" class="play-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M14.222 9.374c1.037-.61 1.037-2.137 0-2.748L11.528 5.04 8.32 8l3.208 2.96 2.694-1.586Zm-3.595 2.116L7.583 8.68 1.03 14.73c.201 1.029 1.36 1.61 2.303 1.055l7.294-4.295ZM1 13.396V2.603L6.846 8 1 13.396ZM1.03 1.27l6.553 6.05 3.044-2.81L3.333.215C2.39-.341 1.231.24 1.03 1.27Z"/>
-            </svg>
-            <span data-i18n="app_btn">APP ON GOOGLE PLAY</span>
-        </a>
-        <div class="live-badge">
-            <div class="live-dot"></div>
-            <span data-i18n="live">LIVE</span>
+
+        <!-- CENTER: Navigation Links -->
+        <div class="nav-center">
+            <div class="nav-links">
+                <a href="indicators.html">Signals</a>
+                <a href="expert.html" class="active">Battle</a>
+                <a href="pro.html" class="pro-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>GET PRO ACCESS</span>
+                </a>
+            </div>
         </div>
-        <div class="timer-chip">
-            <span data-i18n="next_upd">NEXT</span> <span id="refresh-timer">—:——</span>
-        </div>
-        <div class="nav-lang" id="lang-switcher">
-            <div class="lang-btn active" data-lang="en">EN</div>
-            <div class="lang-btn" data-lang="ru">RU</div>
+
+        <!-- RIGHT: Tools & Profile -->
+        <div class="nav-right">
+            <div class="live-badge"><div class="live-dot"></div><span>LIVE</span></div>
+            <div class="timer-chip"><span>NEXT</span> <span id="refresh-timer">—:——</span></div>
+            <div class="nav-lang" id="lang-switcher">
+                <div class="lang-btn active" data-lang="en">EN</div>
+                <div class="lang-btn" data-lang="ru">RU</div>
+            </div>
+            <a href="profile.html" class="profile-btn" title="Profile">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+            </a>
         </div>
     </nav>
 
-    <div class="page-header">
-        <h1 data-i18n="Expert">Expert Forecasts</h1>
-        <p data-i18n="exp_subtitle">Human analysis vs AI Bot — BTC focus (Fixed 10x Leverage)</p>
-    </div>
-
-    <div class="expert-layout">
-        <div class="chart-container">
-            <div class="chart-header">
-                <div style="font-weight: 800;">BITCOIN / USDT</div>
-                <div class="chart-tf-selector" id="tf-selector">
-                    <button class="tf-btn" data-tf="15m">15M</button>
-                    <button class="tf-btn active" data-tf="1h">1H</button>
+    <!-- ═══════════════════════════════════════════
+         HERO: BATTLE CARD (MINIMAL)
+    ═══════════════════════════════════════════ -->
+    <section class="evb-hero">
+        <div class="evb-hero-minimal">
+            <div class="evb-battle-header">
+                <div class="evb-battle-title">
+                    WEEKLY BATTLE: BTC / USDT
                 </div>
+                <div class="evb-battle-next">Next round starts: Monday, 00:00 UTC</div>
             </div>
-            <div id="btc-chart"></div>
-        </div>
 
-        <div class="expert-panel">
-            <div id="active-forecast-container"></div>
-            
-            <div class="expert-controls" id="expert-controls">
-                <div class="control-group">
-                    <label data-i18n="exp_dir">Direction</label>
-                    <div class="side-btns">
-                        <button class="side-btn long" id="btn-long">LONG</button>
-                        <button class="side-btn short" id="btn-short">SHORT</button>
+            <div class="evb-hero-table-wrap">
+                <table class="evb-hero-table">
+                    <thead>
+                        <tr>
+                            <th>PARTICIPANT</th>
+                            <th>WIN RATE</th>
+                            <th>TOTAL PNL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="td-actor">
+                                <span class="evb-actor-label">CRYPTOHEIM BOT</span>
+                            </td>
+                            <td id="bot-winrate" class="td-val">—%</td>
+                            <td id="bot-pnl" class="td-pnl">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="td-actor">
+                                <span class="evb-actor-label">EXPERT</span>
+                                <span class="evb-mini-lvl">LVL <span id="user-level">1</span></span>
+                            </td>
+                            <td id="user-winrate" class="td-val">—%</td>
+                            <td id="user-pnl" class="td-pnl">$0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════
+         MAIN GRID: CHART + ACTION + FEEDS
+    ═══════════════════════════════════════════ -->
+    <div class="evb-main-grid">
+
+        <!-- CENTER: CHART & LOG -->
+        <main class="evb-chart-col">
+            <div class="evb-card evb-card--chart">
+                <div class="evb-chart-header">
+                    <div class="evb-chart-title">
+                        <span class="evb-chart-pair">BTC / USDT</span>
+                        <span id="btc-live-price" class="evb-chart-live-price">—</span>
+                        <span class="evb-chart-sub">Battle History Visualization</span>
+                    </div>
+                    <div class="evb-chart-controls">
+                        <div class="evb-tf-group" id="tf-selector">
+                            <button class="evb-tf-btn" data-tf="15m">15M</button>
+                            <button class="evb-tf-btn active" data-tf="1h">1H</button>
+                        </div>
+                        <div class="evb-legend">
+                            <span class="evb-legend-item"><span class="evb-legend-dot" style="background:#000"></span>BOT</span>
+                            <span class="evb-legend-item"><span class="evb-legend-dot evb-legend-dot--user" style="background:#2962FF"></span>YOU</span>
+                        </div>
                     </div>
                 </div>
-                <div class="control-group">
-                    <label data-i18n="exp_size">Virtual Position Size (USD)</label>
-                    <input type="number" id="forecast-size" class="level-input" value="10" min="1" max="100" step="5">
-                    <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 0.3rem;">Max $100 available. Fixed <span class="leverage-badge">10x</span> leverage applied.</div>
+                <div id="btc-chart" class="evb-chart-area"></div>
+            </div>
+
+            <!-- USER STATS PANEL -->
+            <div class="evb-stats-row">
+                <div class="evb-stat-card">
+                    <div class="evb-stat-label">TOTAL PnL</div>
+                    <div class="evb-stat-value" id="stat-total-pnl">—</div>
                 </div>
-                <div class="control-group">
-                    <label data-i18n="exp_targets">Targets (Optional)</label>
-                    <div class="levels-grid">
-                        <div>
-                            <div style="font-size: 0.6rem; opacity: 0.6;" data-i18n="exp_tp">TAKE PROFIT</div>
-                            <input type="number" id="tp-price" class="level-input" placeholder="Price">
+                <div class="evb-stat-card">
+                    <div class="evb-stat-label">WIN RATE</div>
+                    <div class="evb-stat-value" id="stat-winrate">—</div>
+                </div>
+                <div class="evb-stat-card">
+                    <div class="evb-stat-label">TOTAL TRADES</div>
+                    <div class="evb-stat-value" id="stat-trades">—</div>
+                </div>
+                <div class="evb-stat-card">
+                    <div class="evb-stat-label">BEST TRADE</div>
+                    <div class="evb-stat-value" id="stat-best">—</div>
+                </div>
+                <div class="evb-stat-card">
+                    <div class="evb-stat-label">WORST TRADE</div>
+                    <div class="evb-stat-value" id="stat-worst">—</div>
+                </div>
+                <div class="evb-stat-card">
+                    <div class="evb-stat-label">AVG HOLD</div>
+                    <div class="evb-stat-value" id="stat-hold">—</div>
+                </div>
+            </div>
+
+            <!-- BATTLE FEED (LOG STYLE) -->
+            <div class="evb-log-container">
+                <div class="evb-log-header">BATTLE LOG</div>
+                <div class="evb-feed-list" id="battle-feed">
+                    <div class="evb-feed-empty">Waiting for trades…</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT: ACTION PANEL -->
+        <aside class="evb-action-col">
+            <!-- Active position banner -->
+            <div id="active-position-banner" style="display:none"></div>
+
+            <div class="evb-card evb-card--action" id="action-card">
+                <div class="evb-card-header">
+                    <span class="evb-card-title">🎯 MAKE YOUR MOVE</span>
+                </div>
+
+                <!-- Direction -->
+                <div class="evb-form-group">
+                    <label class="evb-form-label">DIRECTION</label>
+                    <div class="evb-direction-btns">
+                        <button class="evb-dir-btn evb-dir-btn--long" id="btn-long">
+                            <span class="evb-dir-icon">▲</span>
+                            <span>LONG</span>
+                        </button>
+                        <button class="evb-dir-btn evb-dir-btn--short" id="btn-short">
+                            <span class="evb-dir-icon">▼</span>
+                            <span>SHORT</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Position Size -->
+                <div class="evb-form-group">
+                    <label class="evb-form-label">POSITION SIZE (USD)</label>
+                    <div class="evb-balance-row">
+                        <span class="evb-balance-label">Available:</span>
+                        <span class="evb-balance-val" id="balance-display">$100.00</span>
+                    </div>
+                    <input type="number" id="forecast-size" class="evb-input" value="10" min="1" max="100" step="5" placeholder="Size in USD">
+                    <div class="evb-quick-btns">
+                        <button class="evb-quick-btn" data-size="10">$10</button>
+                        <button class="evb-quick-btn" data-size="50">$50</button>
+                        <button class="evb-quick-btn" data-size="100">$100</button>
+                        <button class="evb-quick-btn" data-size="max">MAX</button>
+                    </div>
+                    <div class="evb-leverage-note">Fixed <span class="evb-leverage-badge">10×</span> leverage applied</div>
+                </div>
+
+
+                <!-- TP / SL -->
+                <div class="evb-form-group">
+                    <label class="evb-form-label">TAKE PROFIT / STOP LOSS</label>
+                    <div class="evb-tpsl-grid">
+                        <div class="evb-tpsl-col">
+                            <div class="evb-tpsl-label evb-tpsl-label--tp">TAKE PROFIT</div>
+                            <input type="number" id="tp-price" class="evb-input evb-input--tp" placeholder="Price">
+                            <div class="evb-tpsl-pct" id="tp-pct"></div>
                         </div>
-                        <div>
-                            <div style="font-size: 0.6rem; opacity: 0.6;" data-i18n="exp_sl">STOP LOSS</div>
-                            <input type="number" id="sl-price" class="level-input" placeholder="Price">
+                        <div class="evb-tpsl-col">
+                            <div class="evb-tpsl-label evb-tpsl-label--sl">STOP LOSS</div>
+                            <input type="number" id="sl-price" class="evb-input evb-input--sl" placeholder="Price">
+                            <div class="evb-tpsl-pct" id="sl-pct"></div>
                         </div>
                     </div>
-                    <div id="rr-display" class="rr-badge" style="display:none;">R/R: 0.00</div>
+                    <div class="evb-rr-badge" id="rr-display" style="display:none">R/R: —</div>
                 </div>
-                <div class="control-group">
-                    <label data-i18n="exp_reason">Rationale (Optional)</label>
-                    <textarea id="forecast-reason" rows="3" placeholder="Why this move?" data-i18n-placeholder="exp_reason_placeholder"></textarea>
-                </div>
-                <button class="submit-btn" id="btn-submit" data-i18n="exp_submit">Submit Forecast</button>
+
+                <button class="evb-place-btn" id="btn-submit">
+                    <span class="evb-place-btn-icon">⚡</span>
+                    PLACE TRADE
+                </button>
             </div>
-        </div>
+        </aside>
     </div>
 
-    <div class="comparison-grid">
-        <div class="stats-block">
-            <div class="stats-header">
-                <span data-i18n="exp_human_hist">Human Expert History</span>
-                <span id="expert-equity" style="font-family:var(--font-mono); font-weight:800;">$100.00</span>
-            </div>
-            <div id="expert-history-list">
-                <!-- Populated by JS -->
-            </div>
-        </div>
-        <div class="stats-block">
-            <div class="stats-header">
-                <span data-i18n="exp_bot_hist">AI Bot BTC History</span>
-                <span id="bot-equity" style="font-family:var(--font-mono); font-weight:800;">$100.00</span>
-            </div>
-            <div id="bot-history-list">
-                <!-- Populated by JS -->
-            </div>
-        </div>
-    </div>
-
+    <!-- Core Dashboard Scripts (Top Nav, Translation, Timer) -->
+    <script type="module" src="./src/scripts/main.js"></script>
+    <!-- Expert Page Scripts -->
     <script type="module" src="./src/scripts/expert_main.js"></script>
 </body>
 </html>

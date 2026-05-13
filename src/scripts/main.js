@@ -85,7 +85,8 @@ const I18N = {
         'exp_bot_hist': 'История ИИ бота по BTC',
         'exp_active_label': 'АКТИВНЫЙ ПРОГНОЗ',
         'exp_close_btn': 'ЗАКРЫТЬ',
-        'pnl_growth': 'РОСТ ПОРТФЕЛЯ'
+        'pnl_growth': 'РОСТ ПОРТФЕЛЯ',
+        'pro_cta': 'ПОЛУЧИТЬ PRO ДОСТУП'
     },
     'en': {
         // En defaults are already correctly written fallback in indicators.html, 
@@ -123,7 +124,8 @@ const I18N = {
         'exp_bot_hist': 'AI Bot BTC History',
         'exp_active_label': 'ACTIVE FORECAST',
         'exp_close_btn': 'CLOSE',
-        'pnl_growth': 'PNL GROWTH'
+        'pnl_growth': 'PNL GROWTH',
+        'pro_cta': 'GET PRO ACCESS'
     }
 };
 
@@ -538,6 +540,8 @@ async function renderTopSignals() {
             }
 
             const activePositions = (positionsRes.status === "fulfilled" && positionsRes.value) ? positionsRes.value : [];
+            const isPro = isAuthorized();
+            let botActiveCount = 0;
 
             signals.forEach((s, i) => {
                 const sStr = String(s.signal).toLowerCase();
@@ -556,12 +560,20 @@ async function renderTopSignals() {
                 const logicStr = (typeof logicObj === 'string') ? logicObj : (logicObj[lang] || logicObj['en'] || "");
                 
                 // Identify if signal is bot-active
-                // 1. Check if backend says so explicitly
-                // 2. OR check if there's an active position for this asset
                 const isBotActive = s.is_bot_trade || s.bot_enabled || activePositions.some(p => p.symbol === matchSym || p.symbol === symUp);
 
+                let isLocked = false;
+                if (isBotActive && !isPro) {
+                    botActiveCount++;
+                    if (botActiveCount > 1) {
+                        isLocked = true;
+                    }
+                }
+
                 htmlChunks.push(`
-                    <div class="signal-row ${isBotActive ? 'bot-active' : ''}">
+                    <div class="signal-row ${isBotActive ? 'bot-active' : ''} ${isLocked ? 'signal-locked' : ''}" 
+                         id="signal-row-${i}"
+                         ${isLocked ? 'onclick="window.location.href=\'pro.html\'"' : ''}>
                         <div class="signal-rank">
                             ${i + 1}
                         </div>
@@ -576,29 +588,101 @@ async function renderTopSignals() {
                                     ${logicStr ? `<div class="signal-logic-badge">${logicStr}</div>` : ''}
                                 </div>
                                 <div class="signal-desc"><b>Why:</b> ${s.reason}</div>
+                                ${!isLocked ? `<div class="copy-mode-toggle" onclick="toggleCopyMode(${i})">COPY MODE (manual) ⬡</div>` : ''}
                             </div>
                         </div>
                         <div class="signal-price-col">
                             PRICE
-                            <div class="signal-price">$${fPrice}</div>
+                            <div class="signal-price" id="sig-price-${i}">$${fPrice}</div>
                             <div class="signal-risk">RISK: ${s.risk || '--'}</div>
                         </div>
                         <div class="signal-chart-col">
                             <canvas id="top-sig-chart-${i}"></canvas>
                         </div>
+
+                        <!-- Copy Mode Setup (Manual) -->
+                        <div class="copy-mode-setup" id="copy-setup-${i}">
+                            <div class="setup-grid">
+                                <div class="setup-config">
+                                    <div class="setup-input-group">
+                                        <label>Deposit (USD)</label>
+                                        <input type="number" class="setup-input" id="setup-depo-${i}" value="1000" oninput="updateCopyCalc(${i})">
+                                    </div>
+                                    <div class="setup-input-group">
+                                        <label>Risk per trade (%)</label>
+                                        <input type="number" class="setup-input" id="setup-risk-${i}" value="3" step="0.5" oninput="updateCopyCalc(${i})">
+                                    </div>
+                                </div>
+                                <div class="setup-results">
+                                    <div class="result-line"><span>Position size:</span> <span id="res-size-${i}">$0.00</span></div>
+                                    <div class="result-line"><span>Leverage:</span> <span id="res-lev-${i}">x0</span></div>
+                                    <div class="result-line"><span>Entry:</span> <span id="res-entry-${i}">$${fPrice}</span></div>
+                                    <div class="result-line"><span>Stop Loss:</span> <span id="res-sl-${i}">--</span></div>
+                                    <div class="result-line"><span>Take Profit:</span> <span id="res-tp-${i}">--</span></div>
+                                </div>
+                            </div>
+                            <button class="btn-apply-trade" onclick="handleApplyTrade('${s.symbol}')">Apply & Open Trade</button>
+                        </div>
                     </div>
                 `);
+
+                // Store signal data for calculations
+                if (!window._sigData) window._sigData = {};
+                window._sigData[i] = s;
+                window._sigData[i].price = typeof price === 'number' ? price : 0;
             });
 
             list.innerHTML = htmlChunks.join('');
+            
+            // Initialization for Copy Mode functions
+            window.toggleCopyMode = (idx) => {
+                const el = document.getElementById(`copy-setup-${idx}`);
+                if (el) el.classList.toggle('active');
+                updateCopyCalc(idx);
+            };
+
+            window.updateCopyCalc = (idx) => {
+                const s = window._sigData[idx];
+                const depo = parseFloat(document.getElementById(`setup-depo-${idx}`).value) || 0;
+                const riskPct = parseFloat(document.getElementById(`setup-risk-${idx}`).value) || 0;
+                const price = s.price || 0;
+
+                // Simple defaults if TP/SL missing
+                const sl = s.sl || (s.signal.toLowerCase().includes('buy') ? price * 0.98 : price * 1.02);
+                const tp = s.tp || (s.signal.toLowerCase().includes('buy') ? price * 1.05 : price * 0.95);
+
+                const riskAmt = depo * (riskPct / 100);
+                const slDist = Math.abs(price - sl) / price;
+                const notional = slDist === 0 ? 0 : riskAmt / slDist;
+                const leverage = depo === 0 ? 0 : notional / depo;
+
+                document.getElementById(`res-size-${idx}`).innerText = `$${notional.toFixed(2)}`;
+                document.getElementById(`res-lev-${idx}`).innerText = `x${Math.max(1, Math.round(leverage))}`;
+                document.getElementById(`res-sl-${idx}`).innerText = `$${sl.toFixed(price < 1 ? 4 : 2)}`;
+                document.getElementById(`res-tp-${idx}`).innerText = `$${tp.toFixed(price < 1 ? 4 : 2)}`;
+            };
+
+            window.handleApplyTrade = (sym) => {
+                alert(`Manual Trade Setup for ${sym} applied! \nOpening execution interface...`);
+            };
 
             // Draw charts
             if (klinesRes.status === "fulfilled" && klinesRes.value) {
+                let botActiveCountForCharts = 0;
                 signals.forEach((s, i) => {
                     const symUp = String(s.symbol).toUpperCase();
                     const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
-                    const sparklineData = klinesRes.value[matchSym] || klinesRes.value[symUp];
                     
+                    const isBotActive = s.is_bot_trade || s.bot_enabled || activePositions.some(p => p.symbol === matchSym || p.symbol === symUp);
+                    let isLocked = false;
+                    if (isBotActive && !isPro) {
+                        botActiveCountForCharts++;
+                        if (botActiveCountForCharts > 1) isLocked = true;
+                    }
+
+                    if (isLocked) return; // Don't draw charts for locked signals
+
+                    const sparklineData = klinesRes.value[matchSym] || klinesRes.value[symUp];
                     if (sparklineData && sparklineData.length > 0) {
                         drawBrutalSparkline(`top-sig-chart-${i}`, sparklineData);
                     }
