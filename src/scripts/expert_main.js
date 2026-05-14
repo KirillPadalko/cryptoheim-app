@@ -10,6 +10,20 @@ let nextClickTarget = 'tp'; // Alternate between 'tp' and 'sl'
 let tpPriceLine = null;
 let slPriceLine = null;
 
+function isLoggedIn() {
+    const token = localStorage.getItem('cryptoheim_token');
+    const userJson = localStorage.getItem('cryptoheim_user');
+    return !!(token && userJson);
+}
+
+function isPro() {
+    if (!isLoggedIn()) return false;
+    try {
+        const user = JSON.parse(localStorage.getItem('cryptoheim_user'));
+        return user.is_pro === true;
+    } catch(e) { return false; }
+}
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded: Starting initialization");
@@ -318,6 +332,12 @@ function initControls() {
     const slInput  = document.getElementById('sl-price');
     const sizeInput = document.getElementById('forecast-size');
 
+    if (btnSubmit && !isLoggedIn()) {
+        btnSubmit.innerText = "LOGIN TO PARTICIPATE";
+        btnSubmit.style.background = "var(--color-yellow)";
+        btnSubmit.style.color = "#000";
+    }
+
     btnLong.addEventListener('click', () => {
         selectedSide = 'BUY';
         btnLong.classList.add('active');
@@ -345,6 +365,7 @@ function initControls() {
     slInput.addEventListener('input', () => { updateRR(); updateChartLines(); });
 
     btnSubmit.addEventListener('click', async () => {
+        if (!isLoggedIn()) { window.location.href = "pro.html"; return; }
         if (!selectedSide) { alert('Select LONG or SHORT first.'); return; }
         const size = parseFloat(sizeInput.value) || 10;
         const tp   = parseFloat(tpInput.value) || null;

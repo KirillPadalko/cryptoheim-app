@@ -16,12 +16,12 @@ console.log(`[API] Host: ${window.location.hostname}, Mode: ${isLocal ? 'Local' 
 async function fetchApi(endpoint) {
     const language = navigator.language || "en";
     const fullUrl = getFullUrl(endpoint);
+    const token = localStorage.getItem('cryptoheim_token');
     try {
-        const response = await fetch(fullUrl, {
-            headers: {
-                "Accept-Language": language
-            }
-        });
+        const headers = { "Accept-Language": language };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(fullUrl, { headers });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -34,16 +34,40 @@ async function fetchApi(endpoint) {
 
 async function postApi(endpoint, body) {
     const fullUrl = getFullUrl(endpoint);
+    const token = localStorage.getItem('cryptoheim_token');
     try {
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const response = await fetch(fullUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: headers,
             body: JSON.stringify(body)
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (e) {
         console.error(`Post API Error for ${fullUrl}:`, e);
+        return null;
+    }
+}
+
+async function putApi(endpoint, body) {
+    const fullUrl = getFullUrl(endpoint);
+    const token = localStorage.getItem('cryptoheim_token');
+    try {
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const response = await fetch(fullUrl, {
+            method: "PUT",
+            headers: headers,
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    } catch (e) {
+        console.error(`Put API Error for ${fullUrl}:`, e);
         return null;
     }
 }
@@ -72,5 +96,17 @@ export const API = {
     getExpertHistory: (limit = 20) => fetchApi(`/api/expert/history?limit=${limit}`),
     getExpertStats: () => fetchApi("/api/expert/stats"),
     submitExpertForecast: (side, reason, tp_price = null, sl_price = null, size = 100) => postApi("/api/expert/forecast", { side, reason, tp_price, sl_price, size }),
-    closeExpertForecast: () => postApi("/api/expert/close", {})
+    closeExpertForecast: () => postApi("/api/expert/close", {}),
+
+    // Auth & Profile
+    authStart: (nickname) => postApi("/api/auth/start", { nickname }),
+    authVerify: (nickname, code_or_password) => postApi("/api/auth/verify", { nickname, code_or_password }),
+    getMe: () => fetchApi("/api/auth/me"),
+    updateProfile: (data) => putApi("/api/auth/profile", data),
+    
+    logout: () => {
+        localStorage.removeItem('cryptoheim_token');
+        localStorage.removeItem('cryptoheim_user');
+        window.location.reload();
+    }
 };

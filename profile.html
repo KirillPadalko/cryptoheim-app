@@ -158,8 +158,8 @@
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                 </div>
-                <h1>My Profile</h1>
-                <div class="status-badge">FREE TIER</div>
+                <h1 id="user-nickname">My Profile</h1>
+                <div class="status-badge" id="user-status">FREE TIER</div>
             </div>
 
             <div class="profile-section">
@@ -173,18 +173,55 @@
                 </a>
             </div>
 
-            <div class="profile-section">
-                <h3>Already subscribed?</h3>
-                <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                    If you have an active subscription, you can get your activation code on the PRO page.
-                </p>
-                <a href="pro.html" style="font-weight: 800; color: #000; text-decoration: underline;">Go to Activation Page &rarr;</a>
+            <div class="profile-section" id="auth-actions">
+                <button id="logout-btn" class="brutal-btn" style="background: var(--color-red); color: #fff;">LOGOUT</button>
             </div>
         </div>
     </div>
 
     <footer style="border-top: 3px solid #000; padding: 2rem; text-align: center; font-family: 'Space Mono', monospace;">
-        CryptoHeim © 2025 · Premium Intelligence
+        CryptoHeim © 2026 · Premium Intelligence
     </footer>
+
+    <script type="module">
+        import { API } from './src/scripts/api.js';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const nickEl = document.getElementById('user-nickname');
+            const statusEl = document.getElementById('user-status');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            // Load from local storage first
+            const localUser = JSON.parse(localStorage.getItem('cryptoheim_user') || '{}');
+            if (localUser.boosty_nickname) {
+                nickEl.innerText = localUser.boosty_nickname;
+                if (localUser.is_pro) {
+                    statusEl.innerText = "PRO SUBSCRIBER";
+                    statusEl.classList.add('active');
+                }
+            } else {
+                window.location.href = "pro.html";
+            }
+
+            // Refresh from server
+            const me = await API.getMe();
+            if (me) {
+                localStorage.setItem('cryptoheim_user', JSON.stringify(me));
+                nickEl.innerText = me.boosty_nickname;
+                if (me.is_pro) {
+                    statusEl.innerText = "PRO SUBSCRIBER";
+                    statusEl.classList.add('active');
+                } else {
+                    statusEl.innerText = "FREE TIER";
+                    statusEl.classList.remove('active');
+                }
+            }
+
+            logoutBtn.addEventListener('click', () => {
+                API.logout();
+            });
+        });
+    </script>
 </body>
 </html>
+

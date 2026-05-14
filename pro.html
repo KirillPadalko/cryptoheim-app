@@ -224,118 +224,78 @@
 
     <div class="pro-container">
         <div class="pro-hero">
-            <h1>Upgrade to PRO</h1>
-            <p>Support the project and get exclusive access to real-time bot signals, AI analytics, and ad-free experience.</p>
+            <h1 data-i18n="pro_hero_title">Upgrade to PRO</h1>
+            <p data-i18n="pro_hero_subtitle">Support the project and get exclusive access to real-time bot signals, AI analytics, and ad-free experience.</p>
         </div>
 
         <div class="pro-grid">
             <div class="pro-card">
-                <h2>Free Tier</h2>
+                <h2 data-i18n="free_tier_title">Free Tier</h2>
                 <ul>
-                    <li>Delayed Market Indicators</li>
-                    <li>Basic Asset Stats</li>
-                    <li>Limited News Summaries</li>
-                    <li>Community Support</li>
+                    <li data-i18n="free_feat_1">Delayed Market Indicators</li>
+                    <li data-i18n="free_feat_2">Basic Asset Stats</li>
+                    <li data-i18n="free_feat_3">Limited News Summaries</li>
                 </ul>
             </div>
             <div class="pro-card" style="background: var(--color-green);">
-                <h2>PRO Tier</h2>
+                <h2 data-i18n="pro_tier_title">PRO Tier</h2>
                 <ul>
-                    <li>Real-time Bot Positions</li>
-                    <li>Advanced AI Portfolio Analytics</li>
-                    <li>No Advertisements</li>
-                    <li>Priority Signal Alerts</li>
+                    <li data-i18n="pro_feat_1">Real-time Bot Positions</li>
+                    <li data-i18n="pro_feat_2">Advanced AI Portfolio Analytics</li>
+                    <li data-i18n="pro_feat_3">Elite signals & Auto-trading</li>
                 </ul>
             </div>
         </div>
 
-        <div class="activation-box">
-            <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;">Step 1: Subscribe on Boosty</h2>
-            <p style="margin-bottom: 2rem; font-weight: 600;">Make sure you have an active paid subscription on our <a href="https://boosty.to/cryptoheim" target="_blank" style="text-decoration: underline;">Boosty page</a>.</p>
-            
-            <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;">Step 2: Get Activation Code</h2>
-            <div class="input-group">
-                <label for="boosty-nick">Your Boosty Nickname</label>
-                <input type="text" id="boosty-nick" class="brutal-input" placeholder="e.g. ivan_trade">
+        <div class="activation-box" id="auth-flow">
+            <!-- Step 1: Nickname -->
+            <div id="step-1">
+                <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;" data-i18n="auth_step_1">Step 1: Enter Nickname</h2>
+                <p style="margin-bottom: 2rem;" data-i18n="auth_step_1_desc">Enter your Boosty nickname to start verification.</p>
+                
+                <div class="input-group">
+                    <label for="boosty-nick" data-i18n="label_nickname">Boosty Nickname</label>
+                    <input type="text" id="boosty-nick" class="brutal-input" placeholder="e.g. trader_pro">
+                </div>
+                <button id="start-auth-btn" class="brutal-btn" data-i18n="btn_start_auth">Next</button>
             </div>
-            <button id="get-code-btn" class="brutal-btn">Generate My Code</button>
+
+            <!-- Step 2: Verification Code -->
+            <div id="step-2" style="display: none;">
+                <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;" data-i18n="auth_step_2">Step 2: Send Code</h2>
+                <p style="margin-bottom: 1.5rem;">
+                    <span data-i18n="auth_step_2_desc">Please send this code in a private message to our</span>
+                    <a href="https://boosty.to/cryptoheim" target="_blank" style="text-decoration: underline; font-weight: 800;">Boosty page</a>:
+                </p>
+                
+                <div class="code-display" id="code-display" style="display: block; margin-bottom: 2rem;">
+                    VB-XXXXXX
+                </div>
+
+                <p style="font-size: 0.9rem; margin-bottom: 1.5rem;" data-i18n="auth_step_2_hint">After sending the message, wait a few seconds and click Verify.</p>
+                
+                <button id="verify-auth-btn" class="brutal-btn" data-i18n="btn_verify">Verify & Login</button>
+                <button id="back-to-step-1" class="brutal-btn" style="background: transparent; color: #000; margin-top: 1rem;" data-i18n="btn_back">Back</button>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div id="step-3" style="display: none;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+                <h2 style="text-transform: uppercase; margin-bottom: 1rem;" data-i18n="auth_success">Success!</h2>
+                <p id="success-msg" style="margin-bottom: 2rem; font-weight: 600;">You are now logged in as PRO.</p>
+                <button id="finish-btn" class="brutal-btn" data-i18n="btn_finish">Go to Dashboard</button>
+            </div>
             
             <div class="loading-spinner" id="spinner"></div>
-            <div class="error-msg" id="error-msg">Subscription not found. Please check your nickname.</div>
-            
-            <div class="code-display" id="code-display">
-                PRO-XXXX-YYYY
-            </div>
-            
-            <div id="success-hint" style="display: none; margin-top: 1.5rem; font-weight: 700;">
-                Copy this code and enter it in the "Activate PRO" section of the mobile app!
-            </div>
+            <div class="error-msg" id="error-msg"></div>
         </div>
     </div>
 
     <footer style="border-top: 3px solid #000; padding: 2rem; text-align: center; font-family: 'Space Mono', monospace;">
-        CryptoHeim © 2025 · Premium Intelligence
+        CryptoHeim © 2026 · Premium Intelligence
     </footer>
 
-    <script type="module">
-        // Minimal API handler
-        const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-        const API_BASE = isLocal ? "/api/boosty" : "https://mesh-online.org/api/boosty";
-        
-        function getFullUrl(endpoint) {
-            // In PRO, the API_BASE already includes /api/boosty
-            if (isLocal) return endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-            const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
-            const path = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-            return base + path;
-        }
-
-        console.log(`[PRO] Host: ${window.location.hostname}, Mode: ${isLocal ? 'Local' : 'Production'}, Base: ${API_BASE}`);
-
-        const btn = document.getElementById('get-code-btn');
-        const nickInput = document.getElementById('boosty-nick');
-        const codeDisplay = document.getElementById('code-display');
-        const errorMsg = document.getElementById('error-msg');
-        const spinner = document.getElementById('spinner');
-        const hint = document.getElementById('success-hint');
-
-        btn.addEventListener('click', async () => {
-            const nickname = nickInput.value.trim();
-            if (!nickname) return;
-
-            // Reset UI
-            errorMsg.style.display = 'none';
-            codeDisplay.style.display = 'none';
-            hint.style.display = 'none';
-            spinner.style.display = 'block';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch(getFullUrl('/check-subscription'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    codeDisplay.innerText = data.code;
-                    codeDisplay.style.display = 'block';
-                    hint.style.display = 'block';
-                } else {
-                    errorMsg.innerText = data.detail || "Error checking subscription.";
-                    errorMsg.style.display = 'block';
-                }
-            } catch (err) {
-                errorMsg.innerText = "Server connection error.";
-                errorMsg.style.display = 'block';
-            } finally {
-                spinner.style.display = 'none';
-                btn.disabled = false;
-            }
-        });
-    </script>
+    <script type="module" src="./src/scripts/pro.js"></script>
 </body>
-
 </html>
+

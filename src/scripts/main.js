@@ -280,8 +280,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function isAuthorized() {
-    // Simple check for proToken in localStorage
-    return localStorage.getItem('proToken') !== null;
+    const token = localStorage.getItem('cryptoheim_token');
+    const userJson = localStorage.getItem('cryptoheim_user');
+    if (!token || !userJson) return false;
+    try {
+        const user = JSON.parse(userJson);
+        return user.is_pro === true;
+    } catch(e) { return false; }
 }
 
 async function startDashboard() {
@@ -559,16 +564,9 @@ async function renderTopSignals() {
                 const logicObj = s.risk_logic || {};
                 const logicStr = (typeof logicObj === 'string') ? logicObj : (logicObj[lang] || logicObj['en'] || "");
                 
-                // Identify if signal is bot-active
                 const isBotActive = s.is_bot_trade || s.bot_enabled || activePositions.some(p => p.symbol === matchSym || p.symbol === symUp);
 
-                let isLocked = false;
-                if (isBotActive && !isPro) {
-                    botActiveCount++;
-                    if (botActiveCount > 1) {
-                        isLocked = true;
-                    }
-                }
+                let isLocked = (s.signal === "LOCKED");
 
                 htmlChunks.push(`
                     <div class="signal-row ${isBotActive ? 'bot-active' : ''} ${isLocked ? 'signal-locked' : ''}" 
@@ -589,6 +587,7 @@ async function renderTopSignals() {
                                 </div>
                                 <div class="signal-desc"><b>Why:</b> ${s.reason}</div>
                                 ${!isLocked ? `<div class="copy-mode-toggle" onclick="toggleCopyMode(${i})">COPY MODE (manual) ⬡</div>` : ''}
+                                ${isLocked ? `<div style="margin-top:0.5rem; color:var(--color-red); font-weight:800; font-size:0.75rem;">PRO ONLY FEATURE</div>` : ''}
                             </div>
                         </div>
                         <div class="signal-price-col">
