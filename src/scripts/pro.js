@@ -38,9 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await API.authStart(nickname);
         toggleLoading(false);
 
-        if (res && res.verification_code) {
+        if (res && res.code) {
             currentNickname = nickname;
-            codeDisplay.innerText = res.verification_code;
+            codeDisplay.innerText = res.code;
             step1.style.display = 'none';
             step2.style.display = 'block';
         } else {
