@@ -95,6 +95,7 @@ export const API = {
     getExpertCurrent: () => fetchApi("/api/expert/current"),
     getExpertHistory: (limit = 20) => fetchApi(`/api/expert/history?limit=${limit}`),
     getExpertStats: () => fetchApi("/api/expert/stats"),
+    getLeaderboard: () => fetchApi("/api/expert/leaderboard"),
     submitExpertForecast: (side, reason, tp_price = null, sl_price = null, size = 100) => postApi("/api/expert/forecast", { side, reason, tp_price, sl_price, size }),
     closeExpertForecast: () => postApi("/api/expert/close", {}),
 

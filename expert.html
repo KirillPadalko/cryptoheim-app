@@ -80,14 +80,16 @@
                         <tr>
                             <td class="td-actor">
                                 <span class="evb-actor-label">CRYPTOHEIM BOT</span>
+                                <span class="evb-mini-rank" id="bot-global-rank">#—</span>
                             </td>
                             <td id="bot-winrate" class="td-val">—%</td>
                             <td id="bot-pnl" class="td-pnl">$0.00</td>
                         </tr>
                         <tr>
                             <td class="td-actor">
-                                <span class="evb-actor-label">EXPERT</span>
+                                <span class="evb-actor-label" id="expert-label-name">EXPERT</span>
                                 <span class="evb-mini-lvl">LVL <span id="user-level">1</span></span>
+                                <span class="evb-mini-rank" id="user-global-rank" style="display:none">#—</span>
                             </td>
                             <td id="user-winrate" class="td-val">—%</td>
                             <td id="user-pnl" class="td-pnl">$0.00</td>
@@ -228,6 +230,16 @@
                     <span class="evb-place-btn-icon">⚡</span>
                     PLACE TRADE
                 </button>
+            </div>
+
+            <!-- LEADERBOARD CARD -->
+            <div class="evb-card evb-card--leaderboard" id="leaderboard-card" style="margin-top: 1.25rem;">
+                <div class="evb-card-header">
+                    <span class="evb-card-title">🏆 LEADERBOARD (ALL-TIME)</span>
+                </div>
+                <div class="evb-leaderboard-list" id="leaderboard-list">
+                    <div class="evb-feed-empty">Loading ranking data…</div>
+                </div>
             </div>
         </aside>
     </div>

@@ -15,7 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMsg = document.getElementById('error-msg');
     const spinner = document.getElementById('spinner');
     
+    const vipInstructions = document.getElementById('vip-instructions');
+    const normalInstructions = document.getElementById('normal-instructions');
+    const vipPassword = document.getElementById('vip-password');
+    
     let currentNickname = "";
+    let isVip = false;
 
     const showError = (msg) => {
         errorMsg.innerText = msg;
@@ -40,20 +45,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (res && res.code) {
             currentNickname = nickname;
-            codeDisplay.innerText = res.code;
+            isVip = !!res.is_vip;
+            
+            if (isVip) {
+                vipInstructions.style.display = 'block';
+                normalInstructions.style.display = 'none';
+            } else {
+                vipInstructions.style.display = 'none';
+                normalInstructions.style.display = 'block';
+                codeDisplay.innerText = res.code;
+            }
+            
             step1.style.display = 'none';
             step2.style.display = 'block';
         } else {
+            console.error("Auth start failed. Response:", res);
             showError("Failed to start verification. Try again.");
         }
     });
 
     // Step 2 -> Step 3 (Verification)
     verifyBtn.addEventListener('click', async () => {
-        const code = codeDisplay.innerText.trim();
+        const codeOrPassword = isVip ? vipPassword.value.trim() : codeDisplay.innerText.trim();
+        if (isVip && !codeOrPassword) return showError("Please enter VIP password");
         
         toggleLoading(true);
-        const res = await API.authVerify(currentNickname, code);
+        const res = await API.authVerify(currentNickname, codeOrPassword);
         toggleLoading(false);
 
         if (res && res.access_token) {
@@ -64,7 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
             step2.style.display = 'none';
             step3.style.display = 'block';
         } else {
-            showError("Code not found or invalid. Please ensure you sent the message on Boosty.");
+            const msg = isVip ? "Invalid VIP password." : "Code not found or invalid. Please ensure you sent the message on Boosty.";
+            showError(msg);
         }
     });
 

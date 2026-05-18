@@ -262,17 +262,29 @@
 
             <!-- Step 2: Verification Code -->
             <div id="step-2" style="display: none;">
-                <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;" data-i18n="auth_step_2">Step 2: Send Code</h2>
-                <p style="margin-bottom: 1.5rem;">
-                    <span data-i18n="auth_step_2_desc">Please send this code in a private message to our</span>
-                    <a href="https://boosty.to/cryptoheim" target="_blank" style="text-decoration: underline; font-weight: 800;">Boosty page</a>:
-                </p>
-                
-                <div class="code-display" id="code-display" style="display: block; margin-bottom: 2rem;">
-                    VB-XXXXXX
+                <div id="normal-instructions">
+                    <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;" data-i18n="auth_step_2">Step 2: Send Code</h2>
+                    <p style="margin-bottom: 1.5rem;">
+                        <span data-i18n="auth_step_2_desc">Please send this code in a private message to our</span>
+                        <a href="https://boosty.to/cryptoheim" target="_blank" style="text-decoration: underline; font-weight: 800;">Boosty page</a>:
+                    </p>
+                    
+                    <div class="code-display" id="code-display" style="display: block; margin-bottom: 2rem;">
+                        VB-XXXXXX
+                    </div>
+
+                    <p style="font-size: 0.9rem; margin-bottom: 1.5rem;" data-i18n="auth_step_2_hint">After sending the message, wait a few seconds and click Verify.</p>
                 </div>
 
-                <p style="font-size: 0.9rem; margin-bottom: 1.5rem;" data-i18n="auth_step_2_hint">After sending the message, wait a few seconds and click Verify.</p>
+                <div id="vip-instructions" style="display: none;">
+                    <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;">Step 2: VIP Password</h2>
+                    <p style="margin-bottom: 1.5rem;">Please enter your VIP activation code below:</p>
+                    
+                    <div class="input-group">
+                        <label for="vip-password">VIP PASSWORD</label>
+                        <input type="password" id="vip-password" class="brutal-input" placeholder="Enter VIP code">
+                    </div>
+                </div>
                 
                 <button id="verify-auth-btn" class="brutal-btn" data-i18n="btn_verify">Verify & Login</button>
                 <button id="back-to-step-1" class="brutal-btn" style="background: transparent; color: #000; margin-top: 1rem;" data-i18n="btn_back">Back</button>

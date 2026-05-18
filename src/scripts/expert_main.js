@@ -488,6 +488,7 @@ async function updateAll() {
         updateActiveForecast(),
         updateBattleFeed(),
         updateUserStats(),
+        updateLeaderboard(),
     ]);
 }
 
@@ -764,4 +765,77 @@ function setEl(id, text, pnlVal) {
     if (pnlVal !== undefined) {
         el.style.color = pnlVal >= 0 ? '#00C853' : '#FF1744';
     }
+}
+
+async function updateLeaderboard() {
+    const res = await API.getLeaderboard().catch(() => null);
+    if (!res) return;
+    
+    // 1. Update compact ratings in the Hero scoreboard
+    const botRankEl = document.getElementById('bot-global-rank');
+    const userRankEl = document.getElementById('user-global-rank');
+    
+    if (botRankEl) {
+        botRankEl.textContent = res.bot_rank ? `#${res.bot_rank}` : '#—';
+    }
+    
+    if (userRankEl) {
+        if (isLoggedIn()) {
+            userRankEl.textContent = res.user_rank ? `#${res.user_rank}` : '#—';
+            userRankEl.style.display = 'inline-block';
+        } else {
+            userRankEl.style.display = 'none';
+        }
+    }
+    
+    // Update "EXPERT" label to show nickname if logged in
+    const expertLabelName = document.getElementById('expert-label-name');
+    if (expertLabelName) {
+        if (isLoggedIn()) {
+            try {
+                const user = JSON.parse(localStorage.getItem('cryptoheim_user'));
+                expertLabelName.textContent = user.boosty_nickname.toUpperCase();
+            } catch (e) {
+                expertLabelName.textContent = 'YOU';
+            }
+        } else {
+            expertLabelName.textContent = 'GUEST EXPERT';
+        }
+    }
+    
+    // 2. Render Leaderboard List
+    const lbListEl = document.getElementById('leaderboard-list');
+    if (!lbListEl) return;
+    
+    if (!res.leaderboard?.length) {
+        lbListEl.innerHTML = '<div class="evb-feed-empty">No ranking data yet…</div>';
+        return;
+    }
+    
+    lbListEl.innerHTML = res.leaderboard.map(item => {
+        let rankClass = '';
+        if (item.rank === 1) rankClass = 'gold';
+        else if (item.rank === 2) rankClass = 'silver';
+        else if (item.rank === 3) rankClass = 'bronze';
+        
+        const isYou = item.is_you;
+        const isBot = item.is_bot;
+        const displayName = isBot ? 'CRYPTOHEIM BOT 🤖' : item.name;
+        
+        const rowClass = isYou ? 'evb-lb-row you' : 'evb-lb-row';
+        const pnlSign = item.total_pnl >= 0;
+        const formattedPnl = (item.total_pnl >= 0 ? '+' : '') + '$' + item.total_pnl.toFixed(2);
+        const pnlClass = pnlSign ? 'evb-lb-pnl pos' : 'evb-lb-pnl neg';
+        
+        return `
+            <div class="${rowClass}">
+                <div class="evb-lb-rank ${rankClass}">${item.rank}</div>
+                <div class="evb-lb-name">
+                    ${displayName}
+                    ${isYou ? '<span class="evb-lb-you-tag">YOU</span>' : ''}
+                </div>
+                <div class="${pnlClass}">${formattedPnl}</div>
+            </div>
+        `;
+    }).join('');
 }
