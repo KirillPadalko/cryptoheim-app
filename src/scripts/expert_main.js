@@ -228,13 +228,16 @@ async function loadChartData() {
 }
 
 async function renderChartMarkers() {
-    const [expHistory, botHistory] = await Promise.all([
-        API.getExpertHistory(100),
-        API.getBotHistory(200)
+    const [expHistory, botHistory, expCurrent, botPositions] = await Promise.all([
+        API.getExpertHistory(100).catch(() => []),
+        API.getBotHistory(200).catch(() => []),
+        API.getExpertCurrent().catch(() => null),
+        API.getBotPositions().catch(() => [])
     ]);
     
     const markers = [];
     
+    // 1. Closed Expert History
     (expHistory || []).forEach(h => {
         if (h.open_time) {
             const timeOpen = h.open_time > 1e12 ? Math.floor(h.open_time / 1000) : h.open_time;
@@ -260,6 +263,20 @@ async function renderChartMarkers() {
         }
     });
 
+    // 2. Active Open Expert Forecast
+    if (expCurrent && expCurrent.open_time) {
+        const timeOpen = expCurrent.open_time > 1e12 ? Math.floor(expCurrent.open_time / 1000) : expCurrent.open_time;
+        markers.push({
+            time: timeOpen,
+            position: expCurrent.side === 'BUY' ? 'belowBar' : 'aboveBar',
+            color: '#2962FF',
+            shape: expCurrent.side === 'BUY' ? 'arrowUp' : 'arrowDown',
+            text: 'YOU IN',
+            size: 2
+        });
+    }
+
+    // 3. Closed Bot History
     (botHistory || []).filter(t => t.symbol === 'BTCUSDT').forEach(t => {
         const side = ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL';
         if (t.open_time) {
@@ -291,10 +308,40 @@ async function renderChartMarkers() {
         }
     });
 
+    // 4. Active Open Bot Positions
+    (botPositions || []).filter(t => t.symbol === 'BTCUSDT').forEach(t => {
+        const side = ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL';
+        if (t.open_time) {
+            const timeOpen = typeof t.open_time === 'number'
+                ? (t.open_time > 1e12 ? Math.floor(t.open_time / 1000) : t.open_time)
+                : Math.floor(new Date(t.open_time).getTime() / 1000);
+            markers.push({
+                time: timeOpen,
+                position: side === 'BUY' ? 'belowBar' : 'aboveBar',
+                color: '#000',
+                shape: 'square',
+                text: 'BOT IN',
+                size: 1
+            });
+        }
+    });
+
     console.log(`[Chart] Generated ${markers.length} markers`);
-    candleSeries.setMarkers(markers.sort((a,b) => a.time - b.time));
+
+    // Sort and deduplicate markers just in case
+    const uniqueMarkers = [];
+    const seen = new Set();
+    markers.sort((a,b) => a.time - b.time).forEach(m => {
+        const key = `${m.time}_${m.text}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            uniqueMarkers.push(m);
+        }
+    });
+
+    candleSeries.setMarkers(uniqueMarkers);
     
-    if (markers.length > 0) console.log(`[Chart] First marker time: ${markers[0].time}`);
+    if (uniqueMarkers.length > 0) console.log(`[Chart] First marker time: ${uniqueMarkers[0].time}`);
     const candleData = candleSeries.data ? candleSeries.data() : [];
     if (candleData && candleData.length > 0) {
         console.log(`[Chart] First candle time: ${candleData[0].time}`);
@@ -489,6 +536,7 @@ async function updateAll() {
         updateBattleFeed(),
         updateUserStats(),
         updateLeaderboard(),
+        renderChartMarkers().catch(e => console.error("renderChartMarkers failed:", e))
     ]);
 }
 
@@ -626,23 +674,56 @@ async function updateActiveForecast() {
 }
 
 async function updateBattleFeed() {
-    const [expHistory, botHistory] = await Promise.all([
-        API.getExpertHistory(10),
-        API.getBotHistory(30)
+    const [expHistory, botHistory, expCurrent, botPositions] = await Promise.all([
+        API.getExpertHistory(10).catch(() => []),
+        API.getBotHistory(30).catch(() => []),
+        API.getExpertCurrent().catch(() => null),
+        API.getBotPositions().catch(() => [])
     ]);
 
     const feed = [];
 
+    // 1. Open User Trade
+    if (expCurrent) {
+        feed.push({
+            time: expCurrent.open_time > 1e12 ? expCurrent.open_time / 1000 : expCurrent.open_time,
+            actor: 'user',
+            action: expCurrent.side === 'BUY' ? 'BUY' : 'SELL',
+            pair: 'BTC/USDT',
+            pnl: 0,
+            isOpen: true
+        });
+    }
+
+    // 2. Open Bot Trades
+    const btcBotPositions = (botPositions || []).filter(t => t.symbol === 'BTCUSDT');
+    btcBotPositions.forEach(t => {
+        const timeOpen = typeof t.open_time === 'number'
+            ? (t.open_time > 1e12 ? t.open_time / 1000 : t.open_time)
+            : Date.now() / 1000;
+        feed.push({
+            time: timeOpen,
+            actor: 'bot',
+            action: ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL',
+            pair: 'BTC/USDT',
+            pnl: 0,
+            isOpen: true
+        });
+    });
+
+    // 3. Closed User History
     (expHistory || []).forEach(h => {
         feed.push({
-            time: h.close_time,
+            time: h.close_time > 1e12 ? h.close_time / 1000 : h.close_time,
             actor: 'user',
             action: h.side === 'BUY' ? 'BUY' : 'SELL',
             pair: 'BTC/USDT',
             pnl: h.pnl || 0,
+            isOpen: false
         });
     });
 
+    // 4. Closed Bot History
     const btcBot = (botHistory || []).filter(t => t.symbol === 'BTCUSDT').slice(0, 10);
     btcBot.forEach(t => {
         feed.push({
@@ -653,6 +734,7 @@ async function updateBattleFeed() {
             action: ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL',
             pair: 'BTC/USDT',
             pnl: t.pnl || 0,
+            isOpen: false
         });
     });
 
@@ -673,6 +755,11 @@ async function updateBattleFeed() {
         const hh = String(d.getHours()).padStart(2,'0');
         const mm = String(d.getMinutes()).padStart(2,'0');
         const pnlSign = row.pnl >= 0;
+
+        const rightColumn = row.isOpen
+            ? `<span style="background: #FFD600; color: #000; padding: 0.15rem 0.5rem; font-size: 0.6rem; font-weight: 800; font-family: var(--font-mono); border-radius: 2px;">IN TRADE</span>`
+            : `<div class="evb-feed-pnl ${pnlSign ? 'pos' : 'neg'}">${row.pnl >= 0 ? '+' : ''}$${Math.abs(row.pnl).toFixed(2)}</div>`;
+
         return `
             <div class="evb-feed-row">
                 <div class="evb-feed-time">${day}.${month} ${hh}:${mm}</div>
@@ -682,9 +769,7 @@ async function updateBattleFeed() {
                         ${row.action === 'BUY' ? '▲' : '▼'} ${row.action}
                     </div>
                 </div>
-                <div class="evb-feed-pnl ${pnlSign ? 'pos' : 'neg'}">
-                    ${row.pnl >= 0 ? '+' : ''}$${Math.abs(row.pnl).toFixed(2)}
-                </div>
+                ${rightColumn}
             </div>
         `;
     }).join('');

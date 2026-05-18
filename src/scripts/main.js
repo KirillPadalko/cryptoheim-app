@@ -546,7 +546,7 @@ async function renderTopSignals() {
 
             const activePositions = (positionsRes.status === "fulfilled" && positionsRes.value) ? positionsRes.value : [];
             const isPro = isAuthorized();
-            let botActiveCount = 0;
+            let unlockedBotSignalShown = false;
 
             signals.forEach((s, i) => {
                 const sStr = String(s.signal).toLowerCase();
@@ -567,6 +567,20 @@ async function renderTopSignals() {
                 const isBotActive = s.is_bot_trade || s.bot_enabled || activePositions.some(p => p.symbol === matchSym || p.symbol === symUp);
 
                 let isLocked = (s.signal === "LOCKED");
+                if (!isPro) {
+                    if (isBotActive) {
+                        if (!unlockedBotSignalShown && s.signal !== "LOCKED") {
+                            isLocked = false;
+                            unlockedBotSignalShown = true;
+                        } else {
+                            isLocked = true;
+                        }
+                    } else {
+                        if (s.signal !== "LOCKED") {
+                            isLocked = false;
+                        }
+                    }
+                }
 
                 htmlChunks.push(`
                     <div class="signal-row ${isBotActive ? 'bot-active' : ''} ${isLocked ? 'signal-locked' : ''}" 
@@ -629,6 +643,7 @@ async function renderTopSignals() {
                 if (!window._sigData) window._sigData = {};
                 window._sigData[i] = s;
                 window._sigData[i].price = typeof price === 'number' ? price : 0;
+                window._sigData[i].isLocked = isLocked;
             });
 
             list.innerHTML = htmlChunks.join('');
@@ -667,20 +682,12 @@ async function renderTopSignals() {
 
             // Draw charts
             if (klinesRes.status === "fulfilled" && klinesRes.value) {
-                let botActiveCountForCharts = 0;
                 signals.forEach((s, i) => {
-                    const symUp = String(s.symbol).toUpperCase();
-                    const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
-                    
-                    const isBotActive = s.is_bot_trade || s.bot_enabled || activePositions.some(p => p.symbol === matchSym || p.symbol === symUp);
-                    let isLocked = false;
-                    if (isBotActive && !isPro) {
-                        botActiveCountForCharts++;
-                        if (botActiveCountForCharts > 1) isLocked = true;
-                    }
-
+                    const isLocked = window._sigData[i]?.isLocked;
                     if (isLocked) return; // Don't draw charts for locked signals
 
+                    const symUp = String(s.symbol).toUpperCase();
+                    const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
                     const sparklineData = klinesRes.value[matchSym] || klinesRes.value[symUp];
                     if (sparklineData && sparklineData.length > 0) {
                         drawBrutalSparkline(`top-sig-chart-${i}`, sparklineData);
