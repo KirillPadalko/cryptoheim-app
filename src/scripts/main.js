@@ -86,7 +86,15 @@ const I18N = {
         'exp_active_label': 'АКТИВНЫЙ ПРОГНОЗ',
         'exp_close_btn': 'ЗАКРЫТЬ',
         'pnl_growth': 'РОСТ ПОРТФЕЛЯ',
-        'pro_cta': 'ПОЛУЧИТЬ PRO ДОСТУП'
+        'pro_cta': 'ПОЛУЧИТЬ PRO ДОСТУП',
+        'cm_title': 'Ручной Copy Mode',
+        'cm_desc': 'Следуйте этой инструкции для ручного копирования сделок:',
+        'cm_step1': 'Выберите актуальный сигнал из списка <strong>(LONG / SHORT)</strong>.',
+        'cm_step2': 'Откройте свой торговый терминал (Binance, Bybit, OKX).',
+        'cm_step3': 'Найдите указанную торговую пару и выберите нужное направление сделки.',
+        'cm_step4': 'Введите параметры: <strong>Точка входа</strong>, <strong>Take Profit</strong> и <strong>Stop Loss</strong>.',
+        'cm_step5': 'Строго соблюдайте риск-менеджмент: риск на сделку не должен превышать <strong>1-2%</strong> от вашего депозита.',
+        'cm_warn': '⚠️ Торгуйте ответственно. Прошлые результаты не гарантируют будущих.'
     },
     'en': {
         // En defaults are already correctly written fallback in indicators.html, 
@@ -173,6 +181,10 @@ let _currentModalTF = '15m';
 document.addEventListener('DOMContentLoaded', () => {
     window.appLang = localStorage.getItem('appLang') || 'en';
     
+    try {
+        API.updateNavProfile();
+    } catch(e) { console.error(e); }
+    
     const langBtns = document.querySelectorAll('.lang-btn');
     if (langBtns.length > 0) {
         langBtns.forEach(btn => {
@@ -249,32 +261,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (btnCopyMode) {
         btnCopyMode.addEventListener('click', () => {
-            if (isAuthorized()) {
-                alert("Copy Mode settings coming soon!");
-            } else {
-                if (copyModeModal) copyModeModal.classList.add('open');
-            }
+            if (copyModeModal) copyModeModal.classList.add('open');
         });
     }
     
     if (copyModeClose) {
         copyModeClose.addEventListener('click', () => {
             if (copyModeModal) copyModeModal.classList.remove('open');
-        });
-    }
-    
-    const cmLoginBtn = document.getElementById('cm-login-btn');
-    const cmBuyBtn = document.getElementById('cm-buy-btn');
-    
-    if (cmLoginBtn) {
-        cmLoginBtn.addEventListener('click', () => {
-            alert("Login feature coming soon!");
-        });
-    }
-    
-    if (cmBuyBtn) {
-        cmBuyBtn.addEventListener('click', () => {
-            window.location.href = 'pro.html';
         });
     }
 });
@@ -677,7 +670,10 @@ async function renderTopSignals() {
             };
 
             window.handleApplyTrade = (sym) => {
-                alert(`Manual Trade Setup for ${sym} applied! \nOpening execution interface...`);
+                const symUp = String(sym).toUpperCase();
+                const matchSym = symUp.endsWith('USDT') ? symUp : symUp + 'USDT';
+                const bybitUrl = `https://www.bybit.com/trade/usdt/${matchSym}`;
+                window.open(bybitUrl, '_blank');
             };
 
             // Draw charts

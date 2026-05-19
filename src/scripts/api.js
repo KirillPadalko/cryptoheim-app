@@ -105,6 +105,37 @@ export const API = {
     getMe: () => fetchApi("/api/auth/me"),
     updateProfile: (data) => putApi("/api/auth/profile", data),
     
+    updateNavProfile: () => {
+        const userJson = localStorage.getItem('cryptoheim_user');
+        if (!userJson) return;
+        try {
+            const user = JSON.parse(userJson);
+            const nickname = user.boosty_nickname;
+            if (!nickname) return;
+
+            const profileBtn = document.querySelector('.top-nav .profile-btn');
+            if (!profileBtn) return;
+
+            let container = profileBtn.parentElement;
+            if (!container.classList.contains('nav-profile-container')) {
+                container = document.createElement('div');
+                container.className = 'nav-profile-container';
+                profileBtn.parentNode.insertBefore(container, profileBtn);
+                container.appendChild(profileBtn);
+            }
+
+            const existingSpan = container.querySelector('.nav-profile-username');
+            if (existingSpan) existingSpan.remove();
+
+            const span = document.createElement('span');
+            span.className = 'nav-profile-username';
+            span.textContent = nickname;
+            container.appendChild(span);
+        } catch(e) {
+            console.error("Error updating nav profile:", e);
+        }
+    },
+    
     logout: () => {
         localStorage.removeItem('cryptoheim_token');
         localStorage.removeItem('cryptoheim_user');

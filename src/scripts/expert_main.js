@@ -28,6 +28,10 @@ function isPro() {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded: Starting initialization");
     try {
+        API.updateNavProfile();
+    } catch(e) { console.error(e); }
+    
+    try {
         initChart();
         console.log("initChart: Success");
     } catch (e) { console.error("initChart failed:", e); }
@@ -211,7 +215,7 @@ async function loadChartData() {
 
     // Draw active forecast lines
     const current = await API.getExpertCurrent();
-    if (current) {
+    if (current && isLoggedIn()) {
         if (current.tp_price) candleSeries.createPriceLine({
             price: current.tp_price, color: '#00C853', lineWidth: 2,
             lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP'
@@ -238,42 +242,44 @@ async function renderChartMarkers() {
     const markers = [];
     
     // 1. Closed Expert History
-    (expHistory || []).forEach(h => {
-        if (h.open_time) {
-            const timeOpen = h.open_time > 1e12 ? Math.floor(h.open_time / 1000) : h.open_time;
+    if (isLoggedIn()) {
+        (expHistory || []).forEach(h => {
+            if (h.open_time) {
+                const timeOpen = h.open_time > 1e12 ? Math.floor(h.open_time / 1000) : h.open_time;
+                markers.push({
+                    time: timeOpen,
+                    position: h.side === 'BUY' ? 'belowBar' : 'aboveBar',
+                    color: '#2962FF',
+                    shape: h.side === 'BUY' ? 'arrowUp' : 'arrowDown',
+                    text: 'YOU IN',
+                    size: 2
+                });
+            }
+            if (h.close_time) {
+                const timeClose = h.close_time > 1e12 ? Math.floor(h.close_time / 1000) : h.close_time;
+                markers.push({
+                    time: timeClose,
+                    position: h.side === 'BUY' ? 'aboveBar' : 'belowBar',
+                    color: '#2962FF',
+                    shape: h.side === 'BUY' ? 'arrowDown' : 'arrowUp',
+                    text: 'YOU OUT',
+                    size: 2
+                });
+            }
+        });
+
+        // 2. Active Open Expert Forecast
+        if (expCurrent && expCurrent.open_time) {
+            const timeOpen = expCurrent.open_time > 1e12 ? Math.floor(expCurrent.open_time / 1000) : expCurrent.open_time;
             markers.push({
                 time: timeOpen,
-                position: h.side === 'BUY' ? 'belowBar' : 'aboveBar',
+                position: expCurrent.side === 'BUY' ? 'belowBar' : 'aboveBar',
                 color: '#2962FF',
-                shape: h.side === 'BUY' ? 'arrowUp' : 'arrowDown',
+                shape: expCurrent.side === 'BUY' ? 'arrowUp' : 'arrowDown',
                 text: 'YOU IN',
                 size: 2
             });
         }
-        if (h.close_time) {
-            const timeClose = h.close_time > 1e12 ? Math.floor(h.close_time / 1000) : h.close_time;
-            markers.push({
-                time: timeClose,
-                position: h.side === 'BUY' ? 'aboveBar' : 'belowBar',
-                color: '#2962FF',
-                shape: h.side === 'BUY' ? 'arrowDown' : 'arrowUp',
-                text: 'YOU OUT',
-                size: 2
-            });
-        }
-    });
-
-    // 2. Active Open Expert Forecast
-    if (expCurrent && expCurrent.open_time) {
-        const timeOpen = expCurrent.open_time > 1e12 ? Math.floor(expCurrent.open_time / 1000) : expCurrent.open_time;
-        markers.push({
-            time: timeOpen,
-            position: expCurrent.side === 'BUY' ? 'belowBar' : 'aboveBar',
-            color: '#2962FF',
-            shape: expCurrent.side === 'BUY' ? 'arrowUp' : 'arrowDown',
-            text: 'YOU IN',
-            size: 2
-        });
     }
 
     // 3. Closed Bot History
@@ -684,7 +690,7 @@ async function updateBattleFeed() {
     const feed = [];
 
     // 1. Open User Trade
-    if (expCurrent) {
+    if (expCurrent && isLoggedIn()) {
         feed.push({
             time: expCurrent.open_time > 1e12 ? expCurrent.open_time / 1000 : expCurrent.open_time,
             actor: 'user',
@@ -712,16 +718,18 @@ async function updateBattleFeed() {
     });
 
     // 3. Closed User History
-    (expHistory || []).forEach(h => {
-        feed.push({
-            time: h.close_time > 1e12 ? h.close_time / 1000 : h.close_time,
-            actor: 'user',
-            action: h.side === 'BUY' ? 'BUY' : 'SELL',
-            pair: 'BTC/USDT',
-            pnl: h.pnl || 0,
-            isOpen: false
+    if (isLoggedIn()) {
+        (expHistory || []).forEach(h => {
+            feed.push({
+                time: h.close_time > 1e12 ? h.close_time / 1000 : h.close_time,
+                actor: 'user',
+                action: h.side === 'BUY' ? 'BUY' : 'SELL',
+                pair: 'BTC/USDT',
+                pnl: h.pnl || 0,
+                isOpen: false
+            });
         });
-    });
+    }
 
     // 4. Closed Bot History
     const btcBot = (botHistory || []).filter(t => t.symbol === 'BTCUSDT').slice(0, 10);

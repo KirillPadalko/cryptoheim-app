@@ -133,7 +133,6 @@
                         <span><span data-i18n="top_signals">TOP SIGNALS</span> <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);" data-i18n="priority">(PRIORITY)</span></span>
                         <div class="header-actions" style="display: flex; gap: 10px;">
                             <button id="btn-copy-mode" class="btn-copy-mode">Copy mode ⚙</button>
-                            <button style="border: var(--border-thick); background: #fff; padding: 5px 15px; font-weight: 800; cursor: pointer; font-family: var(--font-main);" data-i18n="see_all">SEE ALL</button>
                         </div>
                     </div>
                     <div class="signals-list" id="signals-list">
@@ -346,16 +345,21 @@
     <div id="copy-mode-modal" class="chart-modal-overlay">
         <div class="chart-modal-card" style="max-width: 500px; height: auto; padding: 2rem;">
             <div class="chart-modal-header" style="border-bottom: none; padding: 0; margin-bottom: 1.5rem;">
-                <h2 style="font-size: 1.8rem; font-weight: 800;">Copy Mode Access</h2>
+                <h2 style="font-size: 1.8rem; font-weight: 800;" data-i18n="cm_title">Manual Copy Mode</h2>
                 <button class="chart-modal-close" id="copy-mode-close-btn">✕</button>
             </div>
-            <p style="font-weight: 500; line-height: 1.5; margin-bottom: 2rem;">
-                Automate your trading with our Copy Mode. Follow professional signals and bot trades automatically.
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <button class="brutal-btn" style="background: var(--color-green); color: #000;" id="cm-login-btn">Login to Account</button>
-                <div style="text-align: center; font-weight: 800; font-size: 0.8rem; color: var(--text-muted);">OR</div>
-                <button class="brutal-btn" style="background: var(--color-yellow); color: #000;" id="cm-buy-btn">Get PRO Subscription</button>
+            <div style="font-weight: 500; line-height: 1.5; margin-bottom: 1rem;">
+                <p style="margin-bottom: 1rem;" data-i18n="cm_desc">Follow these instructions to manually copy trades:</p>
+                <ol style="padding-left: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <li data-i18n="cm_step1">Select an active signal from the list <strong>(LONG / SHORT)</strong>.</li>
+                    <li data-i18n="cm_step2">Open your trading terminal (Binance, Bybit, OKX).</li>
+                    <li data-i18n="cm_step3">Find the indicated trading pair and set the correct direction.</li>
+                    <li data-i18n="cm_step4">Input parameters: <strong>Entry price</strong>, <strong>Take Profit</strong>, and <strong>Stop Loss</strong>.</li>
+                    <li data-i18n="cm_step5">Strictly follow risk management: do not risk more than <strong>1-2%</strong> of your deposit per trade.</li>
+                </ol>
+            </div>
+            <div style="padding: 1rem; background: var(--color-yellow); border: var(--border-thick); font-weight: 800; text-align: center; font-size: 0.9rem; margin-top: 1.5rem;" data-i18n="cm_warn">
+                ⚠️ Trade responsibly. Past performance does not guarantee future results.
             </div>
         </div>
     </div>

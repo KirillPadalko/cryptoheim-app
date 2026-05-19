@@ -1,6 +1,10 @@
 import { API } from './api.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    try {
+        API.updateNavProfile();
+    } catch(e) { console.error(e); }
+    
     const step1 = document.getElementById('step-1');
     const step2 = document.getElementById('step-2');
     const step3 = document.getElementById('step-3');
@@ -77,6 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Success!
             localStorage.setItem('cryptoheim_token', res.access_token);
             localStorage.setItem('cryptoheim_user', JSON.stringify(res.user));
+            
+            try {
+                API.updateNavProfile();
+            } catch(e) { console.error(e); }
             
             step2.style.display = 'none';
             step3.style.display = 'block';

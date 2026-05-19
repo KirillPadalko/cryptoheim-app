@@ -187,6 +187,10 @@
         import { API } from './src/scripts/api.js';
 
         document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                API.updateNavProfile();
+            } catch(e) { console.error(e); }
+            
             const nickEl = document.getElementById('user-nickname');
             const statusEl = document.getElementById('user-status');
             const logoutBtn = document.getElementById('logout-btn');
