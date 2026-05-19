@@ -1286,11 +1286,22 @@ function openBalanceModal() {
                     min: tf === 'all' ? undefined : minTime,
                     max: tf === 'all' ? undefined : maxTime,
                     time: {
-                        unit: 'hour',
-                        displayFormats: { hour: 'HH:mm', day: 'dd/MM' }
+                        displayFormats: {
+                            minute: 'dd MMM HH:mm',
+                            hour: 'dd MMM HH:mm',
+                            day: 'dd MMM',
+                            week: 'dd MMM',
+                            month: 'MMM yyyy'
+                        },
+                        tooltipFormat: 'dd MMM yyyy HH:mm'
                     },
                     grid: { color: 'rgba(0,0,0,0.05)' },
-                    ticks: { font: { family: 'var(--font-mono)', size: 10 } }
+                    ticks: { 
+                        maxTicksLimit: 8,
+                        maxRotation: 45,
+                        minRotation: 0,
+                        font: { family: 'var(--font-mono)', size: 10 } 
+                    }
                 },
                 y: {
                     grid: { color: 'rgba(0,0,0,0.05)' },
