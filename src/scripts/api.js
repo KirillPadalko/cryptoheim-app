@@ -1,6 +1,15 @@
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const BASE_URL = isLocal ? "" : "https://mesh-online.org";
 
+function getDeviceId() {
+    let deviceId = localStorage.getItem('cryptoheim_device_id');
+    if (!deviceId) {
+        deviceId = 'web-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('cryptoheim_device_id', deviceId);
+    }
+    return deviceId;
+}
+
 function getFullUrl(endpoint) {
     if (!BASE_URL) return endpoint;
     const base = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
@@ -18,7 +27,10 @@ async function fetchApi(endpoint) {
     const fullUrl = getFullUrl(endpoint);
     const token = localStorage.getItem('cryptoheim_token');
     try {
-        const headers = { "Accept-Language": language };
+        const headers = { 
+            "Accept-Language": language,
+            "X-Device-ID": getDeviceId()
+        };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const response = await fetch(fullUrl, { headers });
@@ -36,7 +48,10 @@ async function postApi(endpoint, body) {
     const fullUrl = getFullUrl(endpoint);
     const token = localStorage.getItem('cryptoheim_token');
     try {
-        const headers = { "Content-Type": "application/json" };
+        const headers = { 
+            "Content-Type": "application/json",
+            "X-Device-ID": getDeviceId()
+        };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const response = await fetch(fullUrl, {
@@ -56,7 +71,10 @@ async function putApi(endpoint, body) {
     const fullUrl = getFullUrl(endpoint);
     const token = localStorage.getItem('cryptoheim_token');
     try {
-        const headers = { "Content-Type": "application/json" };
+        const headers = { 
+            "Content-Type": "application/json",
+            "X-Device-ID": getDeviceId()
+        };
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
         const response = await fetch(fullUrl, {
@@ -90,6 +108,7 @@ export const API = {
     getMarketStatChart: (statId, limit = 30) => fetchApi(`/market-stats/${statId}/chart?limit=${limit}`),
     getMarketForecast: (lang = 'en') => fetchApi(`/market-forecast?lang=${lang}`),
     getCryptoAnalysis: (lang = 'en') => fetchApi(`/crypto-analysis?lang=${lang}`),
+    getVisitorStats: () => fetchApi("/analytics/visitor-stats"),
     
     // Expert Page
     getExpertCurrent: () => fetchApi("/api/expert/current"),

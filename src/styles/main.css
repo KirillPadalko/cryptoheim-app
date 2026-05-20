@@ -155,6 +155,18 @@ img {
     white-space: nowrap;
     color: #000;
 }
+.top-nav .visitor-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    background: #eef4ff;
+    border: 1px solid #5294ff;
+    padding: 0.3rem 0.65rem;
+    white-space: nowrap;
+    color: #2b70f0;
+}
 .top-nav .play-btn {
     display: flex;
     align-items: center;

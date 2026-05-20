@@ -296,8 +296,48 @@ async function updateDashboardData() {
         renderExposureAndPositions(),
         renderClosedOrders(),
         renderBalanceChart(),
-        renderRiskScenario()
+        renderRiskScenario(),
+        renderVisitorStats()
     ]);
+}
+
+async function renderVisitorStats() {
+    const chip = document.getElementById('visitor-chip');
+    if (!chip) return;
+
+    const userJson = localStorage.getItem('cryptoheim_user');
+    let shouldShow = false;
+    
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            const nick = (user.boosty_nickname || '').toLowerCase().trim();
+            // Show the visitor counter specifically for Bob or any other VIP/PRO user!
+            if (nick === 'bob' || user.is_pro || user.role === 'ADMIN' || user.role === 'PRO') {
+                shouldShow = true;
+            }
+        } catch(e) {}
+    }
+
+    if (!shouldShow) {
+        chip.style.display = 'none';
+        return;
+    }
+
+    try {
+        const stats = await API.getVisitorStats();
+        if (stats) {
+            const countEl = document.getElementById('visitor-count');
+            if (countEl) {
+                const isRu = window.appLang === 'ru';
+                const prefix = isRu ? "ВИЗИТОРЫ: " : "VISITORS: ";
+                countEl.innerHTML = `${prefix}${stats.active_daily} <span style="opacity: 0.6; font-size: 0.65rem; font-weight: normal;">(Total: ${stats.total_all_time})</span>`;
+            }
+            chip.style.display = 'inline-flex';
+        }
+    } catch (e) {
+        console.error("Error rendering visitor stats:", e);
+    }
 }
 
 function startRefreshTimer() {
