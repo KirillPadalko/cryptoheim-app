@@ -1,5 +1,5 @@
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const BASE_URL = isLocal ? "" : "https://mesh-online.org";
+const BASE_URL = isLocal ? "http://127.0.0.1:8000" : "https://mesh-online.org";
 
 function getDeviceId() {
     let deviceId = localStorage.getItem('cryptoheim_device_id');

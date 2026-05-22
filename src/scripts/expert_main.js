@@ -11,6 +11,12 @@ let tpPriceLine = null;
 let slPriceLine = null;
 let oldestCandleTime = 0;
 
+// Equity curve race chart globals
+let equityChart = null;
+let expEquitySeries = null;
+let botEquitySeries = null;
+let joEquitySeries = null;
+
 function isLoggedIn() {
     const token = localStorage.getItem('cryptoheim_token');
     const userJson = localStorage.getItem('cryptoheim_user');
@@ -48,6 +54,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         initChartInteraction();
         console.log("initChartInteraction: Success");
     } catch (e) { console.error("initChartInteraction failed:", e); }
+
+    try {
+        initEquityChart();
+        console.log("initEquityChart: Success");
+    } catch (e) { console.error("initEquityChart failed:", e); }
 
     try {
         initControls();
@@ -97,6 +108,90 @@ function initChart() {
     });
 
     // loadChartData is called in DOMContentLoaded
+}
+
+function initEquityChart() {
+    const container = document.getElementById('equity-chart');
+    if (!container) return;
+    
+    if (typeof LightweightCharts === 'undefined') {
+        console.error("LightweightCharts is not loaded.");
+        return;
+    }
+
+    equityChart = LightweightCharts.createChart(container, {
+        layout: { background: { color: '#ffffff' }, textColor: '#888', fontSize: 10 },
+        grid: { vertLines: { color: '#fcfcfc' }, horzLines: { color: '#fafafa' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        timeScale: { borderColor: '#eee', timeVisible: true, secondsVisible: false },
+        rightPriceScale: { borderColor: '#eee' },
+    });
+
+    expEquitySeries = equityChart.addLineSeries({
+        color: '#2962FF',
+        lineWidth: 2.5,
+        title: 'YOU',
+    });
+
+    botEquitySeries = equityChart.addLineSeries({
+        color: '#000000',
+        lineWidth: 2.5,
+        title: 'CH BOT',
+    });
+
+    joEquitySeries = equityChart.addLineSeries({
+        color: '#7b1fa2',
+        lineWidth: 2.5,
+        title: 'JO BOT',
+    });
+
+    window.addEventListener('resize', () => {
+        if (equityChart && container) {
+            equityChart.applyOptions({ width: container.clientWidth });
+        }
+    });
+}
+
+function updateEquityChart(expHistory, botHistory, joHistory) {
+    if (!equityChart) return;
+
+    function getEquityPoints(history) {
+        const sorted = [...history].sort((a, b) => {
+            const timeA = a.close_time > 1e12 ? a.close_time / 1000 : a.close_time;
+            const timeB = b.close_time > 1e12 ? b.close_time / 1000 : b.close_time;
+            return timeA - timeB;
+        });
+
+        const points = [];
+        let runningEquity = 100.0;
+        let lastTime = 0;
+
+        if (sorted.length > 0) {
+            const firstTime = Math.floor(sorted[0].close_time > 1e12 ? sorted[0].close_time / 1000 : sorted[0].close_time);
+            points.push({ time: firstTime - 3600, value: 100.0 });
+            lastTime = firstTime - 3600;
+        }
+
+        sorted.forEach(t => {
+            let tTime = Math.floor(t.close_time > 1e12 ? t.close_time / 1000 : t.close_time);
+            if (tTime <= lastTime) {
+                tTime = lastTime + 1;
+            }
+            runningEquity += parseFloat(t.pnl || 0.0);
+            points.push({ time: tTime, value: parseFloat(runningEquity.toFixed(2)) });
+            lastTime = tTime;
+        });
+
+        return points;
+    }
+
+    const expPoints = getEquityPoints(expHistory || []);
+    const botPoints = getEquityPoints(botHistory || []);
+    const joPoints = getEquityPoints(joHistory || []);
+
+    if (expPoints.length && expEquitySeries) expEquitySeries.setData(expPoints);
+    if (botPoints.length && botEquitySeries) botEquitySeries.setData(botPoints);
+    if (joPoints.length && joEquitySeries) joEquitySeries.setData(joPoints);
 }
 
 function initChartInteraction() {
@@ -726,6 +821,63 @@ async function updateActiveForecast() {
         if (botPos) { botBadge.textContent = 'IN TRADE'; botBadge.classList.add('active'); }
         else { botBadge.textContent = 'STANDBY'; botBadge.classList.remove('active'); }
     }
+
+    // Update live competitors mind card
+    const chMind = botStats?.bot?.mind;
+    const joMind = botStats?.jo?.mind;
+
+    // 1. CH Bot Mind Updates
+    const chStatusEl = document.getElementById('ch-mind-status');
+    if (chStatusEl) {
+        if (botPos) {
+            chStatusEl.textContent = 'IN TRADE';
+            chStatusEl.classList.add('active');
+            chStatusEl.classList.remove('standby');
+        } else {
+            chStatusEl.textContent = 'STANDBY';
+            chStatusEl.classList.remove('active');
+            chStatusEl.classList.add('standby');
+        }
+    }
+    if (chMind) {
+        setEl('ch-mind-bias', chMind.bias || 'NEUTRAL');
+        setEl('ch-mind-confidence', chMind.confidence || '0%');
+        setEl('ch-mind-atr', chMind.atr_noise_15m || '0.00%');
+        setEl('ch-mind-desc', chMind.state_desc || 'Scanning...');
+    }
+
+    // 2. Jo Bot Mind Updates
+    const joPos = botStats?.jo?.current_position;
+    const joStatusEl = document.getElementById('jo-mind-status');
+    if (joStatusEl) {
+        if (joPos) {
+            joStatusEl.textContent = 'IN TRADE';
+            joStatusEl.classList.add('active');
+            joStatusEl.classList.remove('standby');
+        } else {
+            joStatusEl.textContent = 'STANDBY';
+            joStatusEl.classList.remove('active');
+            joStatusEl.classList.add('standby');
+        }
+    }
+    if (joMind) {
+        setEl('jo-mind-inertia', joMind.inertia !== undefined ? joMind.inertia.toFixed(2) : '—');
+        setEl('jo-mind-streak', joMind.noise_streak !== undefined ? `${joMind.noise_streak} bars` : '—');
+        
+        if (joMind.breakout_timer > 0) {
+            setEl('jo-mind-quarantine', `LOCKED (${joMind.breakout_timer} bars)`);
+            const qEl = document.getElementById('jo-mind-quarantine');
+            if (qEl) qEl.style.color = '#FF1744';
+        } else {
+            setEl('jo-mind-quarantine', 'SAFE / ACTIVE');
+            const qEl = document.getElementById('jo-mind-quarantine');
+            if (qEl) qEl.style.color = '#00C853';
+        }
+
+        const suppStr = joMind.p_supp ? `$${Math.round(joMind.p_supp)}` : '—';
+        const resStr = joMind.p_res ? `$${Math.round(joMind.p_res)}` : '—';
+        setEl('jo-mind-levels', `Support: ${suppStr} | Resistance: ${resStr}`);
+    }
 }
 
 async function updateBattleFeed() {
@@ -783,6 +935,84 @@ async function updateBattleFeed() {
         });
     });
 
+    // Update the Equity Curve Race Chart
+    try {
+        updateEquityChart(expHistory, botHistory, joHistory);
+    } catch (e) {
+        console.error("updateEquityChart failed:", e);
+    }
+
+    // Sort feed chronologically to run our rivalry scanner over the timeline
+    const sortedTimeline = [...feed].sort((a, b) => a.time - b.time);
+    const systemEvents = [];
+    let userPnl = 0, botPnl = 0, joPnl = 0;
+
+    // Helper to calculate ranking lists
+    function getRanks(up, bp, jp) {
+        const arr = [
+            { id: 'user', pnl: up },
+            { id: 'bot', pnl: bp },
+            { id: 'jo', pnl: jp }
+        ];
+        arr.sort((a, b) => b.pnl - a.pnl);
+        return arr.map(x => x.id);
+    }
+
+    let lastRanks = getRanks(0, 0, 0);
+
+    for (let idx = 0; idx < sortedTimeline.length; idx++) {
+        const item = sortedTimeline[idx];
+
+        if (item.actor === 'user') userPnl += item.pnl;
+        else if (item.actor === 'bot') botPnl += item.pnl;
+        else if (item.actor === 'jo') joPnl += item.pnl;
+
+        const currentRanks = getRanks(userPnl, botPnl, joPnl);
+        if (currentRanks[0] !== lastRanks[0]) {
+            const leaderName = currentRanks[0] === 'user' ? 'YOU' : (currentRanks[0] === 'bot' ? 'CH BOT' : 'JO BOT');
+            const loserName = lastRanks[0] === 'user' ? 'YOU' : (lastRanks[0] === 'bot' ? 'CH BOT' : 'JO BOT');
+            systemEvents.push({
+                time: item.time + 1,
+                actor: 'system',
+                type: 'pass',
+                text: `👑 RANK PASS: ${leaderName} closed a trade in profit and passed ${loserName} for 1st place!`
+            });
+        }
+        lastRanks = currentRanks;
+
+        for (let j = 0; j < idx; j++) {
+            const prev = sortedTimeline[j];
+            if (Math.abs(item.time - prev.time) < 14400 && item.actor !== prev.actor) {
+                const pairKey = `notified_${prev.actor}_${item.actor}_${Math.round(prev.time)}_${Math.round(item.time)}`;
+                if (!window[pairKey]) {
+                    window[pairKey] = true;
+                    const name1 = prev.actor === 'user' ? 'YOU' : (prev.actor === 'bot' ? 'CH BOT' : 'JO BOT');
+                    const name2 = item.actor === 'user' ? 'YOU' : (item.actor === 'bot' ? 'CH BOT' : 'JO BOT');
+
+                    if (prev.action !== item.action) {
+                        systemEvents.push({
+                            time: Math.max(prev.time, item.time) + 2,
+                            actor: 'system',
+                            type: 'duel',
+                            text: `⚔️ DUEL: ${name2} entered ${item.action === 'BUY' ? 'LONG' : 'SHORT'} directly opposing ${name1}'s ${prev.action === 'BUY' ? 'LONG' : 'SHORT'} position!`
+                        });
+                    } else {
+                        systemEvents.push({
+                            time: Math.max(prev.time, item.time) + 2,
+                            actor: 'system',
+                            type: 'sync',
+                            text: `🔥 SYNC: ${name2} and ${name1} entered in perfect alignment, both going ${item.action === 'BUY' ? 'LONG' : 'SHORT'} together!`
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Merge system events back into primary feed array
+    systemEvents.forEach(evt => feed.push(evt));
+
+    // Sort feed descending (newest first) for UI display
     feed.sort((a, b) => b.time - a.time);
 
     const feedEl = document.getElementById('battle-feed');
@@ -793,7 +1023,19 @@ async function updateBattleFeed() {
         return;
     }
 
-    feedEl.innerHTML = feed.slice(0, 20).map(row => {
+    feedEl.innerHTML = feed.slice(0, 25).map(row => {
+        if (row.actor === 'system') {
+            const badgeLabel = row.type === 'duel' ? 'DUEL' : (row.type === 'sync' ? 'SYNC' : 'LEADER');
+            return `
+                <div class="evb-feed-row ${row.type}">
+                    <div class="evb-feed-system-content">
+                        <span class="evb-feed-system-badge">${badgeLabel}</span>
+                        <span class="evb-feed-system-text">${row.text}</span>
+                    </div>
+                </div>
+            `;
+        }
+
         const d = new Date(row.time * 1000);
         const day = String(d.getDate()).padStart(2, '0');
         const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -899,8 +1141,8 @@ async function updateLeaderboard() {
     const isRu = window.appLang === 'ru';
     if (battleTitleEl) {
         battleTitleEl.textContent = isRu 
-            ? "WEEKLY BATTLE: BTC / USDT (ОСТАТКИ ДЕПОЗИТОВ ВСЕХ УЧАСТНИКОВ)" 
-            : "WEEKLY BATTLE: BTC / USDT (REMAINING DEPOSITS OF ALL PARTICIPANTS)";
+            ? "WEEKLY BATTLE: BTC / USDT (СТАРТ СО $100. ПОБЕДИТЕЛИ ПО ПРИБЫЛИ ЗА НЕДЕЛЮ)" 
+            : "WEEKLY BATTLE: BTC / USDT (ALL START AT $100. WINNERS BY WEEKLY PROFIT)";
     }
 
     // 1. Localize table headers dynamically based on language
@@ -911,13 +1153,13 @@ async function updateLeaderboard() {
             <th style="width: 35%;">УЧАСТНИК</th>
             <th style="width: 20%;">ДЕПОЗИТ</th>
             <th style="width: 15%;">ВИНРЕЙТ</th>
-            <th style="width: 23%;">ОБЩИЙ PNL</th>
+            <th style="width: 23%;">PNL ЗА НЕДЕЛЮ</th>
         ` : `
             <th style="width: 70px;">#</th>
             <th style="width: 35%;">PARTICIPANT</th>
             <th style="width: 20%;">DEPOSIT</th>
             <th style="width: 15%;">WIN RATE</th>
-            <th style="width: 23%;">TOTAL PNL</th>
+            <th style="width: 23%;">WEEKLY PNL</th>
         `;
     }
 

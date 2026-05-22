@@ -689,4 +689,213 @@
     letter-spacing: 0.02em;
 }
 
+/* ─── TWO-COLUMN HERO GRID & EQUITY RACE CHART ─── */
+.evb-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 450px;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-top: 1rem;
+}
+.evb-hero-left {
+    display: flex;
+    flex-direction: column;
+}
+.evb-hero-right {
+    display: flex;
+    flex-direction: column;
+}
+.evb-card--equity {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.evb-equity-chart-area {
+    height: 240px;
+    background: #fff;
+    position: relative;
+    border-top: 1px solid #eee;
+}
+
+/* ─── COMPETITORS DECISION MINDS CARD ─── */
+.evb-card--mind {
+    background: #fff;
+    border: 1px solid #eee;
+    margin-bottom: 0.5rem;
+}
+.evb-mind-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.evb-mind-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.evb-mind-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.evb-mind-bot-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.evb-mind-bot-icon {
+    font-size: 1.1rem;
+}
+.evb-mind-bot-name {
+    font-weight: 800;
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+}
+.evb-mind-leverage {
+    font-size: 0.6rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #999;
+    background: #f5f5f5;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+}
+.evb-mind-badge {
+    font-size: 0.55rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    background: #aaa;
+    color: #fff;
+    padding: 0.1rem 0.35rem;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: inline-block;
+    transition: all 0.2s;
+}
+.evb-mind-badge.active {
+    background: #00C853;
+    animation: evbPulsate 1.5s infinite;
+}
+.evb-mind-badge.standby {
+    background: #888;
+}
+@keyframes evbPulsate {
+    0% { box-shadow: 0 0 0 0 rgba(0,200,83,0.4); }
+    70% { box-shadow: 0 0 0 5px rgba(0,200,83,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,200,83,0); }
+}
+
+.evb-mind-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+.evb-mind-stat-item {
+    background: #fafafa;
+    border: 1px solid #eee;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.evb-mind-stat-label {
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+}
+.evb-mind-stat-val {
+    font-size: 0.75rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #222;
+}
+.evb-mind-desc-box {
+    background: #f8fafc;
+    border-left: 2px solid #64748b;
+    padding: 0.45rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.evb-mind-block.jo .evb-mind-desc-box {
+    border-left-color: #7B1FA2;
+    background: rgba(123, 31, 162, 0.02);
+}
+.evb-mind-desc-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+}
+.evb-mind-block.jo .evb-mind-desc-label {
+    color: #7B1FA2;
+}
+.evb-mind-desc-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #334155;
+    font-family: var(--font-mono);
+}
+.evb-mind-divider {
+    height: 1px;
+    background: #eee;
+    margin: 0.25rem 0;
+}
+
+/* ─── FEED RIVALRY DUEL / SYSTEM ROWS ─── */
+.evb-feed-row.duel, .evb-feed-row.sync, .evb-feed-row.pass {
+    background: #fffbeb !important;
+    border-left: 4px solid #f59e0b !important;
+    padding: 0.75rem 1rem !important;
+}
+.evb-feed-row.duel {
+    background: rgba(239, 68, 68, 0.02) !important;
+    border-left-color: #ef4444 !important;
+}
+.evb-feed-row.sync {
+    background: rgba(16, 185, 129, 0.02) !important;
+    border-left-color: #10b981 !important;
+}
+.evb-feed-row.pass {
+    background: rgba(245, 158, 11, 0.02) !important;
+    border-left-color: #f59e0b !important;
+}
+.evb-feed-system-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+.evb-feed-system-badge {
+    font-size: 0.55rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    color: #fff;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+.evb-feed-row.duel .evb-feed-system-badge { background: #ef4444; }
+.evb-feed-row.sync .evb-feed-system-badge { background: #10b981; }
+.evb-feed-row.pass .evb-feed-system-badge { background: #f59e0b; }
+
+.evb-feed-system-text {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.72rem;
+}
+
+/* ─── DYNAMIC RESPONSIVE BREAKPOINTS FOR GRID ─── */
+@media (max-width: 1100px) {
+    .evb-hero-grid {
+        grid-template-columns: 1fr;
+    }
+    .evb-equity-chart-area {
+        height: 200px;
+    }
+}
+
 

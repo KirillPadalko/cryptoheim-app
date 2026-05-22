@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 // Set this to your backend server URL.
 // Use 'https://mesh-online.org' to target the remote production server.
 // Use 'http://127.0.0.1:8000' to target a local backend server.
-const PROXY_TARGET = 'https://mesh-online.org';
+const PROXY_TARGET = 'http://127.0.0.1:8000';
 
 export default defineConfig({
     server: {
