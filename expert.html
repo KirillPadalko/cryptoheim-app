@@ -70,39 +70,25 @@
     <section class="evb-hero">
         <div class="evb-hero-minimal">
             <div class="evb-battle-header">
-                <div class="evb-battle-title">
+                <div class="evb-battle-title" id="battle-title">
                     WEEKLY BATTLE: BTC / USDT
                 </div>
                 <div class="evb-battle-next">Next round starts: Monday, 00:00 UTC</div>
             </div>
 
             <div class="evb-hero-table-wrap">
-                <table class="evb-hero-table">
+                <table class="evb-hero-table" id="leaderboard-table">
                     <thead>
-                        <tr>
+                        <tr id="leaderboard-header">
+                            <th style="width: 80px;">#</th>
                             <th>PARTICIPANT</th>
+                            <th>BALANCE</th>
                             <th>WIN RATE</th>
                             <th>TOTAL PNL</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td class="td-actor">
-                                <span class="evb-actor-label">CRYPTOHEIM BOT</span>
-                                <span class="evb-mini-rank" id="bot-global-rank">#—</span>
-                            </td>
-                            <td id="bot-winrate" class="td-val">—%</td>
-                            <td id="bot-pnl" class="td-pnl">$0.00</td>
-                        </tr>
-                        <tr>
-                            <td class="td-actor">
-                                <span class="evb-actor-label" id="expert-label-name">EXPERT</span>
-                                <span class="evb-mini-lvl">LVL <span id="user-level">1</span></span>
-                                <span class="evb-mini-rank" id="user-global-rank" style="display:none">#—</span>
-                            </td>
-                            <td id="user-winrate" class="td-val">—%</td>
-                            <td id="user-pnl" class="td-pnl">$0.00</td>
-                        </tr>
+                    <tbody id="leaderboard-body">
+                        <!-- Populated dynamically by expert_main.js -->
                     </tbody>
                 </table>
             </div>
@@ -125,6 +111,7 @@
                     </div>
                     <div class="evb-chart-controls">
                         <div class="evb-tf-group" id="tf-selector">
+                            <button class="evb-tf-btn" data-tf="5m">5M</button>
                             <button class="evb-tf-btn" data-tf="15m">15M</button>
                             <button class="evb-tf-btn active" data-tf="1h">1H</button>
                         </div>
@@ -203,7 +190,7 @@
                 <div class="evb-form-group">
                     <label class="evb-form-label">POSITION SIZE (USD)</label>
                     <div class="evb-balance-row">
-                        <span class="evb-balance-label">Available:</span>
+                        <span class="evb-balance-label" id="deposit-label">Available:</span>
                         <span class="evb-balance-val" id="balance-display">$100.00</span>
                     </div>
                     <input type="number" id="forecast-size" class="evb-input" value="10" min="1" max="100" step="5" placeholder="Size in USD">
@@ -239,16 +226,6 @@
                     <span class="evb-place-btn-icon">⚡</span>
                     PLACE TRADE
                 </button>
-            </div>
-
-            <!-- LEADERBOARD CARD -->
-            <div class="evb-card evb-card--leaderboard" id="leaderboard-card" style="margin-top: 1.25rem;">
-                <div class="evb-card-header">
-                    <span class="evb-card-title">🏆 LEADERBOARD (ALL-TIME)</span>
-                </div>
-                <div class="evb-leaderboard-list" id="leaderboard-list">
-                    <div class="evb-feed-empty">Loading ranking data…</div>
-                </div>
             </div>
         </aside>
     </div>

@@ -9,6 +9,7 @@ let roundEndTime = null;
 let nextClickTarget = 'tp'; // Alternate between 'tp' and 'sl'
 let tpPriceLine = null;
 let slPriceLine = null;
+let oldestCandleTime = 0;
 
 function isLoggedIn() {
     const token = localStorage.getItem('cryptoheim_token');
@@ -20,7 +21,7 @@ function isPro() {
     if (!isLoggedIn()) return false;
     try {
         const user = JSON.parse(localStorage.getItem('cryptoheim_user'));
-        return user.is_pro === true;
+        return user.is_pro === true || user.is_pro === 1 || user.is_pro === '1';
     } catch(e) { return false; }
 }
 
@@ -29,6 +30,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded: Starting initialization");
     try {
         API.updateNavProfile();
+    } catch(e) { console.error(e); }
+
+    try {
+        API.refreshUserSession().then(() => {
+            try { renderChartMarkers(); } catch(e) {}
+            try { updateAll(); } catch(e) {}
+        });
     } catch(e) { console.error(e); }
     
     try {
@@ -211,6 +219,7 @@ async function loadChartData() {
     }
 
     // Draw markers
+    oldestCandleTime = formatted.length > 0 ? formatted[0].time : 0;
     await renderChartMarkers();
 
     // Draw active forecast lines
@@ -231,53 +240,69 @@ async function loadChartData() {
     }
 }
 
+function getTfSeconds(tf) {
+    if (!tf) return 3600;
+    const unit = tf.slice(-1).toLowerCase();
+    const val = parseInt(tf.slice(0, -1), 10);
+    if (isNaN(val)) return 3600;
+    if (unit === 'm') return val * 60;
+    if (unit === 'h') return val * 3600;
+    if (unit === 'd') return val * 86400;
+    return 3600;
+}
+
+function toSeconds(ts) {
+    if (!ts) return 0;
+    if (typeof ts === 'number') {
+        return ts > 1e11 ? Math.floor(ts / 1000) : ts;
+    }
+    const parsed = Number(ts);
+    if (!isNaN(parsed) && parsed > 0) {
+        return parsed > 1e11 ? Math.floor(parsed / 1000) : parsed;
+    }
+    return Math.floor(new Date(ts).getTime() / 1000);
+}
+
 async function renderChartMarkers() {
-    const [expHistory, botHistory, expCurrent, botPositions] = await Promise.all([
+    const [expHistory, botHistory, joHistory, expCurrent, botPositions, joCurrent] = await Promise.all([
         API.getExpertHistory(100).catch(() => []),
         API.getBotHistory(200).catch(() => []),
+        API.getExpertHistory(100, 'JO_BOT').catch(() => []),
         API.getExpertCurrent().catch(() => null),
-        API.getBotPositions().catch(() => [])
+        API.getBotPositions().catch(() => []),
+        API.getExpertCurrent('JO_BOT').catch(() => null)
     ]);
     
-    const markers = [];
+    const events = [];
     
     // 1. Closed Expert History
     if (isLoggedIn()) {
         (expHistory || []).forEach(h => {
             if (h.open_time) {
-                const timeOpen = h.open_time > 1e12 ? Math.floor(h.open_time / 1000) : h.open_time;
-                markers.push({
-                    time: timeOpen,
-                    position: h.side === 'BUY' ? 'belowBar' : 'aboveBar',
-                    color: '#2962FF',
-                    shape: h.side === 'BUY' ? 'arrowUp' : 'arrowDown',
-                    text: 'YOU IN',
-                    size: 2
+                events.push({
+                    time: toSeconds(h.open_time),
+                    actor: 'user',
+                    type: 'IN',
+                    side: h.side
                 });
             }
             if (h.close_time) {
-                const timeClose = h.close_time > 1e12 ? Math.floor(h.close_time / 1000) : h.close_time;
-                markers.push({
-                    time: timeClose,
-                    position: h.side === 'BUY' ? 'aboveBar' : 'belowBar',
-                    color: '#2962FF',
-                    shape: h.side === 'BUY' ? 'arrowDown' : 'arrowUp',
-                    text: 'YOU OUT',
-                    size: 2
+                events.push({
+                    time: toSeconds(h.close_time),
+                    actor: 'user',
+                    type: 'OUT',
+                    side: h.side
                 });
             }
         });
 
         // 2. Active Open Expert Forecast
         if (expCurrent && expCurrent.open_time) {
-            const timeOpen = expCurrent.open_time > 1e12 ? Math.floor(expCurrent.open_time / 1000) : expCurrent.open_time;
-            markers.push({
-                time: timeOpen,
-                position: expCurrent.side === 'BUY' ? 'belowBar' : 'aboveBar',
-                color: '#2962FF',
-                shape: expCurrent.side === 'BUY' ? 'arrowUp' : 'arrowDown',
-                text: 'YOU IN',
-                size: 2
+            events.push({
+                time: toSeconds(expCurrent.open_time),
+                actor: 'user',
+                type: 'IN',
+                side: expCurrent.side
             });
         }
     }
@@ -286,30 +311,19 @@ async function renderChartMarkers() {
     (botHistory || []).filter(t => t.symbol === 'BTCUSDT').forEach(t => {
         const side = ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL';
         if (t.open_time) {
-            const timeOpen = typeof t.open_time === 'number'
-                ? (t.open_time > 1e12 ? Math.floor(t.open_time / 1000) : t.open_time)
-                : Math.floor(new Date(t.open_time).getTime() / 1000);
-            markers.push({
-                time: timeOpen,
-                position: side === 'BUY' ? 'belowBar' : 'aboveBar',
-                color: '#000',
-                shape: 'square',
-                text: 'BOT IN',
-                size: 1
+            events.push({
+                time: toSeconds(t.open_time),
+                actor: 'bot',
+                type: 'IN',
+                side: side
             });
         }
         if (t.close_time) {
-            const timeClose = typeof t.close_time === 'number'
-                ? (t.close_time > 1e12 ? Math.floor(t.close_time / 1000) : t.close_time)
-                : Math.floor(new Date(t.close_time).getTime() / 1000);
-                
-            markers.push({
-                time: timeClose,
-                position: side === 'BUY' ? 'aboveBar' : 'belowBar',
-                color: '#000',
-                shape: 'circle',
-                text: 'BOT OUT',
-                size: 1
+            events.push({
+                time: toSeconds(t.close_time),
+                actor: 'bot',
+                type: 'OUT',
+                side: side
             });
         }
     });
@@ -318,33 +332,140 @@ async function renderChartMarkers() {
     (botPositions || []).filter(t => t.symbol === 'BTCUSDT').forEach(t => {
         const side = ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL';
         if (t.open_time) {
-            const timeOpen = typeof t.open_time === 'number'
-                ? (t.open_time > 1e12 ? Math.floor(t.open_time / 1000) : t.open_time)
-                : Math.floor(new Date(t.open_time).getTime() / 1000);
-            markers.push({
-                time: timeOpen,
-                position: side === 'BUY' ? 'belowBar' : 'aboveBar',
-                color: '#000',
-                shape: 'square',
-                text: 'BOT IN',
-                size: 1
+            events.push({
+                time: toSeconds(t.open_time),
+                actor: 'bot',
+                type: 'IN',
+                side: side
             });
         }
     });
 
-    console.log(`[Chart] Generated ${markers.length} markers`);
-
-    // Sort and deduplicate markers just in case
-    const uniqueMarkers = [];
-    const seen = new Set();
-    markers.sort((a,b) => a.time - b.time).forEach(m => {
-        const key = `${m.time}_${m.text}`;
-        if (!seen.has(key)) {
-            seen.add(key);
-            uniqueMarkers.push(m);
+    // 5. Closed Jo Bot History
+    (joHistory || []).forEach(h => {
+        if (h.open_time) {
+            events.push({
+                time: toSeconds(h.open_time),
+                actor: 'jo',
+                type: 'IN',
+                side: h.side
+            });
+        }
+        if (h.close_time) {
+            events.push({
+                time: toSeconds(h.close_time),
+                actor: 'jo',
+                type: 'OUT',
+                side: h.side
+            });
         }
     });
 
+    // 6. Active Open Jo Bot Position
+    if (joCurrent && joCurrent.open_time) {
+        events.push({
+            time: toSeconds(joCurrent.open_time),
+            actor: 'jo',
+            type: 'IN',
+            side: joCurrent.side
+        });
+    }
+
+    const tfSeconds = getTfSeconds(currentTf);
+
+    // Group events by candle open time, actor, and event type
+    const grouped = {};
+    events.forEach(e => {
+        const candleTime = Math.floor(e.time / tfSeconds) * tfSeconds;
+        // Filter out any events older than the oldest loaded candle to prevent clamping on the left boundary
+        if (oldestCandleTime && candleTime < oldestCandleTime) return;
+
+        const key = `${candleTime}_${e.actor}_${e.type}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                candleTime,
+                actor: e.actor,
+                type: e.type,
+                count: 0
+            };
+        }
+        grouped[key].count++;
+    });
+
+    const uniqueMarkers = [];
+
+    // Convert grouped events into Lightweight Charts markers
+    Object.values(grouped).forEach(g => {
+        if (g.actor === 'user') {
+            if (g.type === 'IN') {
+                uniqueMarkers.push({
+                    time: g.candleTime,
+                    position: 'belowBar',
+                    color: '#2962FF',
+                    shape: 'arrowUp',
+                    text: g.count === 1 ? 'YOU IN' : `x${g.count} IN`,
+                    size: 2
+                });
+            } else {
+                uniqueMarkers.push({
+                    time: g.candleTime,
+                    position: 'aboveBar',
+                    color: '#2962FF',
+                    shape: 'arrowDown',
+                    text: g.count === 1 ? 'YOU OUT' : `x${g.count} OUT`,
+                    size: 2
+                });
+            }
+        } else if (g.actor === 'bot') {
+            if (g.type === 'IN') {
+                uniqueMarkers.push({
+                    time: g.candleTime,
+                    position: 'belowBar',
+                    color: '#000',
+                    shape: 'square',
+                    text: g.count === 1 ? 'BOT IN' : `BOT x${g.count} IN`,
+                    size: 1
+                });
+            } else {
+                uniqueMarkers.push({
+                    time: g.candleTime,
+                    position: 'aboveBar',
+                    color: '#000',
+                    shape: 'circle',
+                    text: g.count === 1 ? 'BOT OUT' : `BOT x${g.count} OUT`,
+                    size: 1
+                });
+            }
+        } else if (g.actor === 'jo') {
+            if (g.type === 'IN') {
+                uniqueMarkers.push({
+                    time: g.candleTime,
+                    position: 'belowBar',
+                    color: '#7b1fa2',
+                    shape: 'arrowUp',
+                    text: g.count === 1 ? 'JO IN' : `JO x${g.count} IN`,
+                    size: 1.5
+                });
+            } else {
+                uniqueMarkers.push({
+                    time: g.candleTime,
+                    position: 'aboveBar',
+                    color: '#7b1fa2',
+                    shape: 'arrowDown',
+                    text: g.count === 1 ? 'JO OUT' : `JO x${g.count} OUT`,
+                    size: 1.5
+                });
+            }
+        }
+    });
+
+    // Sort markers chronologically, and deterministically by text to avoid layering jitter
+    uniqueMarkers.sort((a, b) => {
+        if (a.time !== b.time) return a.time - b.time;
+        return a.text.localeCompare(b.text);
+    });
+
+    console.log(`[Chart] Generated ${uniqueMarkers.length} consolidated markers for timeframe ${currentTf}`);
     candleSeries.setMarkers(uniqueMarkers);
     
     if (uniqueMarkers.length > 0) console.log(`[Chart] First marker time: ${uniqueMarkers[0].time}`);
@@ -537,7 +658,6 @@ function resetControls() {
 // ── MAIN UPDATE ────────────────────────────────────────
 async function updateAll() {
     await Promise.all([
-        updateHero(),
         updateActiveForecast(),
         updateBattleFeed(),
         updateUserStats(),
@@ -546,78 +666,7 @@ async function updateAll() {
     ]);
 }
 
-async function updateHero() {
-    const [stats, expHistory, botHistory] = await Promise.all([
-        API.getExpertStats().catch(() => null),
-        API.getExpertHistory(200).catch(() => []),
-        API.getBotHistory(500).catch(() => [])
-    ]);
 
-    const oneWeekAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    
-    function getCloseTs(h) {
-        if (!h.close_time) return Date.now();
-        return typeof h.close_time === 'number' 
-            ? (h.close_time > 1e12 ? h.close_time : h.close_time * 1000) 
-            : new Date(h.close_time).getTime();
-    }
-
-    // Expert All-Time Equity (for XP calculation)
-    let expPnlTotal = 0;
-    if (stats?.expert?.equity != null) {
-        expPnlTotal = stats.expert.equity - 100;
-    } else if (expHistory?.length) {
-        expPnlTotal = expHistory.reduce((s, h) => s + (h.pnl || 0), 0);
-    }
-    updateXP(expPnlTotal);
-
-    // Expert Weekly Stats
-    const expWeekly = (expHistory || []).filter(h => getCloseTs(h) >= oneWeekAgoMs);
-    const expPnlWeekly = expWeekly.reduce((s, h) => s + (h.pnl || 0), 0);
-    const expWinsWeekly = expWeekly.filter(h => (h.pnl || 0) > 0).length;
-    const expWRWeekly = expWeekly.length ? Math.round(expWinsWeekly / expWeekly.length * 100) : 0;
-
-    setEl('user-pnl', formatPnl(expPnlWeekly), expPnlWeekly);
-    setEl('user-winrate', expWeekly.length ? expWRWeekly + '%' : '—%');
-
-    // Bot Weekly Stats (Only BTCUSDT for the Battle)
-    const botWeekly = (botHistory || []).filter(h => h.symbol === 'BTCUSDT' && getCloseTs(h) >= oneWeekAgoMs);
-    
-    let botPnlWeekly = 0;
-    botWeekly.forEach(t => {
-        if (t.pnl != null) {
-            botPnlWeekly += t.pnl;
-        } else if (t.entry_price > 0 && t.close_price) {
-            let diff = t.close_price - t.entry_price;
-            if (['SELL','SHORT'].includes(String(t.side).toUpperCase())) diff = -diff;
-            botPnlWeekly += 100 * (diff / t.entry_price);
-        }
-    });
-
-    const botWinsWeekly = botWeekly.filter(t => {
-        if (t.pnl != null) return t.pnl > 0;
-        if (t.entry_price > 0 && t.close_price) {
-            let diff = t.close_price - t.entry_price;
-            if (['SELL','SHORT'].includes(String(t.side).toUpperCase())) diff = -diff;
-            return diff > 0;
-        }
-        return false;
-    }).length;
-    
-    const botWRWeekly = botWeekly.length ? Math.round(botWinsWeekly / botWeekly.length * 100) : 0;
-
-    setEl('bot-pnl', formatPnl(botPnlWeekly), botPnlWeekly);
-    setEl('bot-winrate', botWeekly.length ? botWRWeekly + '%' : '—%');
-
-    // Score bar
-    const total = Math.abs(expPnlWeekly) + Math.abs(botPnlWeekly) || 1;
-    const botFill = Math.max(5, Math.min(95, Math.abs(botPnlWeekly) / total * 100));
-    const userFill = 100 - botFill;
-    const fillBot = document.getElementById('score-fill-bot');
-    const fillUser = document.getElementById('score-fill-user');
-    if (fillBot) fillBot.style.width = botFill + '%';
-    if (fillUser) fillUser.style.width = userFill + '%';
-}
 
 async function updateActiveForecast() {
     const data = await API.getExpertCurrent();
@@ -680,42 +729,18 @@ async function updateActiveForecast() {
 }
 
 async function updateBattleFeed() {
-    const [expHistory, botHistory, expCurrent, botPositions] = await Promise.all([
+    const [expHistory, botHistory, joHistory, expCurrent, botPositions, joCurrent] = await Promise.all([
         API.getExpertHistory(10).catch(() => []),
         API.getBotHistory(30).catch(() => []),
+        API.getExpertHistory(20, 'JO_BOT').catch(() => []),
         API.getExpertCurrent().catch(() => null),
-        API.getBotPositions().catch(() => [])
+        API.getBotPositions().catch(() => []),
+        API.getExpertCurrent('JO_BOT').catch(() => null)
     ]);
 
     const feed = [];
 
-    // 1. Open User Trade
-    if (expCurrent && isLoggedIn()) {
-        feed.push({
-            time: expCurrent.open_time > 1e12 ? expCurrent.open_time / 1000 : expCurrent.open_time,
-            actor: 'user',
-            action: expCurrent.side === 'BUY' ? 'BUY' : 'SELL',
-            pair: 'BTC/USDT',
-            pnl: 0,
-            isOpen: true
-        });
-    }
-
-    // 2. Open Bot Trades
-    const btcBotPositions = (botPositions || []).filter(t => t.symbol === 'BTCUSDT');
-    btcBotPositions.forEach(t => {
-        const timeOpen = typeof t.open_time === 'number'
-            ? (t.open_time > 1e12 ? t.open_time / 1000 : t.open_time)
-            : Date.now() / 1000;
-        feed.push({
-            time: timeOpen,
-            actor: 'bot',
-            action: ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL',
-            pair: 'BTC/USDT',
-            pnl: 0,
-            isOpen: true
-        });
-    });
+    // Open trades are excluded from BATTLE LOG (only closed trades are recorded here)
 
     // 3. Closed User History
     if (isLoggedIn()) {
@@ -746,6 +771,18 @@ async function updateBattleFeed() {
         });
     });
 
+    // 5. Closed Jo Bot History
+    (joHistory || []).forEach(h => {
+        feed.push({
+            time: h.close_time > 1e12 ? h.close_time / 1000 : h.close_time,
+            actor: 'jo',
+            action: h.side === 'BUY' ? 'BUY' : 'SELL',
+            pair: 'BTC/USDT',
+            pnl: h.pnl || 0,
+            isOpen: false
+        });
+    });
+
     feed.sort((a, b) => b.time - a.time);
 
     const feedEl = document.getElementById('battle-feed');
@@ -768,10 +805,12 @@ async function updateBattleFeed() {
             ? `<span style="background: #FFD600; color: #000; padding: 0.15rem 0.5rem; font-size: 0.6rem; font-weight: 800; font-family: var(--font-mono); border-radius: 2px;">IN TRADE</span>`
             : `<div class="evb-feed-pnl ${pnlSign ? 'pos' : 'neg'}">${row.pnl >= 0 ? '+' : ''}$${Math.abs(row.pnl).toFixed(2)}</div>`;
 
+        const actorName = row.actor === 'bot' ? 'CH BOT' : (row.actor === 'jo' ? 'JO BOT' : 'YOU');
+
         return `
             <div class="evb-feed-row">
                 <div class="evb-feed-time">${day}.${month} ${hh}:${mm}</div>
-                <div class="evb-feed-actor ${row.actor}">${row.actor === 'bot' ? 'CH BOT' : 'YOU'}</div>
+                <div class="evb-feed-actor ${row.actor}">${actorName}</div>
                 <div class="evb-feed-info">
                     <div class="evb-feed-action ${row.action.toLowerCase()}">
                         ${row.action === 'BUY' ? '▲' : '▼'} ${row.action}
@@ -825,24 +864,16 @@ async function updateUserStats() {
     if (balEl) {
         balEl.textContent = '$' + Math.max(0, 100 + total).toFixed(2);
     }
+
+    const depLabelEl = document.getElementById('deposit-label');
+    if (depLabelEl) {
+        const isRu = window.appLang === 'ru';
+        depLabelEl.textContent = isRu ? "Депозит:" : "Deposit:";
+    }
 }
 
 function updateXP(totalPnl) {
-    // Basic XP system: 10 XP per $1 PnL + 500 base XP
-    const baseXP = 500;
-    const pnlXP = Math.max(0, totalPnl * 10);
-    const totalXP = Math.floor(baseXP + pnlXP);
-    
-    const level = Math.floor(totalXP / 1000) + 1;
-    const currentLevelXP = totalXP % 1000;
-    
-    const lvlEl = document.getElementById('user-level');
-    const xpValEl = document.getElementById('user-xp-val');
-    const xpFillEl = document.getElementById('user-xp-fill');
-
-    if (lvlEl) lvlEl.textContent = String(level);
-    if (xpValEl) xpValEl.textContent = String(currentLevelXP);
-    if (xpFillEl) xpFillEl.style.width = (currentLevelXP / 10).toFixed(0) + '%';
+    // No-op: levels and XP system are removed in favor of weekly rating cycles
 }
 
 // ── HELPERS ────────────────────────────────────────────
@@ -863,72 +894,79 @@ function setEl(id, text, pnlVal) {
 async function updateLeaderboard() {
     const res = await API.getLeaderboard().catch(() => null);
     if (!res) return;
-    
-    // 1. Update compact ratings in the Hero scoreboard
-    const botRankEl = document.getElementById('bot-global-rank');
-    const userRankEl = document.getElementById('user-global-rank');
-    
-    if (botRankEl) {
-        botRankEl.textContent = res.bot_rank ? `#${res.bot_rank}` : '#—';
+
+    const battleTitleEl = document.getElementById('battle-title');
+    const isRu = window.appLang === 'ru';
+    if (battleTitleEl) {
+        battleTitleEl.textContent = isRu 
+            ? "WEEKLY BATTLE: BTC / USDT (ОСТАТКИ ДЕПОЗИТОВ ВСЕХ УЧАСТНИКОВ)" 
+            : "WEEKLY BATTLE: BTC / USDT (REMAINING DEPOSITS OF ALL PARTICIPANTS)";
     }
-    
-    if (userRankEl) {
-        if (isLoggedIn()) {
-            userRankEl.textContent = res.user_rank ? `#${res.user_rank}` : '#—';
-            userRankEl.style.display = 'inline-block';
-        } else {
-            userRankEl.style.display = 'none';
-        }
+
+    // 1. Localize table headers dynamically based on language
+    const headerEl = document.getElementById('leaderboard-header');
+    if (headerEl) {
+        headerEl.innerHTML = isRu ? `
+            <th style="width: 70px;">#</th>
+            <th style="width: 35%;">УЧАСТНИК</th>
+            <th style="width: 20%;">ДЕПОЗИТ</th>
+            <th style="width: 15%;">ВИНРЕЙТ</th>
+            <th style="width: 23%;">ОБЩИЙ PNL</th>
+        ` : `
+            <th style="width: 70px;">#</th>
+            <th style="width: 35%;">PARTICIPANT</th>
+            <th style="width: 20%;">DEPOSIT</th>
+            <th style="width: 15%;">WIN RATE</th>
+            <th style="width: 23%;">TOTAL PNL</th>
+        `;
     }
-    
-    // Update "EXPERT" label to show nickname if logged in
-    const expertLabelName = document.getElementById('expert-label-name');
-    if (expertLabelName) {
-        if (isLoggedIn()) {
-            try {
-                const user = JSON.parse(localStorage.getItem('cryptoheim_user'));
-                expertLabelName.textContent = user.boosty_nickname.toUpperCase();
-            } catch (e) {
-                expertLabelName.textContent = 'YOU';
-            }
-        } else {
-            expertLabelName.textContent = 'GUEST EXPERT';
-        }
-    }
-    
-    // 2. Render Leaderboard List
-    const lbListEl = document.getElementById('leaderboard-list');
-    if (!lbListEl) return;
-    
+
+    // 2. Render Leaderboard Body
+    const bodyEl = document.getElementById('leaderboard-body');
+    if (!bodyEl) return;
+
     if (!res.leaderboard?.length) {
-        lbListEl.innerHTML = '<div class="evb-feed-empty">No ranking data yet…</div>';
+        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">No ranking data yet…</td></tr>';
         return;
     }
-    
-    lbListEl.innerHTML = res.leaderboard.map(item => {
+
+    bodyEl.innerHTML = res.leaderboard.map(item => {
         let rankClass = '';
         if (item.rank === 1) rankClass = 'gold';
         else if (item.rank === 2) rankClass = 'silver';
         else if (item.rank === 3) rankClass = 'bronze';
-        
+
         const isYou = item.is_you;
         const isBot = item.is_bot;
-        const displayName = isBot ? 'CRYPTOHEIM BOT 🤖' : item.name;
-        
-        const rowClass = isYou ? 'evb-lb-row you' : 'evb-lb-row';
+        const displayName = isBot ? `${item.name} 🤖` : item.name;
+
+        const rowClass = isYou ? 'evb-hero-row you' : 'evb-hero-row';
         const pnlSign = item.total_pnl >= 0;
         const formattedPnl = (item.total_pnl >= 0 ? '+' : '') + '$' + item.total_pnl.toFixed(2);
-        const pnlClass = pnlSign ? 'evb-lb-pnl pos' : 'evb-lb-pnl neg';
-        
+        const pnlClass = pnlSign ? 'pos' : 'neg';
+
+        const formattedBalance = '$' + (item.equity || 100.0).toFixed(2);
+        const formattedWinRate = item.win_rate != null ? item.win_rate.toFixed(0) + '%' : '0%';
+
+        const pts = item.points || 0;
+        const pointsBadge = `<span class="evb-points-badge">${pts} PTS</span>`;
+
         return `
-            <div class="${rowClass}">
-                <div class="evb-lb-rank ${rankClass}">${item.rank}</div>
-                <div class="evb-lb-name">
-                    ${displayName}
-                    ${isYou ? '<span class="evb-lb-you-tag">YOU</span>' : ''}
-                </div>
-                <div class="${pnlClass}">${formattedPnl}</div>
-            </div>
+            <tr class="${rowClass}">
+                <td class="td-rank">
+                    <span class="evb-lb-rank ${rankClass}">${item.rank}</span>
+                </td>
+                <td class="td-actor">
+                    <span class="evb-actor-label">${displayName}</span>
+                    ${pointsBadge}
+                    ${isYou ? '<span class="evb-lb-you-tag" style="margin-left: 8px; background: #2962FF; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px;">YOU</span>' : ''}
+                </td>
+                <td class="td-val" style="font-weight: 600;">${formattedBalance}</td>
+                <td class="td-val">${formattedWinRate}</td>
+                <td class="td-pnl ${pnlClass}" style="color: ${pnlSign ? '#00C853' : '#FF1744'}; font-weight: bold;">
+                    ${formattedPnl}
+                </td>
+            </tr>
         `;
     }).join('');
 }

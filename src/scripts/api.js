@@ -111,8 +111,8 @@ export const API = {
     getVisitorStats: () => fetchApi("/analytics/visitor-stats"),
     
     // Expert Page
-    getExpertCurrent: () => fetchApi("/api/expert/current"),
-    getExpertHistory: (limit = 20) => fetchApi(`/api/expert/history?limit=${limit}`),
+    getExpertCurrent: (nickname = "") => fetchApi(`/api/expert/current${nickname ? '?nickname='+nickname : ''}`),
+    getExpertHistory: (limit = 20, nickname = "") => fetchApi(`/api/expert/history?limit=${limit}${nickname ? '&nickname='+nickname : ''}`),
     getExpertStats: () => fetchApi("/api/expert/stats"),
     getLeaderboard: () => fetchApi("/api/expert/leaderboard"),
     submitExpertForecast: (side, reason, tp_price = null, sl_price = null, size = 100) => postApi("/api/expert/forecast", { side, reason, tp_price, sl_price, size }),
@@ -152,6 +152,20 @@ export const API = {
             container.appendChild(span);
         } catch(e) {
             console.error("Error updating nav profile:", e);
+        }
+    },
+    
+    refreshUserSession: async () => {
+        const token = localStorage.getItem('cryptoheim_token');
+        if (!token) return;
+        try {
+            const user = await API.getMe();
+            if (user && user.boosty_nickname) {
+                localStorage.setItem('cryptoheim_user', JSON.stringify(user));
+                API.updateNavProfile();
+            }
+        } catch (e) {
+            console.error("Error refreshing user session:", e);
         }
     },
     

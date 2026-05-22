@@ -166,6 +166,7 @@
 }
 .evb-feed-actor.bot { color: #000; }
 .evb-feed-actor.user { color: #2962FF; }
+.evb-feed-actor.jo { color: #7B1FA2; }
 
 .evb-feed-info {
     flex: 1;
@@ -645,3 +646,47 @@
 #user-global-rank {
     background: #2962FF;
 }
+
+/* ─── DYNAMIC WEEKLY LEADERBOARD TABLE ROWS ─── */
+.evb-hero-row {
+    transition: background 0.15s;
+}
+.evb-hero-row:hover {
+    background: #fafafa !important;
+}
+.evb-hero-row.you {
+    background: rgba(41, 98, 255, 0.05) !important;
+}
+.evb-hero-row.you td {
+    font-weight: 700 !important;
+}
+.evb-hero-row.you td:first-child {
+    border-left: 4px solid #2962FF !important;
+}
+.evb-lb-rank {
+    font-size: 1rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #ccc;
+    text-align: center;
+}
+.evb-lb-rank.gold { color: #FFD600; }
+.evb-lb-rank.silver { color: #aaa; }
+.evb-lb-rank.bronze { color: #CD7F32; }
+
+.evb-points-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    background: rgba(255, 145, 0, 0.08);
+    color: #FF9100;
+    padding: 0.15rem 0.45rem;
+    margin-left: 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    vertical-align: middle;
+    border: 1px solid rgba(255, 145, 0, 0.18);
+    letter-spacing: 0.02em;
+}
+
+
