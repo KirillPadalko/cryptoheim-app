@@ -60,8 +60,12 @@ export default defineConfig({
     build: {
         rollupOptions: {
             input: {
-                main: 'index.html',
-                indicators: 'indicators.html'
+                indicators: 'indicators.html',
+                expert: 'expert.html',
+                'model-quality': 'model-quality.html',
+                privacy: 'privacy.html',
+                pro: 'pro.html',
+                profile: 'profile.html'
             }
         }
     }

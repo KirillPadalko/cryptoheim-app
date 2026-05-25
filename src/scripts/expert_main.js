@@ -9,7 +9,11 @@ let roundEndTime = null;
 let nextClickTarget = 'tp'; // Alternate between 'tp' and 'sl'
 let tpPriceLine = null;
 let slPriceLine = null;
+let activeTpLine = null;
+let activeSlLine = null;
+let activeEntryLine = null;
 let oldestCandleTime = 0;
+
 
 // Equity curve race chart globals
 let equityChart = null;
@@ -319,20 +323,31 @@ async function loadChartData() {
 
     // Draw active forecast lines
     const current = await API.getExpertCurrent();
-    if (current && isLoggedIn()) {
-        if (current.tp_price) candleSeries.createPriceLine({
-            price: current.tp_price, color: '#00C853', lineWidth: 2,
-            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP'
-        });
-        if (current.sl_price) candleSeries.createPriceLine({
-            price: current.sl_price, color: '#FF1744', lineWidth: 2,
-            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL'
-        });
-        candleSeries.createPriceLine({
+    
+    // Clear old active lines if present
+    if (activeTpLine) { candleSeries.removePriceLine(activeTpLine); activeTpLine = null; }
+    if (activeSlLine) { candleSeries.removePriceLine(activeSlLine); activeSlLine = null; }
+    if (activeEntryLine) { candleSeries.removePriceLine(activeEntryLine); activeEntryLine = null; }
+
+    if (current && isLoggedIn() && candleSeries) {
+        if (current.tp_price) {
+            activeTpLine = candleSeries.createPriceLine({
+                price: current.tp_price, color: '#00C853', lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP'
+            });
+        }
+        if (current.sl_price) {
+            activeSlLine = candleSeries.createPriceLine({
+                price: current.sl_price, color: '#FF1744', lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL'
+            });
+        }
+        activeEntryLine = candleSeries.createPriceLine({
             price: current.entry_price, color: '#2962FF', lineWidth: 1,
             lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'ENTRY'
         });
     }
+
 }
 
 function getTfSeconds(tf) {
@@ -772,45 +787,209 @@ async function updateActiveForecast() {
     if (data) {
         const pnl = data.pnl || 0;
         const pos = pnl >= 0;
-        banner.style.display = 'block';
-        banner.innerHTML = `
-            <div class="evb-active-banner">
-                <div>
-                    <div class="evb-active-banner-label">👤 YOUR ACTIVE POSITION</div>
-                    <div class="evb-active-banner-info">
-                        ${data.side === 'BUY' ? 'LONG' : 'SHORT'} $${data.size}
-                        <span class="evb-leverage-badge">×10</span>
-                        @ $${data.entry_price}
-                    </div>
-                    ${data.tp_price ? `<div style="font-size:0.65rem;color:#00C853;font-family:var(--font-mono);margin-top:0.25rem;">TP: $${data.tp_price}</div>` : ''}
-                    ${data.sl_price ? `<div style="font-size:0.65rem;color:#FF1744;font-family:var(--font-mono);">SL: $${data.sl_price}</div>` : ''}
-                </div>
-                <div style="text-align:right">
-                    <div class="evb-active-banner-pnl ${pos ? 'pos' : 'neg'}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div>
-                    <button class="evb-close-btn" id="btn-close-forecast">CLOSE TRADE</button>
-                </div>
-            </div>
-        `;
+        
+        // Hide standard trade form card
         card.style.display = 'none';
+        
+        // Show banner/widget container
+        banner.style.display = 'block';
+        
+        // Check if the card is already rendered for this trade ID to prevent wiping out input states while typing
+        const existingCard = banner.querySelector(`.evb-active-banner-card[data-trade-id="${data.id}"]`);
+        if (!existingCard) {
+            banner.innerHTML = `
+                <div class="evb-active-banner-card" data-trade-id="${data.id}">
+                    <div class="evb-active-header">
+                        <span class="evb-active-title">👤 YOUR ACTIVE POSITION</span>
+                        <span class="evb-active-side-badge ${data.side === 'BUY' ? 'long' : 'short'}">
+                            ${data.side === 'BUY' ? 'LONG' : 'SHORT'}
+                        </span>
+                    </div>
+                    
+                    <div class="evb-active-info-row">
+                        <span class="evb-active-size">$${data.size} <span class="evb-leverage-badge">×10</span></span>
+                        <span class="evb-active-entry">Entry: $${data.entry_price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
 
-        document.getElementById('btn-close-forecast')?.addEventListener('click', async () => {
-            if (confirm('Close this position?')) {
-                await API.closeExpertForecast();
-                banner.style.display = 'none';
-                card.style.display = 'block';
-                await updateAll();
-                await loadChartData();
+                    <div class="evb-active-pnl-wrap">
+                        <div class="evb-active-pnl-val ${pos ? 'pos' : 'neg'}" id="active-pnl-display">
+                            ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}
+                        </div>
+                        <div class="evb-active-pnl-lbl">Unrealized PnL</div>
+                    </div>
+
+                    <div class="evb-active-inputs-label">Adjust Take Profit / Stop Loss</div>
+                    <div class="evb-active-input-row">
+                        <div class="evb-active-input-col">
+                            <span class="tp-lbl">TAKE PROFIT</span>
+                            <input type="number" class="evb-active-input tp" id="active-tp-input" value="${data.tp_price || ''}" placeholder="Not Set" step="any">
+                            <span class="evb-active-input-pct" id="active-tp-pct"></span>
+                        </div>
+                        <div class="evb-active-input-col">
+                            <span class="sl-lbl">STOP LOSS</span>
+                            <input type="number" class="evb-active-input sl" id="active-sl-input" value="${data.sl_price || ''}" placeholder="Not Set" step="any">
+                            <span class="evb-active-input-pct" id="active-sl-pct"></span>
+                        </div>
+                    </div>
+
+                    <div class="evb-active-actions">
+                        <button class="evb-active-update-btn" id="btn-update-tpsl" disabled>
+                            <span>💾</span> UPDATE SL/TP
+                        </button>
+                        <button class="evb-active-close-btn" id="btn-close-forecast">
+                            <span>⚡</span> CLOSE TRADE
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Set up event listeners for inputs and buttons
+            const tpInput = document.getElementById('active-tp-input');
+            const slInput = document.getElementById('active-sl-input');
+            const tpPctEl = document.getElementById('active-tp-pct');
+            const slPctEl = document.getElementById('active-sl-pct');
+            const updateBtn = document.getElementById('btn-update-tpsl');
+            const closeBtn = document.getElementById('btn-close-forecast');
+            
+            const updateActiveTPSLPcts = () => {
+                const tpVal = parseFloat(tpInput.value) || null;
+                const slVal = parseFloat(slInput.value) || null;
+                
+                // TP calculation & dynamic lines
+                if (tpVal) {
+                    const diff = tpVal - data.entry_price;
+                    const pct = (diff / data.entry_price) * 100;
+                    const leverage = 10.0;
+                    const expectedPnl = data.size * (pct / 100) * leverage * (data.side === 'BUY' ? 1 : -1);
+                    
+                    tpPctEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% (${expectedPnl >= 0 ? '+' : ''}$${expectedPnl.toFixed(2)})`;
+                    tpPctEl.style.color = expectedPnl >= 0 ? '#00C853' : '#FF1744';
+                    
+                    // Update chart line dynamically
+                    if (candleSeries) {
+                        if (activeTpLine) candleSeries.removePriceLine(activeTpLine);
+                        activeTpLine = candleSeries.createPriceLine({
+                            price: tpVal, color: '#00C853', lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP'
+                        });
+                    }
+                } else {
+                    tpPctEl.textContent = 'Not Set';
+                    tpPctEl.style.color = '#888';
+                    if (candleSeries && activeTpLine) {
+                        candleSeries.removePriceLine(activeTpLine);
+                        activeTpLine = null;
+                    }
+                }
+                
+                // SL calculation & dynamic lines
+                if (slVal) {
+                    const diff = slVal - data.entry_price;
+                    const pct = (diff / data.entry_price) * 100;
+                    const leverage = 10.0;
+                    const expectedPnl = data.size * (pct / 100) * leverage * (data.side === 'BUY' ? 1 : -1);
+                    
+                    slPctEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% (${expectedPnl >= 0 ? '+' : ''}$${expectedPnl.toFixed(2)})`;
+                    slPctEl.style.color = expectedPnl >= 0 ? '#00C853' : '#FF1744';
+                    
+                    // Update chart line dynamically
+                    if (candleSeries) {
+                        if (activeSlLine) candleSeries.removePriceLine(activeSlLine);
+                        activeSlLine = candleSeries.createPriceLine({
+                            price: slVal, color: '#FF1744', lineWidth: 2,
+                            lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL'
+                        });
+                    }
+                } else {
+                    slPctEl.textContent = 'Not Set';
+                    slPctEl.style.color = '#888';
+                    if (candleSeries && activeSlLine) {
+                        candleSeries.removePriceLine(activeSlLine);
+                        activeSlLine = null;
+                    }
+                }
+                
+                // Check if different from active database values to toggle "Save" button
+                const origTp = data.tp_price || null;
+                const origSl = data.sl_price || null;
+                const currentTpInputVal = tpInput.value.trim() === '' ? null : parseFloat(tpInput.value);
+                const currentSlInputVal = slInput.value.trim() === '' ? null : parseFloat(slInput.value);
+                
+                const hasChanges = currentTpInputVal !== origTp || currentSlInputVal !== origSl;
+                updateBtn.disabled = !hasChanges;
+            };
+            
+            tpInput.addEventListener('input', updateActiveTPSLPcts);
+            slInput.addEventListener('input', updateActiveTPSLPcts);
+            
+            // Initial calculations
+            updateActiveTPSLPcts();
+            
+            updateBtn.addEventListener('click', async () => {
+                const currentTpInputVal = tpInput.value.trim() === '' ? null : parseFloat(tpInput.value);
+                const currentSlInputVal = slInput.value.trim() === '' ? null : parseFloat(slInput.value);
+                
+                updateBtn.disabled = true;
+                updateBtn.textContent = 'SAVING...';
+                
+                const res = await API.updateExpertForecast(currentTpInputVal, currentSlInputVal);
+                if (res?.status === 'success') {
+                    // Update local copy to sync the UI comparison
+                    data.tp_price = currentTpInputVal;
+                    data.sl_price = currentSlInputVal;
+                    updateBtn.innerHTML = '<span>💾</span> UPDATE SL/TP';
+                    updateBtn.disabled = true;
+                    showToastAtCursor(window.innerWidth / 2, window.innerHeight / 2, 'ACTIVE TRADE UPDATED successfully');
+                    await updateAll();
+                    await loadChartData();
+                } else {
+                    alert('Failed to update Stop Loss / Take Profit.');
+                    updateBtn.innerHTML = '<span>💾</span> UPDATE SL/TP';
+                    updateBtn.disabled = false;
+                }
+            });
+            
+            closeBtn.addEventListener('click', async () => {
+                if (confirm('Close this position?')) {
+                    await API.closeExpertForecast();
+                    banner.style.display = 'none';
+                    banner.innerHTML = '';
+                    card.style.display = 'block';
+                    
+                    // Clear lines
+                    if (activeTpLine) { candleSeries.removePriceLine(activeTpLine); activeTpLine = null; }
+                    if (activeSlLine) { candleSeries.removePriceLine(activeSlLine); activeSlLine = null; }
+                    if (activeEntryLine) { candleSeries.removePriceLine(activeEntryLine); activeEntryLine = null; }
+                    
+                    await updateAll();
+                    await loadChartData();
+                }
+            });
+        } else {
+            // Card is already rendered, just update the live unrealized PnL field
+            const pnlDisplay = document.getElementById('active-pnl-display');
+            if (pnlDisplay) {
+                pnlDisplay.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+                pnlDisplay.className = `evb-active-pnl-val ${pos ? 'pos' : 'neg'}`;
             }
-        });
-
+        }
+        
         // Update status badge
         const badge = document.getElementById('user-status-badge');
         if (badge) { badge.textContent = 'IN TRADE'; badge.classList.add('active'); }
     } else {
+        // No active trade, reset and show normal action card
         banner.style.display = 'none';
+        banner.innerHTML = '';
         card.style.display = 'block';
+        
         const badge = document.getElementById('user-status-badge');
         if (badge) { badge.textContent = 'READY'; badge.classList.remove('active'); }
+        
+        // Clear active lines
+        if (activeTpLine) { candleSeries.removePriceLine(activeTpLine); activeTpLine = null; }
+        if (activeSlLine) { candleSeries.removePriceLine(activeSlLine); activeSlLine = null; }
+        if (activeEntryLine) { candleSeries.removePriceLine(activeEntryLine); activeEntryLine = null; }
     }
 
     // Bot status

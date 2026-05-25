@@ -1,5 +1,5 @@
-const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const BASE_URL = isLocal ? "http://127.0.0.1:8000" : "https://mesh-online.org";
+const BASE_URL = ""; // Use relative paths for seamless dev/prod integration
+
 
 function getDeviceId() {
     let deviceId = localStorage.getItem('cryptoheim_device_id');
@@ -117,6 +117,8 @@ export const API = {
     getLeaderboard: () => fetchApi("/api/expert/leaderboard"),
     submitExpertForecast: (side, reason, tp_price = null, sl_price = null, size = 100) => postApi("/api/expert/forecast", { side, reason, tp_price, sl_price, size }),
     closeExpertForecast: () => postApi("/api/expert/close", {}),
+    updateExpertForecast: (tp_price = null, sl_price = null) => postApi("/api/expert/update-tpsl", { tp_price, sl_price }),
+
 
     // Auth & Profile
     authStart: (nickname) => postApi("/api/auth/start", { nickname }),

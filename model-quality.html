@@ -217,7 +217,7 @@
 
 <script>
     const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const API_BASE = isLocal ? "" : "https://mesh-online.org";
+    const API_BASE = "";
     
     function getFullUrl(endpoint) {
         if (!API_BASE) return endpoint;
