@@ -598,7 +598,7 @@ async function updateLivePrice() {
     el.textContent = '$' + last.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const changeEl = document.getElementById('btc-price-change');
-    if (prev) {
+    if (prev && changeEl) {
         const pct = ((last.close - prev.close) / prev.close * 100).toFixed(2);
         const pos = pct >= 0;
         changeEl.textContent = (pos ? '+' : '') + pct + '%';
