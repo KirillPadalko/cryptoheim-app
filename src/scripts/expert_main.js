@@ -1320,8 +1320,8 @@ async function updateLeaderboard() {
     const isRu = window.appLang === 'ru';
     if (battleTitleEl) {
         battleTitleEl.textContent = isRu 
-            ? "WEEKLY BATTLE: BTC / USDT (СТАРТ СО $100. ПОБЕДИТЕЛИ ПО ПРИБЫЛИ ЗА НЕДЕЛЮ)" 
-            : "WEEKLY BATTLE: BTC / USDT (ALL START AT $100. WINNERS BY WEEKLY PROFIT)";
+            ? "БИТВА ЭКСПЕРТОВ: BTC / USDT (ОБЩИЙ РЕЙТИНГ И РЕЗУЛЬТАТЫ ЗА ВСЕ ВРЕМЯ)" 
+            : "EXPERT BATTLE: BTC / USDT (ALL-TIME RATINGS & PERFORMANCE)";
     }
 
     // 1. Localize table headers dynamically based on language
@@ -1332,13 +1332,13 @@ async function updateLeaderboard() {
             <th style="width: 35%;">УЧАСТНИК</th>
             <th style="width: 20%;">ДЕПОЗИТ</th>
             <th style="width: 15%;">ВИНРЕЙТ</th>
-            <th style="width: 23%;">PNL ЗА НЕДЕЛЮ</th>
+            <th style="width: 23%;">PNL ЗА ВСЕ ВРЕМЯ</th>
         ` : `
             <th style="width: 70px;">#</th>
             <th style="width: 35%;">PARTICIPANT</th>
             <th style="width: 20%;">DEPOSIT</th>
             <th style="width: 15%;">WIN RATE</th>
-            <th style="width: 23%;">WEEKLY PNL</th>
+            <th style="width: 23%;">TOTAL PNL</th>
         `;
     }
 
