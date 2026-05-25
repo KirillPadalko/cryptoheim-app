@@ -1211,6 +1211,84 @@ function setEl(id, text, pnlVal) {
     }
 }
 
+function drawSparkline(canvas, history, isPositive) {
+    if (!canvas || !history || history.length === 0) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Support High-DPI screen scaling
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    // Determine min and max values to scale
+    let min = Math.min(...history);
+    let max = Math.max(...history);
+    
+    // Add margin padding so sparkline doesn't clip
+    const pad = 3;
+    if (max === min) {
+        min -= 10;
+        max += 10;
+    }
+    
+    const range = max - min;
+
+    // 1. Draw area gradient underneath the sparkline
+    ctx.beginPath();
+    history.forEach((val, i) => {
+        const x = (i / (history.length - 1)) * (width - 2 * pad) + pad;
+        const y = height - ((val - min) / range) * (height - 2 * pad) - pad;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+    ctx.lineTo(width - pad, height);
+    ctx.lineTo(pad, height);
+    ctx.closePath();
+
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    if (isPositive) {
+        grad.addColorStop(0, 'rgba(0, 200, 83, 0.15)');
+        grad.addColorStop(1, 'rgba(0, 200, 83, 0.0)');
+    } else {
+        grad.addColorStop(0, 'rgba(255, 23, 68, 0.15)');
+        grad.addColorStop(1, 'rgba(255, 23, 68, 0.0)');
+    }
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 2. Draw stroke line on top
+    ctx.beginPath();
+    history.forEach((val, i) => {
+        const x = (i / (history.length - 1)) * (width - 2 * pad) + pad;
+        const y = height - ((val - min) / range) * (height - 2 * pad) - pad;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    const lineColor = isPositive ? '#00C853' : '#FF1744';
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 1.75;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
 async function updateLeaderboard() {
     const res = await API.getLeaderboard().catch(() => null);
     if (!res) return;
@@ -1228,16 +1306,18 @@ async function updateLeaderboard() {
     if (headerEl) {
         headerEl.innerHTML = isRu ? `
             <th style="width: 70px;">#</th>
-            <th style="width: 35%;">УЧАСТНИК</th>
-            <th style="width: 20%;">ДЕПОЗИТ</th>
+            <th style="width: 30%;">УЧАСТНИК</th>
+            <th style="width: 15%;">ДЕПОЗИТ</th>
+            <th style="width: 20%; text-align: center;">ДИНАМИКА</th>
             <th style="width: 15%;">ВИНРЕЙТ</th>
-            <th style="width: 23%;">PNL ЗА ВСЕ ВРЕМЯ</th>
+            <th style="width: 20%;">PNL ЗА ВСЕ ВРЕМЯ</th>
         ` : `
             <th style="width: 70px;">#</th>
-            <th style="width: 35%;">PARTICIPANT</th>
-            <th style="width: 20%;">DEPOSIT</th>
+            <th style="width: 30%;">PARTICIPANT</th>
+            <th style="width: 15%;">DEPOSIT</th>
+            <th style="width: 20%; text-align: center;">EQUITY TREND</th>
             <th style="width: 15%;">WIN RATE</th>
-            <th style="width: 23%;">TOTAL PNL</th>
+            <th style="width: 20%;">TOTAL PNL</th>
         `;
     }
 
@@ -1246,7 +1326,7 @@ async function updateLeaderboard() {
     if (!bodyEl) return;
 
     if (!res.leaderboard?.length) {
-        bodyEl.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #888;">No ranking data yet…</td></tr>';
+        bodyEl.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px; color: #888;">No ranking data yet…</td></tr>';
         return;
     }
 
@@ -1271,6 +1351,8 @@ async function updateLeaderboard() {
         const pts = item.points || 0;
         const pointsBadge = `<span class="evb-points-badge">${pts} PTS</span>`;
 
+        const historyData = item.equity_history || [100.0];
+
         return `
             <tr class="${rowClass}">
                 <td class="td-rank">
@@ -1282,6 +1364,9 @@ async function updateLeaderboard() {
                     ${isYou ? '<span class="evb-lb-you-tag" style="margin-left: 8px; background: #2962FF; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px;">YOU</span>' : ''}
                 </td>
                 <td class="td-val" style="font-weight: 600;">${formattedBalance}</td>
+                <td style="text-align: center; vertical-align: middle; padding: 4px 8px;">
+                    <canvas class="evb-sparkline" data-history='${JSON.stringify(historyData)}' width="120" height="30" style="width: 120px; height: 30px; display: inline-block; vertical-align: middle;"></canvas>
+                </td>
                 <td class="td-val">${formattedWinRate}</td>
                 <td class="td-pnl ${pnlClass}" style="color: ${pnlSign ? '#00C853' : '#FF1744'}; font-weight: bold;">
                     ${formattedPnl}
@@ -1289,4 +1374,16 @@ async function updateLeaderboard() {
             </tr>
         `;
     }).join('');
+
+    // 3. Render Sparklines in-line
+    document.querySelectorAll('.evb-sparkline').forEach(canvas => {
+        try {
+            const history = JSON.parse(canvas.dataset.history || '[100.0]');
+            const isPositive = parseFloat(history[history.length - 1] || 100.0) >= 100.0;
+            drawSparkline(canvas, history, isPositive);
+        } catch(e) {
+            console.error("drawSparkline failed:", e);
+        }
+    });
 }
+
