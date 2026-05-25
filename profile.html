@@ -242,7 +242,8 @@
                     }
                 } catch(e) {}
             }
-            if (!isProOrAuth) {
+            const isGitHubPages = window.location.hostname.includes('github.io');
+            if (!isProOrAuth && !isGitHubPages) {
                 console.log("[Ads] Loading Yandex Autoplacement...");
                 
                 // <!-- Yandex Autoplacement 19328534 -->
@@ -257,7 +258,7 @@
                 loaderScript.async = true;
                 document.head.appendChild(loaderScript);
             } else {
-                console.log("[Ads] User is authorized/PRO, ads disabled.");
+                console.log("[Ads] Ads disabled (user authorized, PRO status, or GitHub Pages environment).");
             }
         })();
     </script>
