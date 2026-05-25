@@ -1113,3 +1113,64 @@ a { text-decoration: none; color: inherit; }
     transform: translate(0, 0);
     box-shadow: none;
 }
+
+/* Brutalist Loader & Animations */
+.brutal-loader-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    padding: 3rem 1.5rem;
+    width: 100%;
+    text-align: center;
+}
+.brutal-loader-container.horizontal {
+    flex-direction: row;
+    padding: 1.5rem;
+}
+.loader-text {
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-main);
+}
+.loading-dots {
+    display: inline-block;
+    position: relative;
+    font-size: 0.85rem !important;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+}
+.loading-dots::after {
+    content: '...';
+    display: inline-block;
+    animation: dots 1.5s steps(4, end) infinite;
+    width: 1.5em;
+    text-align: left;
+}
+@keyframes dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+}
+
+.loading-spinner {
+    display: block;
+    margin: 1rem auto;
+    width: 32px;
+    height: 32px;
+    border: 4px solid #000;
+    border-top: 4px solid var(--color-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

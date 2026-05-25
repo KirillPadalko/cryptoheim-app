@@ -365,9 +365,61 @@ function startRefreshTimer() {
 // DECISION STRIP
 // ----------------------------------------------------
 async function renderDecisionStrip() {
+    const lang = window.appLang || 'en';
+    const isRu = lang === 'ru';
+    
+    // Get all DOM elements
+    const stateValEl = document.getElementById('ds-state-val');
+    const stateSubEl = document.getElementById('ds-state-sub');
+    const stateHeader = document.querySelector('#ds-state-block .label');
+    
+    const trendValEl = document.getElementById('ds-trend-val');
+    const trendBadgeEl = document.getElementById('ds-trend-badge');
+    const trendSubEl = document.getElementById('ds-trend-sub');
+    const trendHeader = document.querySelector('#ds-trend-block .label');
+    
+    const fngValEl = document.getElementById('ds-fng-val');
+    const fngLblEl = document.getElementById('ds-fng-label');
+    const fngHeader = fngValEl?.closest('.decision-block')?.querySelector('.label');
+    
+    const volValEl = document.getElementById('ds-vol-val');
+    const btcDomEl = document.getElementById('ds-btc-dom');
+    const volHeader = volValEl?.closest('.decision-block')?.querySelector('.label');
+
+    // Immediately set headers
+    if (stateHeader) stateHeader.innerText = isRu ? "СОСТОЯНИЕ РЫНКА" : "MARKET STATE";
+    if (trendHeader) trendHeader.innerText = isRu ? "ТРЕНД И НАПРАВЛЕНИЕ" : "TREND & DIRECTION";
+    if (fngHeader) fngHeader.innerText = isRu ? "СТРАХ И ЖАДНОСТЬ" : "FEAR & GREED";
+    if (volHeader) volHeader.innerText = isRu ? "ВОЛАТИЛЬНОСТЬ РЫНКА" : "MARKET VOLATILITY";
+
+    // Immediately set loading states
+    const syncingText = isRu ? "ЗАГРУЗКА" : "SYNCING";
+    if (stateValEl) {
+        stateValEl.innerHTML = `<span class="loading-dots">${syncingText}</span>`;
+        stateValEl.style.color = "inherit";
+    }
+    if (stateSubEl) stateSubEl.innerText = isRu ? "Опрос серверов прогнозов..." : "Polling prediction nodes...";
+    
+    if (trendValEl) {
+        trendValEl.innerHTML = `<span class="loading-dots">${syncingText}</span>`;
+        trendValEl.style.color = "inherit";
+    }
+    if (trendBadgeEl) trendBadgeEl.style.display = 'none';
+    if (trendSubEl) trendSubEl.innerText = isRu ? "Анализ ценовых каналов..." : "Analyzing price channels...";
+
+    if (fngValEl) {
+        fngValEl.innerHTML = `<span class="loading-dots">${syncingText}</span>`;
+        fngValEl.style.color = "inherit";
+    }
+    if (fngLblEl) fngLblEl.innerText = isRu ? "Синхронизация..." : "Synchronizing...";
+
+    if (volValEl) {
+        volValEl.innerHTML = `<span class="loading-dots">${syncingText}</span>`;
+        volValEl.style.color = "inherit";
+    }
+    if (btcDomEl) btcDomEl.innerText = isRu ? "Чтение метрик доминирования..." : "Reading dominance metrics...";
+
     try {
-        const lang = window.appLang || 'en';
-        
         const [analysis, fngIndex, marketScan, domStream, forecastRes] = await Promise.allSettled([
             API.getCryptoAnalysis(lang),
             API.getFearGreedIndex(),
@@ -385,13 +437,6 @@ async function renderDecisionStrip() {
         const confidence = forecastData?.confidence ?? null;
 
         // --- 1. MARKET STATE ---
-        const stateValEl = document.getElementById('ds-state-val');
-        const stateSubEl = document.getElementById('ds-state-sub');
-        const stateHeader = document.querySelector('#ds-state-block .label');
-        
-        const isRu = lang === 'ru';
-        if (stateHeader) stateHeader.innerText = isRu ? "СОСТОЯНИЕ РЫНКА" : "MARKET STATE";
-
         const regimeConfig = {
             "trend":           { 
                 label: isRu ? "ТРЕНД" : "TRENDING",   
@@ -415,27 +460,33 @@ async function renderDecisionStrip() {
             },
         };
 
-        if (stateValEl && regime) {
+        if (forecastRes.status === "fulfilled" && forecastData && regime) {
             const cfg = regimeConfig[regime] || { label: regime.toUpperCase(), color: "#000", desc: "" };
-            stateValEl.innerText = cfg.label;
-            stateValEl.style.color = cfg.color;
-            
-            let subtext = cfg.desc;
-            if (bias) {
-                const biasTr = isRu ? (bias === 'bullish' ? 'БЫЧИЙ' : bias === 'bearish' ? 'МЕДВЕЖИЙ' : 'НЕЙТРАЛЬНЫЙ') : bias.toUpperCase();
-                subtext += ` · ${biasTr}`;
+            if (stateValEl) {
+                stateValEl.innerText = cfg.label;
+                stateValEl.style.color = cfg.color;
             }
-            if (confidence) subtext += ` (${confidence}%)`;
-            stateSubEl.innerText = subtext;
+            
+            if (stateSubEl) {
+                let subtext = cfg.desc;
+                if (bias) {
+                    const biasTr = isRu ? (bias === 'bullish' ? 'БЫЧИЙ' : bias === 'bearish' ? 'МЕДВЕЖИЙ' : 'НЕЙТРАЛЬНЫЙ') : bias.toUpperCase();
+                    subtext += ` · ${biasTr}`;
+                }
+                if (confidence) subtext += ` (${confidence}%)`;
+                stateSubEl.innerText = subtext;
+            }
+        } else {
+            if (stateValEl) {
+                stateValEl.innerText = isRu ? "ОФФЛАЙН" : "OFFLINE";
+                stateValEl.style.color = "var(--color-red)";
+            }
+            if (stateSubEl) {
+                stateSubEl.innerText = isRu ? "ОШИБКА ДАННЫХ ПРОГНОЗА" : "FORECAST SERVER OFFLINE";
+            }
         }
 
         // --- 2. TREND & DIRECTION ---
-        const trendValEl = document.getElementById('ds-trend-val');
-        const trendBadgeEl = document.getElementById('ds-trend-badge');
-        const trendSubEl = document.getElementById('ds-trend-sub');
-        const trendHeader = document.querySelector('#ds-trend-block .label');
-        if (trendHeader) trendHeader.innerText = isRu ? "ТРЕНД И НАПРАВЛЕНИЕ" : "TREND & DIRECTION";
-
         if (marketScan.status === "fulfilled" && marketScan.value) {
             let mood = marketScan.value.breadth?.mood || "NEUTRAL";
             if (isRu) {
@@ -444,6 +495,11 @@ async function renderDecisionStrip() {
                 else if (mood.toUpperCase() === 'BEARISH') mood = 'МЕДВЕЖИЙ';
             }
             if (trendValEl) trendValEl.innerText = mood.toUpperCase();
+        } else {
+            if (trendValEl) {
+                trendValEl.innerText = isRu ? "СБОЙ" : "ERROR";
+                trendValEl.style.color = "var(--color-red)";
+            }
         }
 
         if (trendBadgeEl && direction) {
@@ -459,18 +515,16 @@ async function renderDecisionStrip() {
         }
 
         if (trendSubEl) {
-            let st = forecastData?.short_term_outlook || "Stable market conditions";
-            if (isRu && st === "Stable market conditions") st = "СТАБИЛЬНЫЕ РЫНОЧНЫЕ УСЛОВИЯ";
+            let st = forecastData?.short_term_outlook || (marketScan.status === "fulfilled" ? "Market Scan Synced" : "Stable market conditions");
+            if (isRu) {
+                if (st === "Stable market conditions") st = "СТАБИЛЬНЫЕ РЫНОЧНЫЕ УСЛОВИЯ";
+                else if (st === "Market Scan Synced") st = "СКАНЕР РЫНКА АКТИВЕН";
+            }
             trendSubEl.innerText = st.toUpperCase();
         }
 
         // --- 3. FEAR & GREED ---
         if (fngIndex.status === "fulfilled" && fngIndex.value) {
-            const fngValEl = document.getElementById('ds-fng-val');
-            const fngLblEl = document.getElementById('ds-fng-label');
-            const fngHeader = fngValEl?.closest('.decision-block')?.querySelector('.label');
-            if (fngHeader) fngHeader.innerText = isRu ? "СТРАХ И ЖАДНОСТЬ" : "FEAR & GREED";
-
             if (fngValEl) {
                 fngValEl.innerText = fngIndex.value.current_value;
                 const val = parseInt(fngIndex.value.current_value);
@@ -485,14 +539,16 @@ async function renderDecisionStrip() {
                 }
                 fngLblEl.innerText = cls.toUpperCase();
             }
+        } else {
+            if (fngValEl) {
+                fngValEl.innerText = "—";
+            }
+            if (fngLblEl) {
+                fngLblEl.innerText = isRu ? "ИНДЕКС СТРАХА НЕДОСТУПЕН" : "FEAR INDEX OFFLINE";
+            }
         }
 
         // --- 4. VOLATILITY & BTC DOM ---
-        const volValEl = document.getElementById('ds-vol-val');
-        const btcDomEl = document.getElementById('ds-btc-dom');
-        const volHeader = volValEl?.closest('.decision-block')?.querySelector('.label');
-        if (volHeader) volHeader.innerText = isRu ? "ВОЛАТИЛЬНОСТЬ РЫНКА" : "MARKET VOLATILITY";
-
         if (domStream.status === "fulfilled" && domStream.value) {
             const latest = domStream.value.data?.[domStream.value.data.length - 1];
             if (btcDomEl && latest) btcDomEl.innerText = `BTC DOM: ${latest.btc_dominance.toFixed(1)}%`;
@@ -506,6 +562,13 @@ async function renderDecisionStrip() {
                     volValEl.innerText = isHigh ? "HIGH" : "NORMAL";
                 }
                 volValEl.style.color = isHigh ? "var(--color-red)" : "var(--color-green)";
+            }
+        } else {
+            if (volValEl) {
+                volValEl.innerText = "—";
+            }
+            if (btcDomEl) {
+                btcDomEl.innerText = isRu ? "СБОЙ ИНТЕГРАЦИИ DOMINANCE" : "DOMINANCE DATA OFFLINE";
             }
         }
 
@@ -521,8 +584,20 @@ async function renderRiskScenario() {
     const list = document.getElementById('risk-list');
     if (!list) return;
 
+    const lang = window.appLang || 'en';
+    const isRu = lang === 'ru';
+
+    // Show neat inline loader
+    list.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; color: #000;">
+            <div class="loading-spinner" style="display:block; width: 18px; height: 18px; border-width: 2.5px; border-top-color: #000; margin: 0;"></div>
+            <span style="font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">
+                ${isRu ? "Оценка угроз рынка..." : "ASSESSING MARKET THREATS..."}
+            </span>
+        </div>
+    `;
+
     try {
-        const lang = window.appLang || 'en';
         const res = await API.getMarketForecast(lang);
         if (res && res.forecast && res.forecast.risks) {
             const risks = res.forecast.risks;
@@ -534,11 +609,11 @@ async function renderRiskScenario() {
                 list.innerHTML = lines.map(l => `<div>${l.startsWith('•') || l.startsWith('-') ? '' : '• '}${l}</div>`).join('');
             }
         } else {
-            list.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">No immediate risks identified.</div>';
+            list.innerHTML = `<div style="color: var(--text-muted); font-style: italic;">${isRu ? "Угрозы не обнаружены." : "No immediate risks identified."}</div>`;
         }
     } catch (e) {
         console.error("Risk scenario error:", e);
-        list.innerHTML = '<div style="color: var(--color-red);">Error loading risks.</div>';
+        list.innerHTML = `<div style="color: var(--color-red); font-weight: 700;">${isRu ? "Ошибка загрузки угроз." : "Error loading risks."}</div>`;
     }
 }
 
@@ -550,6 +625,14 @@ const cleanSymbol = (sym) => String(sym).replace('USDT', '');
 async function renderTopSignals() {
     const list = document.getElementById('signals-list');
     if (!list) return;
+
+    const isRu = window.appLang === 'ru';
+    list.innerHTML = `
+        <div class="brutal-loader-container">
+            <div class="loading-spinner"></div>
+            <div class="loader-text">${isRu ? "Генерация торговых сигналов..." : "COMPUTING AI SIGNALS..."}</div>
+        </div>
+    `;
 
     try {
         const [forecastRes, klinesRes, positionsRes] = await Promise.allSettled([
@@ -747,17 +830,32 @@ async function renderTopSignals() {
 // NARRATIVE ENGINE
 // ----------------------------------------------------
 async function renderNarrativeEngine() {
+    const summaryEl = document.getElementById('narrative-summary');
+    if (!summaryEl) return;
+
+    const isRu = window.appLang === 'ru';
+    summaryEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 1rem;">
+            <div class="loading-spinner" style="display:block; width: 20px; height: 20px; border-width: 3px; margin: 0;"></div>
+            <span class="loader-text" style="font-size: 0.8rem;">
+                ${isRu ? "Формирование рыночного нарратива..." : "SYNTHESIZING MARKET NARRATIVE..."}
+            </span>
+        </div>
+    `;
+
     try {
         const lang = window.appLang || 'en';
         const forecastRes = await API.getMarketForecast(lang);
 
         if (forecastRes && forecastRes.forecast) {
-            const summaryEl = document.getElementById('narrative-summary');
-            if (summaryEl) {
-                summaryEl.innerHTML = forecastRes.forecast.forecast || forecastRes.forecast.market_state;
-            }
+            summaryEl.innerHTML = forecastRes.forecast.forecast || forecastRes.forecast.market_state;
+        } else {
+            summaryEl.innerHTML = `<span style="color: var(--text-muted); font-style: italic;">${isRu ? "Нарратив недоступен." : "Narrative currently unavailable."}</span>`;
         }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error("Narrative engine error:", e);
+        summaryEl.innerHTML = `<span style="color: var(--color-red); font-weight: 700;">${isRu ? "Ошибка загрузки рыночного анализа." : "Error loading market analysis."}</span>`;
+    }
 }
 
 // ----------------------------------------------------
