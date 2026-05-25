@@ -381,6 +381,41 @@
         CryptoHeim &copy; 2025 &nbsp;&middot;&nbsp; <span data-i18n="subtitle">Analytics Dashboard</span> &nbsp;&middot;&nbsp;
         <a href="model-quality.html" style="color: #555; text-decoration: none; border-bottom: 1px solid #ccc;" data-i18n-nav="AI Quality">AI Quality</a>
     </footer>
+
+    <!-- Yandex Ads dynamic loading -->
+    <script>
+        (function() {
+            const token = localStorage.getItem('cryptoheim_token');
+            const userJson = localStorage.getItem('cryptoheim_user');
+            let isProOrAuth = false;
+            if (token) {
+                isProOrAuth = true; // Authorized user
+                try {
+                    const user = JSON.parse(userJson);
+                    if (user && (user.is_pro === true || user.is_pro === 1 || user.is_pro === '1')) {
+                        isProOrAuth = true; // PRO user
+                    }
+                } catch(e) {}
+            }
+            if (!isProOrAuth) {
+                console.log("[Ads] Loading Yandex Autoplacement...");
+                
+                // <!-- Yandex Autoplacement 19328534 -->
+                const contextScript = document.createElement('script');
+                contextScript.src = 'https://yandex.ru/ads/system/context.js';
+                contextScript.async = true;
+                document.head.appendChild(contextScript);
+
+                const loaderScript = document.createElement('script');
+                loaderScript.setAttribute('data-page-id', '19328534');
+                loaderScript.src = 'https://yandex.ru/ads/system/ap-loader.js';
+                loaderScript.async = true;
+                document.head.appendChild(loaderScript);
+            } else {
+                console.log("[Ads] User is authorized/PRO, ads disabled.");
+            }
+        })();
+    </script>
 </body>
 
 </html>
