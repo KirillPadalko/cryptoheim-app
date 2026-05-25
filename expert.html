@@ -317,41 +317,6 @@
     <!-- Expert Page Scripts -->
     <script type="module" src="./src/scripts/expert_main.js"></script>
 
-    <!-- Yandex Ads dynamic loading -->
-    <script>
-        (function() {
-            const token = localStorage.getItem('cryptoheim_token');
-            const userJson = localStorage.getItem('cryptoheim_user');
-            let isProOrAuth = false;
-            if (token) {
-                isProOrAuth = true; // Authorized user
-                try {
-                    const user = JSON.parse(userJson);
-                    if (user && (user.is_pro === true || user.is_pro === 1 || user.is_pro === '1')) {
-                        isProOrAuth = true; // PRO user
-                    }
-                } catch(e) {}
-            }
-            const isGitHubPages = window.location.hostname.includes('github.io');
-            if (!isProOrAuth && !isGitHubPages) {
-                console.log("[Ads] Loading Yandex Autoplacement...");
-                
-                // <!-- Yandex Autoplacement 19328534 -->
-                const contextScript = document.createElement('script');
-                contextScript.src = 'https://yandex.ru/ads/system/context.js';
-                contextScript.async = true;
-                document.head.appendChild(contextScript);
-
-                const loaderScript = document.createElement('script');
-                loaderScript.setAttribute('data-page-id', '19328534');
-                loaderScript.src = 'https://yandex.ru/ads/system/ap-loader.js';
-                loaderScript.async = true;
-                document.head.appendChild(loaderScript);
-            } else {
-                console.log("[Ads] Ads disabled (user authorized, PRO status, or GitHub Pages environment).");
-            }
-        })();
-    </script>
 </body>
 
 </html>
