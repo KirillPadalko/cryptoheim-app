@@ -14,13 +14,6 @@ let activeSlLine = null;
 let activeEntryLine = null;
 let oldestCandleTime = 0;
 
-
-// Equity curve race chart globals
-let equityChart = null;
-let expEquitySeries = null;
-let botEquitySeries = null;
-let joEquitySeries = null;
-
 function isLoggedIn() {
     const token = localStorage.getItem('cryptoheim_token');
     const userJson = localStorage.getItem('cryptoheim_user');
@@ -58,11 +51,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         initChartInteraction();
         console.log("initChartInteraction: Success");
     } catch (e) { console.error("initChartInteraction failed:", e); }
-
-    try {
-        initEquityChart();
-        console.log("initEquityChart: Success");
-    } catch (e) { console.error("initEquityChart failed:", e); }
 
     try {
         initControls();
@@ -114,89 +102,6 @@ function initChart() {
     // loadChartData is called in DOMContentLoaded
 }
 
-function initEquityChart() {
-    const container = document.getElementById('equity-chart');
-    if (!container) return;
-    
-    if (typeof LightweightCharts === 'undefined') {
-        console.error("LightweightCharts is not loaded.");
-        return;
-    }
-
-    equityChart = LightweightCharts.createChart(container, {
-        layout: { background: { color: '#ffffff' }, textColor: '#888', fontSize: 10 },
-        grid: { vertLines: { color: '#fcfcfc' }, horzLines: { color: '#fafafa' } },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        timeScale: { borderColor: '#eee', timeVisible: true, secondsVisible: false },
-        rightPriceScale: { borderColor: '#eee' },
-    });
-
-    expEquitySeries = equityChart.addLineSeries({
-        color: '#2962FF',
-        lineWidth: 2.5,
-        title: 'YOU',
-    });
-
-    botEquitySeries = equityChart.addLineSeries({
-        color: '#000000',
-        lineWidth: 2.5,
-        title: 'CH BOT',
-    });
-
-    joEquitySeries = equityChart.addLineSeries({
-        color: '#7b1fa2',
-        lineWidth: 2.5,
-        title: 'JO BOT',
-    });
-
-    window.addEventListener('resize', () => {
-        if (equityChart && container) {
-            equityChart.applyOptions({ width: container.clientWidth });
-        }
-    });
-}
-
-function updateEquityChart(expHistory, botHistory, joHistory) {
-    if (!equityChart) return;
-
-    function getEquityPoints(history) {
-        const sorted = [...history].sort((a, b) => {
-            const timeA = a.close_time > 1e12 ? a.close_time / 1000 : a.close_time;
-            const timeB = b.close_time > 1e12 ? b.close_time / 1000 : b.close_time;
-            return timeA - timeB;
-        });
-
-        const points = [];
-        let runningEquity = 100.0;
-        let lastTime = 0;
-
-        if (sorted.length > 0) {
-            const firstTime = Math.floor(sorted[0].close_time > 1e12 ? sorted[0].close_time / 1000 : sorted[0].close_time);
-            points.push({ time: firstTime - 3600, value: 100.0 });
-            lastTime = firstTime - 3600;
-        }
-
-        sorted.forEach(t => {
-            let tTime = Math.floor(t.close_time > 1e12 ? t.close_time / 1000 : t.close_time);
-            if (tTime <= lastTime) {
-                tTime = lastTime + 1;
-            }
-            runningEquity += parseFloat(t.pnl || 0.0);
-            points.push({ time: tTime, value: parseFloat(runningEquity.toFixed(2)) });
-            lastTime = tTime;
-        });
-
-        return points;
-    }
-
-    const expPoints = getEquityPoints(expHistory || []);
-    const botPoints = getEquityPoints(botHistory || []);
-    const joPoints = getEquityPoints(joHistory || []);
-
-    if (expPoints.length && expEquitySeries) expEquitySeries.setData(expPoints);
-    if (botPoints.length && botEquitySeries) botEquitySeries.setData(botPoints);
-    if (joPoints.length && joEquitySeries) joEquitySeries.setData(joPoints);
-}
 
 function initChartInteraction() {
     if (!chart) {
@@ -1114,12 +1019,6 @@ async function updateBattleFeed() {
         });
     });
 
-    // Update the Equity Curve Race Chart
-    try {
-        updateEquityChart(expHistory, botHistory, joHistory);
-    } catch (e) {
-        console.error("updateEquityChart failed:", e);
-    }
 
     // Sort feed chronologically to run our rivalry scanner over the timeline
     const sortedTimeline = [...feed].sort((a, b) => a.time - b.time);

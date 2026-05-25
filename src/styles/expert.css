@@ -692,7 +692,7 @@
 /* ─── TWO-COLUMN HERO GRID & EQUITY RACE CHART ─── */
 .evb-hero-grid {
     display: grid;
-    grid-template-columns: 1fr 450px;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: stretch;
     margin-top: 1rem;
