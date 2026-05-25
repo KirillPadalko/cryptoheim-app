@@ -58,6 +58,7 @@ export default defineConfig({
         }
     },
     build: {
+        assetsDir: 'static-assets',
         rollupOptions: {
             input: {
                 indicators: 'indicators.html',
