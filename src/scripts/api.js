@@ -1,3 +1,4 @@
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const BASE_URL = ""; // Use relative paths for seamless dev/prod integration
 
 
