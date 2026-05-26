@@ -28,11 +28,36 @@ function isPro() {
     } catch(e) { return false; }
 }
 
+function syncLoginState() {
+    try {
+        API.updateNavProfile();
+    } catch(e) {}
+    const btnSubmit = document.getElementById('btn-submit');
+    if (btnSubmit) {
+        if (!isLoggedIn()) {
+            btnSubmit.innerText = "LOGIN TO PARTICIPATE";
+            btnSubmit.style.background = "var(--color-yellow)";
+            btnSubmit.style.color = "#000";
+        } else {
+            btnSubmit.innerText = "PLACE ORDER";
+            btnSubmit.style.background = "";
+            btnSubmit.style.color = "";
+        }
+    }
+}
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("DOMContentLoaded: Starting initialization");
+    
+    // Listen for expired sessions globally
+    window.addEventListener('cryptoheim-session-expired', () => {
+        console.warn("Session expired event received. Syncing login state.");
+        syncLoginState();
+    });
+
     try {
-        API.updateNavProfile();
+        syncLoginState();
     } catch(e) { console.error(e); }
 
     try {
@@ -709,7 +734,7 @@ async function updateActiveForecast() {
     const card   = document.getElementById('action-card');
     if (!banner || !card) return;
 
-    if (data) {
+    if (data && data.status !== 'error' && data.code !== 401) {
         const pnl = data.pnl || 0;
         const pos = pnl >= 0;
         
@@ -923,6 +948,8 @@ async function updateActiveForecast() {
         if (activeTpLine) { candleSeries.removePriceLine(activeTpLine); activeTpLine = null; }
         if (activeSlLine) { candleSeries.removePriceLine(activeSlLine); activeSlLine = null; }
         if (activeEntryLine) { candleSeries.removePriceLine(activeEntryLine); activeEntryLine = null; }
+        
+        syncLoginState();
     }
 
     // Bot status

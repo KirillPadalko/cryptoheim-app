@@ -40,6 +40,7 @@ async function fetchApi(endpoint) {
                 console.warn("[API] 401 Unauthorized detected. Clearing expired token.");
                 localStorage.removeItem('cryptoheim_token');
                 localStorage.removeItem('cryptoheim_user');
+                window.dispatchEvent(new Event('cryptoheim-session-expired'));
                 return { status: 'error', code: 401, message: 'Unauthorized / Session Expired' };
             }
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -71,6 +72,7 @@ async function postApi(endpoint, body) {
                 console.warn("[API] 401 Unauthorized detected. Clearing expired token.");
                 localStorage.removeItem('cryptoheim_token');
                 localStorage.removeItem('cryptoheim_user');
+                window.dispatchEvent(new Event('cryptoheim-session-expired'));
                 return { status: 'error', code: 401, message: 'Unauthorized / Session Expired' };
             }
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -102,6 +104,7 @@ async function putApi(endpoint, body) {
                 console.warn("[API] 401 Unauthorized detected. Clearing expired token.");
                 localStorage.removeItem('cryptoheim_token');
                 localStorage.removeItem('cryptoheim_user');
+                window.dispatchEvent(new Event('cryptoheim-session-expired'));
                 return { status: 'error', code: 401, message: 'Unauthorized / Session Expired' };
             }
             throw new Error(`HTTP error! status: ${response.status}`);
