@@ -556,16 +556,30 @@ function initControls() {
     btnSubmit.addEventListener('click', async () => {
         if (!isLoggedIn()) { window.location.href = "pro.html"; return; }
         if (!selectedSide) { alert('Select LONG or SHORT first.'); return; }
-        const size = parseFloat(sizeInput.value) || 10;
-        const tp   = parseFloat(tpInput.value) || null;
-        const sl   = parseFloat(slInput.value) || null;
-        const res  = await API.submitExpertForecast(selectedSide, '', tp, sl, size);
-        if (res?.status === 'success') {
-            resetControls();
-            await updateAll();
-            await loadChartData();
-        } else {
-            alert('Failed to place trade. Is one already open?');
+        
+        if (btnSubmit.disabled) return;
+        btnSubmit.disabled = true;
+        const originalText = btnSubmit.innerText;
+        btnSubmit.innerText = "SUBMITTING...";
+
+        try {
+            const size = parseFloat(sizeInput.value) || 10;
+            const tp   = parseFloat(tpInput.value) || null;
+            const sl   = parseFloat(slInput.value) || null;
+            const res  = await API.submitExpertForecast(selectedSide, '', tp, sl, size);
+            if (res?.status === 'success') {
+                resetControls();
+                await updateAll();
+                await loadChartData();
+            } else {
+                alert('Failed to place trade. Is one already open?');
+            }
+        } catch(e) {
+            console.error(e);
+            alert('An error occurred during submission.');
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = originalText;
         }
     });
 }
