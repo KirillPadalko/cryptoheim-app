@@ -220,6 +220,7 @@ async function loadChartData() {
         if (livePriceEl) {
             livePriceEl.textContent = '$' + last.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
+        updateActivePnLDisplay();
     }
 
     // Draw markers
@@ -510,6 +511,7 @@ async function updateLivePrice() {
         changeEl.className = 'evb-price-change ' + (pos ? 'pos' : 'neg');
     }
     updateTPSLPcts();
+    updateActivePnLDisplay();
 }
 
 // ── CONTROLS ───────────────────────────────────────────
@@ -702,6 +704,7 @@ async function updateAll() {
 
 async function updateActiveForecast() {
     const data = await API.getExpertCurrent();
+    window.activeForecast = data;
     const banner = document.getElementById('active-position-banner');
     const card   = document.getElementById('action-card');
     if (!banner || !card) return;
@@ -897,17 +900,17 @@ async function updateActiveForecast() {
             });
         } else {
             // Card is already rendered, just update the live unrealized PnL field
-            const pnlDisplay = document.getElementById('active-pnl-display');
-            if (pnlDisplay) {
-                pnlDisplay.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
-                pnlDisplay.className = `evb-active-pnl-val ${pos ? 'pos' : 'neg'}`;
-            }
+            updateActivePnLDisplay();
         }
+        
+        // Ensure initial/updated render has correct PnL based on live price
+        updateActivePnLDisplay();
         
         // Update status badge
         const badge = document.getElementById('user-status-badge');
         if (badge) { badge.textContent = 'IN TRADE'; badge.classList.add('active'); }
     } else {
+        window.activeForecast = null;
         // No active trade, reset and show normal action card
         banner.style.display = 'none';
         banner.innerHTML = '';
@@ -987,6 +990,27 @@ async function updateActiveForecast() {
         const resStr = joMind.p_res ? `$${Math.round(joMind.p_res)}` : '—';
         setEl('jo-mind-levels', `Support: ${suppStr} | Resistance: ${resStr}`);
     }
+}
+
+function updateActivePnLDisplay() {
+    const data = window.activeForecast;
+    if (!data || !lastKnownPrice) return;
+    
+    const pnlDisplay = document.getElementById('active-pnl-display');
+    if (!pnlDisplay) return;
+    
+    const entryPrice = data.entry_price;
+    let priceDiff = lastKnownPrice - entryPrice;
+    if (data.side === 'SELL') {
+        priceDiff = -priceDiff;
+    }
+    const leverage = 10.0;
+    const pnlPct = (priceDiff / entryPrice) * 100 * leverage;
+    const pnl = (data.size || 100) * (pnlPct / 100);
+    const pos = pnl >= 0;
+    
+    pnlDisplay.textContent = `${pos ? '+' : ''}$${pnl.toFixed(2)}`;
+    pnlDisplay.className = `evb-active-pnl-val ${pos ? 'pos' : 'neg'}`;
 }
 
 async function updateBattleFeed() {
