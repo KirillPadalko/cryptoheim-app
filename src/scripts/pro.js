@@ -23,6 +23,7 @@ const I18N_PRO = {
         'why_pro_3': 'Полный доступ к индикаторам ботов CH & JO',
         'why_pro_4': '100% чистый интерфейс без рекламы',
         'why_pro_5': 'Приоритетная поддержка и прямая связь',
+        'why_pro_6': 'Доступно и <a href="https://play.google.com/store/apps/details?id=io.github.kirillpadalko.cryptoheim" target="_blank" style="text-decoration: underline; font-weight: 800;">Android-приложение</a> с PRO-сигналами и аналитикой',
         'how_activate_title': '🚀 КАК АКТИВИРОВАТЬ ДОСТУП',
         'how_activate_step1': '<strong>1. Оформить подписку на Boosty:</strong><br>Нажмите кнопку ниже, перейдите на страницу Boosty и выберите <strong>PRO подписку</strong>.',
         'how_activate_step2': '<strong>2. Активация на сайте:</strong><br>Вернитесь на эту страницу, введите свой никнейм в форму ниже и подтвердите его кодом.',
