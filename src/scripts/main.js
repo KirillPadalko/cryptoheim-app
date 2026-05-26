@@ -304,8 +304,92 @@ async function updateDashboardData() {
         renderClosedOrders(),
         renderBalanceChart(),
         renderRiskScenario(),
-        renderVisitorStats()
+        renderVisitorStats(),
+        updateCompetitorsMind()
     ]);
+}
+
+async function updateCompetitorsMind() {
+    const card = document.getElementById('competitors-mind-card');
+    if (!card) return;
+
+    try {
+        const botStats = await API.getExpertStats().catch(() => null);
+        if (!botStats) return;
+
+        const botPos = botStats?.bot?.current_position;
+        const chMind = botStats?.bot?.mind;
+        const joMind = botStats?.jo?.mind;
+
+        // 1. CH Bot Mind Updates
+        const chStatusEl = document.getElementById('ch-mind-status');
+        if (chStatusEl) {
+            if (botPos) {
+                chStatusEl.textContent = 'IN TRADE';
+                chStatusEl.classList.add('active');
+                chStatusEl.classList.remove('standby');
+            } else {
+                chStatusEl.textContent = 'STANDBY';
+                chStatusEl.classList.remove('active');
+                chStatusEl.classList.add('standby');
+            }
+        }
+        if (chMind) {
+            const chBiasEl = document.getElementById('ch-mind-bias');
+            if (chBiasEl) chBiasEl.textContent = chMind.bias || 'NEUTRAL';
+            
+            const chConfEl = document.getElementById('ch-mind-confidence');
+            if (chConfEl) chConfEl.textContent = chMind.confidence || '0%';
+            
+            const chAtrEl = document.getElementById('ch-mind-atr');
+            if (chAtrEl) chAtrEl.textContent = chMind.atr_noise_15m || '0.00%';
+            
+            const chDescEl = document.getElementById('ch-mind-desc');
+            if (chDescEl) chDescEl.textContent = chMind.state_desc || 'Scanning...';
+        }
+
+        // 2. Jo Bot Mind Updates
+        const joPos = botStats?.jo?.current_position;
+        const joStatusEl = document.getElementById('jo-mind-status');
+        if (joStatusEl) {
+            if (joPos) {
+                joStatusEl.textContent = 'IN TRADE';
+                joStatusEl.classList.add('active');
+                joStatusEl.classList.remove('standby');
+            } else {
+                joStatusEl.textContent = 'STANDBY';
+                joStatusEl.classList.remove('active');
+                joStatusEl.classList.add('standby');
+            }
+        }
+        if (joMind) {
+            const joInertiaEl = document.getElementById('jo-mind-inertia');
+            if (joInertiaEl) joInertiaEl.textContent = joMind.inertia !== undefined ? joMind.inertia.toFixed(2) : '—';
+            
+            const joStreakEl = document.getElementById('jo-mind-streak');
+            if (joStreakEl) joStreakEl.textContent = joMind.noise_streak !== undefined ? `${joMind.noise_streak} bars` : '—';
+            
+            const joQuarEl = document.getElementById('jo-mind-quarantine');
+            if (joQuarEl) {
+                if (joMind.breakout_timer > 0) {
+                    joQuarEl.textContent = `LOCKED (${joMind.breakout_timer} bars)`;
+                    joQuarEl.style.color = '#FF1744';
+                } else {
+                    joQuarEl.textContent = 'SAFE / ACTIVE';
+                    joQuarEl.style.color = '#00C853';
+                }
+            }
+
+            const joLevelsEl = document.getElementById('jo-mind-levels');
+            if (joLevelsEl) {
+                const suppStr = joMind.p_supp ? `$${Math.round(joMind.p_supp)}` : '—';
+                const resStr = joMind.p_res ? `$${Math.round(joMind.p_res)}` : '—';
+                joLevelsEl.textContent = `Support: ${suppStr} | Resistance: ${resStr}`;
+            }
+        }
+    } catch (e) {
+        console.error("Error updating competitors mind:", e);
+    }
 }
 
 async function renderVisitorStats() {
