@@ -571,6 +571,9 @@ function initControls() {
                 resetControls();
                 await updateAll();
                 await loadChartData();
+            } else if (res?.code === 401) {
+                alert('Your session has expired. Please log in again.');
+                window.location.href = "pro.html";
             } else {
                 alert('Failed to place trade. Is one already open?');
             }
@@ -861,6 +864,9 @@ async function updateActiveForecast() {
                     showToastAtCursor(window.innerWidth / 2, window.innerHeight / 2, 'ACTIVE TRADE UPDATED successfully');
                     await updateAll();
                     await loadChartData();
+                } else if (res?.code === 401) {
+                    alert('Your session has expired. Please log in again.');
+                    window.location.href = "pro.html";
                 } else {
                     alert('Failed to update Stop Loss / Take Profit.');
                     updateBtn.innerHTML = '<span>💾</span> UPDATE SL/TP';
@@ -870,7 +876,12 @@ async function updateActiveForecast() {
             
             closeBtn.addEventListener('click', async () => {
                 if (confirm('Close this position?')) {
-                    await API.closeExpertForecast();
+                    const res = await API.closeExpertForecast();
+                    if (res?.code === 401) {
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = "pro.html";
+                        return;
+                    }
                     banner.style.display = 'none';
                     banner.innerHTML = '';
                     card.style.display = 'block';

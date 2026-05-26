@@ -36,6 +36,12 @@ async function fetchApi(endpoint) {
 
         const response = await fetch(fullUrl, { headers });
         if (!response.ok) {
+            if (response.status === 401) {
+                console.warn("[API] 401 Unauthorized detected. Clearing expired token.");
+                localStorage.removeItem('cryptoheim_token');
+                localStorage.removeItem('cryptoheim_user');
+                return { status: 'error', code: 401, message: 'Unauthorized / Session Expired' };
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         return await response.json();
@@ -60,7 +66,15 @@ async function postApi(endpoint, body) {
             headers: headers,
             body: JSON.stringify(body)
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.warn("[API] 401 Unauthorized detected. Clearing expired token.");
+                localStorage.removeItem('cryptoheim_token');
+                localStorage.removeItem('cryptoheim_user');
+                return { status: 'error', code: 401, message: 'Unauthorized / Session Expired' };
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return await response.json();
     } catch (e) {
         console.error(`Post API Error for ${fullUrl}:`, e);
@@ -83,7 +97,15 @@ async function putApi(endpoint, body) {
             headers: headers,
             body: JSON.stringify(body)
         });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            if (response.status === 401) {
+                console.warn("[API] 401 Unauthorized detected. Clearing expired token.");
+                localStorage.removeItem('cryptoheim_token');
+                localStorage.removeItem('cryptoheim_user');
+                return { status: 'error', code: 401, message: 'Unauthorized / Session Expired' };
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         return await response.json();
     } catch (e) {
         console.error(`Put API Error for ${fullUrl}:`, e);
