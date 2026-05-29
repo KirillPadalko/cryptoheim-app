@@ -1420,10 +1420,10 @@ async function updateLeaderboard() {
 
         if (displayName === 'Jo Bot' || displayName.includes('Jo Bot')) {
             displayName = 'Jo Bot';
-            avatarHtml = `<img src="./src/assets/jo_bot.jpg" class="evb-avatar" alt="Jo Bot" />`;
+            avatarHtml = `<img src="/jo_bot.jpg" class="evb-avatar" alt="Jo Bot" />`;
         } else if (displayName === 'CRYPTOHEIM BOT' || displayName.includes('CRYPTOHEIM')) {
             displayName = 'CH Bot';
-            avatarHtml = `<img src="./src/assets/ch_bot.jpg" class="evb-avatar" alt="CH Bot" />`;
+            avatarHtml = `<img src="/ch_bot.jpg" class="evb-avatar" alt="CH Bot" />`;
         } else {
             const initial = displayName ? displayName.charAt(0).toUpperCase() : '?';
             const bg = isYou ? '#2962FF' : '#eee';
