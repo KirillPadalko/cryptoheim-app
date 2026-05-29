@@ -74,7 +74,35 @@
 .evb-hero-table td:last-child { border-right: none; }
 .evb-hero-table tr:last-child td { border-bottom: none; }
 
-.evb-actor-label { color: #000 !important; font-size: 1rem; }
+.evb-actor-label {
+    color: #000 !important;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+}
+
+.evb-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+    margin-right: 10px;
+    border: 2px solid #000;
+    cursor: pointer;
+    background: #fff;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+}
+
+.evb-avatar:hover {
+    transform: scale(1.4);
+    z-index: 10;
+    position: relative;
+    border-color: #2962FF;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 
 /* ─── MAIN GRID ─── */
 .evb-main-grid {

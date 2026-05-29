@@ -1414,7 +1414,23 @@ async function updateLeaderboard() {
 
         const isYou = item.is_you;
         const isBot = item.is_bot;
-        const displayName = isBot ? `${item.name} 🤖` : item.name;
+        
+        let displayName = item.name;
+        let avatarHtml = '';
+
+        if (displayName === 'Jo Bot' || displayName.includes('Jo Bot')) {
+            displayName = 'Jo Bot';
+            avatarHtml = `<img src="./src/assets/jo_bot.jpg" class="evb-avatar" alt="Jo Bot" />`;
+        } else if (displayName === 'CRYPTOHEIM BOT' || displayName.includes('CRYPTOHEIM')) {
+            displayName = 'CH Bot';
+            avatarHtml = `<img src="./src/assets/ch_bot.jpg" class="evb-avatar" alt="CH Bot" />`;
+        } else {
+            const initial = displayName ? displayName.charAt(0).toUpperCase() : '?';
+            const bg = isYou ? '#2962FF' : '#eee';
+            const color = isYou ? '#fff' : '#666';
+            const border = isYou ? '2px solid #000' : '2px solid #ccc';
+            avatarHtml = `<div class="evb-avatar" style="display: inline-flex; align-items: center; justify-content: center; background: ${bg}; color: ${color}; font-size: 11px; font-weight: 800; font-family: var(--font-mono); border: ${border};">${initial}</div>`;
+        }
 
         const rowClass = isYou ? 'evb-hero-row you' : 'evb-hero-row';
         const pnlSign = item.total_pnl >= 0;
@@ -1435,7 +1451,7 @@ async function updateLeaderboard() {
                     <span class="evb-lb-rank ${rankClass}">${item.rank}</span>
                 </td>
                 <td class="td-actor">
-                    <span class="evb-actor-label">${displayName}</span>
+                    <span class="evb-actor-label">${avatarHtml}<span>${displayName}</span></span>
                     ${pointsBadge}
                     ${isYou ? '<span class="evb-lb-you-tag" style="margin-left: 8px; background: #2962FF; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 10px;">YOU</span>' : ''}
                 </td>
@@ -1450,6 +1466,7 @@ async function updateLeaderboard() {
             </tr>
         `;
     }).join('');
+
 
     // 3. Render Sparklines in-line
     document.querySelectorAll('.evb-sparkline').forEach(canvas => {
