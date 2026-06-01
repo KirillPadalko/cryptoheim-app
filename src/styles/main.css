@@ -232,6 +232,32 @@ img {
     opacity: 0.8;
 }
 
+.top-nav .boosty-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: #fff;
+    border: var(--border-thin);
+    padding: 0.35rem 0.75rem;
+    background: #FF543E; /* Traditional Boosty Orange */
+    font-family: var(--font-main);
+    transition: all .15s;
+    white-space: nowrap;
+    text-transform: uppercase;
+    min-width: 130px;
+}
+.top-nav .boosty-btn:hover {
+    background: #000;
+    color: #fff;
+}
+.top-nav .boosty-btn:active {
+    opacity: 0.8;
+}
+
 @media (max-width: 1200px) {
     .nav-center {
         position: static;
@@ -253,7 +279,8 @@ img {
 }
 @media (max-width: 768px) {
     .top-nav .nav-links { justify-content: center; width: 100%; margin-left: 0; }
-    .top-nav .pro-btn { width: 100%; justify-content: center; }
+    .top-nav .pro-btn,
+    .top-nav .boosty-btn { width: 100%; justify-content: center; }
 }
 
 /* ─── SHARED PAGE HEADER ─── */

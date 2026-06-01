@@ -149,6 +149,9 @@ export const API = {
     // Auth & Profile
     authStart: (nickname) => postApi("/api/auth/start", { nickname }),
     authVerify: (nickname, code_or_password) => postApi("/api/auth/verify", { nickname, code_or_password }),
+    registerSimple: (nickname, email, password) => postApi("/api/auth/register-simple", { nickname, email, password }),
+    loginSimple: (nickname_or_email, password) => postApi("/api/auth/login-simple", { nickname_or_email, password }),
+    loginGoogle: (credential) => postApi("/api/auth/google", { credential }),
     getMe: () => fetchApi("/api/auth/me"),
     updateProfile: (data) => putApi("/api/auth/profile", data),
     

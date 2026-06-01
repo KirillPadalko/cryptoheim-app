@@ -5,26 +5,21 @@ const I18N_PRO = {
         'pro_cta': 'ПОЛУЧИТЬ PRO ДОСТУП',
         'app_btn': 'ПРИЛОЖЕНИЕ В GOOGLE PLAY',
         'pro_hero_title': 'Активация PRO',
-        'pro_hero_subtitle': 'Поддержите проект и получите эксклюзивный доступ к сигналам ботов в реальном времени, ИИ-аналитике и работе без рекламы.',
-        'auth_step_1': 'Шаг 1: Имя пользователя',
-        'auth_step_1_desc': 'Введите ваше имя пользователя (nickname) на Boosty для начала верификации.',
-        'label_nickname': 'Имя пользователя Boosty',
-        'btn_start_auth': 'Далее',
-        'auth_step_2': 'Шаг 2: Отправка кода',
-        'auth_step_2_desc': 'Пожалуйста, отправьте этот код в личном сообщении нашей',
-        'auth_step_2_hint': 'После отправки сообщения подождите несколько секунд и нажмите кнопку «Проверить и войти».',
-        'btn_verify': 'Проверить и войти',
-        'btn_back': 'Назад',
+        'pro_hero_subtitle': 'Создайте бесплатный аккаунт или войдите через Google SSO, чтобы мгновенно получить доступ к сигналам ботов, мнению экспертов и графикам.',
+        'boosty_support': 'Поддержать на Boosty',
+        'tab_login': 'Войти',
+        'tab_register': 'Регистрация',
+        'label_email_nick': 'Email или Никнейм',
+        'label_password': 'Пароль',
+        'btn_login': 'Войти',
+        'label_nickname': 'Никнейм',
+        'label_email': 'Email адрес',
+        'btn_register': 'Создать аккаунт',
+        'or_use_google': 'ИЛИ ВОЙТИ ЧЕРЕЗ GOOGLE',
+        'auth_info_note': 'Регистрация бесплатна и мгновенно дает статус PRO. Подписка Boosty является добровольной поддержкой разработчика.',
         'auth_success': 'Успешно!',
-        'btn_finish': 'Перейти в личный кабинет',
-        'why_pro_title': '👑 ПОЧЕМУ СТОИТ ВЫБРАТЬ PRO?',
-        'why_pro_1': 'Торговые сигналы от нашей аналитической платформы',
-        'why_pro_2': '100% чистый интерфейс без рекламы',
-        'gp_get_it': 'СКАЧАТЬ В',
-        'how_activate_title': 'КАК АКТИВИРОВАТЬ ДОСТУП',
-        'how_activate_step1': '<strong>1. Оформить подписку на Boosty:</strong><br>Нажмите кнопку ниже, перейдите на страницу Boosty и выберите <strong>PRO подписку</strong>.',
-        'how_activate_step2': '<strong>2. Активация на сайте:</strong><br>Вернитесь на эту страницу, введите свой никнейм в форму ниже и подтвердите его кодом.',
-        'btn_subscribe': '👉 ПОДПИСАТЬСЯ НА BOOSTY'
+        'success_logged_in': 'Вы успешно вошли в систему, полный PRO доступ активен.',
+        'btn_finish': 'Перейти на панель управления'
     }
 };
 
@@ -38,9 +33,20 @@ function applyTranslations() {
             el.innerHTML = I18N_PRO['ru'][key];
         }
     });
+
+    document.querySelectorAll('[data-i18n-nav]').forEach(el => {
+        const key = el.getAttribute('data-i18n-nav');
+        const ruNav = {
+            'Signals': 'Аналитика',
+            'Battle': 'Мнение эксперта'
+        };
+        if (ruNav[key]) {
+            el.innerText = ruNav[key];
+        }
+    });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     window.appLang = localStorage.getItem('appLang') || 'en';
     
     // Lang Switcher
@@ -65,99 +71,127 @@ document.addEventListener('DOMContentLoaded', () => {
         API.updateNavProfile();
     } catch(e) { console.error(e); }
     
-    const step1 = document.getElementById('step-1');
-    const step2 = document.getElementById('step-2');
-    const step3 = document.getElementById('step-3');
-    
-    const startBtn = document.getElementById('start-auth-btn');
-    const verifyBtn = document.getElementById('verify-auth-btn');
-    const backBtn = document.getElementById('back-to-step-1');
-    const finishBtn = document.getElementById('finish-btn');
-    
-    const nickInput = document.getElementById('boosty-nick');
-    const codeDisplay = document.getElementById('code-display');
+    // UI Elements
+    const tabs = document.querySelectorAll('.auth-tab-btn');
+    const panes = document.querySelectorAll('.form-pane');
     const errorMsg = document.getElementById('error-msg');
     const spinner = document.getElementById('spinner');
     
-    const vipInstructions = document.getElementById('vip-instructions');
-    const normalInstructions = document.getElementById('normal-instructions');
-    const vipPassword = document.getElementById('vip-password');
-    
-    let currentNickname = "";
-    let isVip = false;
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const finishBtn = document.getElementById('finish-btn');
 
+    // Helper functions
     const showError = (msg) => {
         errorMsg.innerText = msg;
         errorMsg.style.display = 'block';
-        setTimeout(() => { errorMsg.style.display = 'none'; }, 5000);
+        setTimeout(() => { errorMsg.style.display = 'none'; }, 6000);
     };
 
     const toggleLoading = (loading) => {
         spinner.style.display = loading ? 'block' : 'none';
-        startBtn.disabled = loading;
-        verifyBtn.disabled = loading;
+        document.getElementById('btn-submit-login').disabled = loading;
+        document.getElementById('btn-submit-register').disabled = loading;
     };
 
-    // Step 1 -> Step 2
-    startBtn.addEventListener('click', async () => {
-        const nickname = nickInput.value.trim();
-        if (!nickname) return;
+    const handleSuccess = (res) => {
+        localStorage.setItem('cryptoheim_token', res.access_token);
+        localStorage.setItem('cryptoheim_user', JSON.stringify(res.user));
+        
+        try {
+            API.updateNavProfile();
+        } catch(e) { console.error(e); }
 
-        toggleLoading(true);
-        const res = await API.authStart(nickname);
-        toggleLoading(false);
+        document.getElementById('auth-card').style.display = 'none';
+        document.getElementById('success-screen').style.display = 'block';
+    };
 
-        if (res && res.code) {
-            currentNickname = nickname;
-            isVip = !!res.is_vip;
+    // Tab Switching Logic
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            panes.forEach(p => p.classList.remove('active'));
             
-            if (isVip) {
-                vipInstructions.style.display = 'block';
-                normalInstructions.style.display = 'none';
-            } else {
-                vipInstructions.style.display = 'none';
-                normalInstructions.style.display = 'block';
-                codeDisplay.innerText = res.code;
-            }
-            
-            step1.style.display = 'none';
-            step2.style.display = 'block';
-        } else {
-            console.error("Auth start failed. Response:", res);
-            showError("Failed to start verification. Try again.");
-        }
+            tab.classList.add('active');
+            const targetPane = document.getElementById(`pane-${tab.dataset.tab}`);
+            if (targetPane) targetPane.classList.add('active');
+        });
     });
 
-    // Step 2 -> Step 3 (Verification)
-    verifyBtn.addEventListener('click', async () => {
-        const codeOrPassword = isVip ? vipPassword.value.trim() : codeDisplay.innerText.trim();
-        if (isVip && !codeOrPassword) return showError("Please enter VIP password");
-        
+    // Form Submissions
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const usernameOrEmail = document.getElementById('login-nick').value.trim();
+        const pass = document.getElementById('login-pass').value;
+        if (!usernameOrEmail || !pass) return;
+
         toggleLoading(true);
-        const res = await API.authVerify(currentNickname, codeOrPassword);
+        const res = await API.loginSimple(usernameOrEmail, pass);
         toggleLoading(false);
 
         if (res && res.access_token) {
-            // Success!
-            localStorage.setItem('cryptoheim_token', res.access_token);
-            localStorage.setItem('cryptoheim_user', JSON.stringify(res.user));
-            
-            try {
-                API.updateNavProfile();
-            } catch(e) { console.error(e); }
-            
-            step2.style.display = 'none';
-            step3.style.display = 'block';
+            handleSuccess(res);
         } else {
-            const msg = isVip ? "Invalid VIP password." : "Code not found or invalid. Please ensure you sent the message on Boosty.";
-            showError(msg);
+            showError(res?.message || "Invalid credentials or login failed.");
         }
     });
 
-    backBtn.addEventListener('click', () => {
-        step2.style.display = 'none';
-        step1.style.display = 'block';
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nick = document.getElementById('reg-nick').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const pass = document.getElementById('reg-pass').value;
+        if (!nick || !email || !pass) return;
+
+        toggleLoading(true);
+        const res = await API.registerSimple(nick, email, pass);
+        toggleLoading(false);
+
+        if (res && res.access_token) {
+            handleSuccess(res);
+        } else {
+            showError(res?.message || "Registration failed. Username or email might already be taken.");
+        }
     });
+
+    // Google SSO Response Handler
+    const handleGoogleCredentialResponse = async (response) => {
+        toggleLoading(true);
+        const res = await API.loginGoogle(response.credential);
+        toggleLoading(false);
+
+        if (res && res.access_token) {
+            handleSuccess(res);
+        } else {
+            showError(res?.message || "Google authentication failed.");
+        }
+    };
+
+    // Initialize Google SSO dynamically
+    const initGoogleSSO = async () => {
+        try {
+            const response = await fetch('/api/auth/google/client-id');
+            if (!response.ok) throw new Error("Failed to get Google Client ID");
+            const data = await response.json();
+            const clientId = data.client_id;
+            
+            if (clientId && window.google) {
+                window.google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: handleGoogleCredentialResponse
+                });
+                window.google.accounts.id.renderButton(
+                    document.getElementById("google-sso-btn"),
+                    { theme: "outline", size: "large", width: 280 }
+                );
+            }
+        } catch(e) {
+            console.error("Error setting up Google SSO:", e);
+        }
+    };
+
+    // Start Google SSO initialization
+    initGoogleSSO();
 
     finishBtn.addEventListener('click', () => {
         window.location.href = "indicators.html";

@@ -16,6 +16,9 @@
     <link rel="stylesheet" href="./src/styles/main.css">
     <link rel="stylesheet" href="./src/styles/dashboard.css">
 
+    <!-- Google SSO library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
         .pro-container {
             max-width: 800px;
@@ -25,7 +28,7 @@
 
         .pro-hero {
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .pro-hero h1 {
@@ -40,63 +43,57 @@
             color: var(--text-muted);
             max-width: 600px;
             margin: 0 auto;
+            line-height: 1.5;
         }
 
-        .pro-grid {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-
-        .pro-card-single {
-            max-width: 550px;
-            width: 100%;
-        }
-
-        .pro-card {
+        /* Neo-Brutalist Authentication Card */
+        .auth-card {
             background: #fff;
             border: var(--border-thick);
             box-shadow: 8px 8px 0 #000;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto 3rem;
+            box-sizing: border-box;
         }
 
-        .pro-card h2 {
-            font-size: 1.5rem;
-            text-transform: uppercase;
+        .auth-tabs {
+            display: flex;
             border-bottom: var(--border-thick);
-            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
         }
 
-        .pro-card ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .pro-card ul li {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-weight: 600;
-        }
-
-        .pro-card ul li::before {
-            content: "✦";
-            color: var(--color-green);
-        }
-
-        .activation-box {
-            background: var(--color-yellow);
-            border: var(--border-thick);
-            box-shadow: 8px 8px 0 #000;
-            padding: 2rem;
+        .auth-tab-btn {
+            flex: 1;
+            padding: 1rem;
+            background: transparent;
+            border: none;
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
             text-align: center;
+            transition: all 0.15s;
+            color: #000;
+        }
+
+        .auth-tab-btn.active {
+            background: #000;
+            color: #fff;
+        }
+
+        .auth-tab-btn:not(.active):hover {
+            background: #f5f5f5;
+        }
+
+        .form-pane {
+            display: none;
+        }
+
+        .form-pane.active {
+            display: block;
         }
 
         .input-group {
@@ -120,6 +117,15 @@
             font-size: 1.1rem;
             width: 100%;
             box-sizing: border-box;
+            background: #fff;
+            color: #000;
+            outline: none;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .brutal-input:focus {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 #000;
         }
 
         .brutal-btn {
@@ -145,32 +151,90 @@
             box-shadow: none;
         }
 
-        .code-display {
-            margin-top: 2rem;
-            padding: 2rem;
-            background: #000;
-            color: var(--color-green);
+        /* Divider */
+        .divider-container {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 2rem 0;
             font-family: var(--font-mono);
-            font-size: 2rem;
-            font-weight: 800;
-            border: var(--border-thick);
-            display: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #333;
+        }
+
+        .divider-container::before, .divider-container::after {
+            content: '';
+            flex: 1;
+            border-bottom: 2px solid #000;
+        }
+
+        .divider-container:not(:empty)::before {
+            margin-right: 1rem;
+        }
+
+        .divider-container:not(:empty)::after {
+            margin-left: 1rem;
+        }
+
+        .google-sso-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+            min-height: 44px;
+        }
+
+        .auth-info-note {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-top: 2rem;
+            text-align: center;
+            border-top: var(--border-thin);
+            padding-top: 1.2rem;
         }
 
         .error-msg {
-            color: var(--color-red);
-            font-weight: 800;
-            margin-top: 1rem;
+            background: var(--color-red);
+            color: #fff;
+            border: var(--border-thick);
+            padding: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
             display: none;
+        }
+
+        .success-msg-box {
+            text-align: center;
+            display: none;
+        }
+
+        .success-msg-box .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .success-msg-box h2 {
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .success-msg-box p {
+            margin-bottom: 2rem;
+            font-weight: 600;
         }
 
         .loading-spinner {
             display: none;
-            margin: 1rem auto;
-            width: 30px;
-            height: 30px;
+            margin: 1.5rem auto;
+            width: 35px;
+            height: 35px;
             border: 4px solid #000;
-            border-top: 4px solid #fff;
+            border-top: 4px solid var(--color-green);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -219,11 +283,21 @@
                     </svg>
                     <span data-i18n="pro_cta">GET PRO ACCESS</span>
                 </a>
+                <a href="https://boosty.to/cryptoheim" target="_blank" class="boosty-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <span data-i18n="boosty_support" id="nav-boosty-support">Support on Boosty</span>
+                </a>
             </div>
         </div>
 
         <!-- RIGHT: Tools & Profile -->
         <div class="nav-right">
+            <div class="nav-lang" id="lang-switcher">
+                <div class="lang-btn" data-lang="en">EN</div>
+                <div class="lang-btn" data-lang="ru">RU</div>
+            </div>
             <a href="profile.html" class="profile-btn" title="Profile">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -236,91 +310,86 @@
     <div class="pro-container">
         <div class="pro-hero">
             <h1 data-i18n="pro_hero_title">Upgrade to PRO</h1>
-            <p data-i18n="pro_hero_subtitle">Support the project and get exclusive access to real-time bot signals, AI analytics, and ad-free experience.</p>
+            <p data-i18n="pro_hero_subtitle">Create a free account or use Google SSO to immediately unlock real-time bot signals, expert analysis, and advanced charts.</p>
         </div>
 
-        <div class="pro-grid">
-            <div class="pro-card pro-card-single" style="border-color: var(--color-green); padding: 1.5rem 2rem; gap: 1rem;">
-                <h2 data-i18n="how_activate_title">HOW TO ACTIVATE ACCESS</h2>
-                <div style="font-size: 0.95rem; line-height: 1.5; display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div data-i18n="how_activate_step1">
-                        <strong>1. Subscribe on Boosty:</strong><br>
-                        Click the button below to visit our Boosty page and choose the <strong>PRO Plan</strong>.
-                    </div>
-                    <div data-i18n="how_activate_step2">
-                        <strong>2. Activate Nickname:</strong><br>
-                        Return here, enter your Boosty nickname in the form below, and verify.
-                    </div>
-                </div>
-                <a href="https://boosty.to/cryptoheim" target="_blank" class="brutal-btn" style="background: var(--color-green); color: #000; text-align: center; text-decoration: none; margin-top: 0.5rem; display: block; font-weight: 800; padding: 0.75rem 1.5rem;" data-i18n="btn_subscribe">
-                    👉 SUBSCRIBE ON BOOSTY
-                </a>
-            </div>
-        </div>
-
-
-
-        <div class="activation-box" id="auth-flow">
-            <!-- Step 1: Nickname -->
-            <div id="step-1">
-                <h2 style="text-transform: uppercase; margin-bottom: 1rem;" data-i18n="auth_step_1">Step 1: Enter Nickname</h2>
-                <p style="margin-bottom: 1.5rem;" data-i18n="auth_step_1_desc">Enter your Boosty nickname to start verification.</p>
-                
-                <div class="input-group">
-                    <label for="boosty-nick" data-i18n="label_nickname">Boosty Nickname</label>
-                    <input type="text" id="boosty-nick" class="brutal-input" placeholder="e.g. trader_pro">
-                </div>
-                <button id="start-auth-btn" class="brutal-btn" data-i18n="btn_start_auth">Next</button>
+        <!-- AUTHENTICATION CARD -->
+        <div class="auth-card" id="auth-card">
+            <!-- Tabs -->
+            <div class="auth-tabs" id="auth-tabs-nav">
+                <button class="auth-tab-btn active" data-tab="login" data-i18n="tab_login">Login</button>
+                <button class="auth-tab-btn" data-tab="register" data-i18n="tab_register">Register</button>
             </div>
 
-            <!-- Step 2: Verification Code -->
-            <div id="step-2" style="display: none;">
-                <div id="normal-instructions">
-                    <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;" data-i18n="auth_step_2">Step 2: Send Code</h2>
-                    <p style="margin-bottom: 1.5rem;">
-                        <span data-i18n="auth_step_2_desc">Please send this code in a private message to our</span>
-                        <a href="https://boosty.to/cryptoheim" target="_blank" style="text-decoration: underline; font-weight: 800;">Boosty page</a>:
-                    </p>
-                    
-                    <div class="code-display" id="code-display" style="display: block; margin-bottom: 2rem;">
-                        VB-XXXXXX
-                    </div>
-
-                    <p style="font-size: 0.9rem; margin-bottom: 1.5rem;" data-i18n="auth_step_2_hint">After sending the message, wait a few seconds and click Verify.</p>
-                </div>
-
-                <div id="vip-instructions" style="display: none;">
-                    <h2 style="text-transform: uppercase; margin-bottom: 1.5rem;">Step 2: VIP Password</h2>
-                    <p style="margin-bottom: 1.5rem;">Please enter your VIP activation code below:</p>
-                    
-                    <div class="input-group">
-                        <label for="vip-password">VIP PASSWORD</label>
-                        <input type="password" id="vip-password" class="brutal-input" placeholder="Enter VIP code">
-                    </div>
-                </div>
-                
-                <button id="verify-auth-btn" class="brutal-btn" data-i18n="btn_verify">Verify & Login</button>
-                <button id="back-to-step-1" class="brutal-btn" style="background: transparent; color: #000; margin-top: 1rem;" data-i18n="btn_back">Back</button>
-            </div>
-
-            <!-- Step 3: Success -->
-            <div id="step-3" style="display: none;">
-                <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
-                <h2 style="text-transform: uppercase; margin-bottom: 1rem;" data-i18n="auth_success">Success!</h2>
-                <p id="success-msg" style="margin-bottom: 2rem; font-weight: 600;">You are now logged in as PRO.</p>
-                <button id="finish-btn" class="brutal-btn" data-i18n="btn_finish">Go to Dashboard</button>
-            </div>
-            
-            <div class="loading-spinner" id="spinner" style="display: none;"></div>
+            <!-- Error message banner -->
             <div class="error-msg" id="error-msg"></div>
+
+            <!-- Form content -->
+            <div class="auth-form-content">
+                <!-- Tab 1: LOGIN -->
+                <div class="form-pane active" id="pane-login">
+                    <form id="login-form" onsubmit="return false;">
+                        <div class="input-group">
+                            <label for="login-nick" data-i18n="label_email_nick">Email or Nickname</label>
+                            <input type="text" id="login-nick" class="brutal-input" placeholder="Enter email or nickname" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="login-pass" data-i18n="label_password">Password</label>
+                            <input type="password" id="login-pass" class="brutal-input" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" id="btn-submit-login" class="brutal-btn" data-i18n="btn_login">Log In</button>
+                    </form>
+                </div>
+
+                <!-- Tab 2: REGISTER -->
+                <div class="form-pane" id="pane-register">
+                    <form id="register-form" onsubmit="return false;">
+                        <div class="input-group">
+                            <label for="reg-nick" data-i18n="label_nickname">Nickname</label>
+                            <input type="text" id="reg-nick" class="brutal-input" placeholder="e.g. trader_pro" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="reg-email" data-i18n="label_email">Email address</label>
+                            <input type="email" id="reg-email" class="brutal-input" placeholder="you@example.com" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="reg-pass" data-i18n="label_password">Password</label>
+                            <input type="password" id="reg-pass" class="brutal-input" placeholder="Create secure password" required>
+                        </div>
+                        <button type="submit" id="btn-submit-register" class="brutal-btn" data-i18n="btn_register">Create Account</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Divider and Google SSO -->
+            <div class="divider-container" data-i18n="or_use_google">Or Use Google SSO</div>
+            <div class="google-sso-wrapper">
+                <div id="google-sso-btn"></div>
+            </div>
+
+            <!-- Interactive loader -->
+            <div class="loading-spinner" id="spinner"></div>
+
+            <!-- Voluntary Support message -->
+            <p class="auth-info-note" data-i18n="auth_info_note">
+                Registration is completely free and instantly grants PRO status. Boosty subscription is optional to voluntarily support the developer.
+            </p>
+        </div>
+
+        <!-- SUCCESS SCREEN -->
+        <div class="auth-card success-msg-box" id="success-screen">
+            <div class="success-icon">✅</div>
+            <h2 data-i18n="auth_success">Success!</h2>
+            <p id="success-msg" data-i18n="success_logged_in">You are now logged in with full PRO access.</p>
+            <button id="finish-btn" class="brutal-btn" data-i18n="btn_finish">Go to Dashboard</button>
         </div>
     </div>
 
     <footer style="border-top: 3px solid #000; padding: 2rem; text-align: center; font-family: 'Space Mono', monospace;">
         CryptoHeim © 2026 · Premium Intelligence
     </footer>
+    
     <script type="module" src="./src/scripts/pro.js"></script>
-
 </body>
-</html>
 
+</html>

@@ -87,6 +87,7 @@ const I18N = {
         'exp_close_btn': 'ЗАКРЫТЬ',
         'pnl_growth': 'РОСТ ПОРТФЕЛЯ',
         'pro_cta': 'ПОЛУЧИТЬ PRO ДОСТУП',
+        'boosty_support': 'ПОДДЕРЖАТЬ НА BOOSTY',
         'cm_title': 'Ручной Copy Mode',
         'cm_desc': 'Следуйте этой инструкции для ручного копирования сделок:',
         'cm_step1': 'Выберите актуальный сигнал из списка <strong>(LONG / SHORT)</strong>.',
