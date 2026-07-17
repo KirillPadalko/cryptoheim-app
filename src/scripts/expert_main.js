@@ -506,8 +506,24 @@ async function renderChartMarkers() {
         return a.text.localeCompare(b.text);
     });
 
-    console.log(`[Chart] Generated ${uniqueMarkers.length} consolidated markers for timeframe ${currentTf}`);
-    candleSeries.setMarkers(uniqueMarkers);
+    // Deduplicate markers with the same time (LightweightCharts requires strictly increasing times)
+    const mergedMarkers = [];
+    for (const m of uniqueMarkers) {
+        const last = mergedMarkers[mergedMarkers.length - 1];
+        if (last && last.time === m.time) {
+            last.text += ` | ${m.text}`;
+            // Prioritize IN over OUT, and belowBar over aboveBar if merging
+            if (m.position === 'belowBar') {
+                last.position = 'belowBar';
+                last.shape = 'arrowUp';
+            }
+        } else {
+            mergedMarkers.push({...m});
+        }
+    }
+
+    console.log(`[Chart] Generated ${mergedMarkers.length} consolidated markers for timeframe ${currentTf}`);
+    candleSeries.setMarkers(mergedMarkers);
     
     if (uniqueMarkers.length > 0) console.log(`[Chart] First marker time: ${uniqueMarkers[0].time}`);
     const candleData = candleSeries.data ? candleSeries.data() : [];
@@ -1043,7 +1059,7 @@ function updateActivePnLDisplay() {
 async function updateBattleFeed() {
     const [expHistory, botHistory, joHistory, expCurrent, botPositions, joCurrent] = await Promise.all([
         API.getExpertHistory(10).catch(() => []),
-        API.getBotHistory(30).catch(() => []),
+        API.getBotHistory(150).catch(() => []), // Increase limit to find enough BTC trades
         API.getExpertHistory(20, 'JO_BOT').catch(() => []),
         API.getExpertCurrent().catch(() => null),
         API.getBotPositions().catch(() => []),
@@ -1052,9 +1068,7 @@ async function updateBattleFeed() {
 
     const feed = [];
 
-    // Open trades are excluded from BATTLE LOG (only closed trades are recorded here)
-
-    // 3. Closed User History
+    // 1. Closed User History
     if (isLoggedIn()) {
         (expHistory || []).forEach(h => {
             feed.push({
@@ -1066,11 +1080,26 @@ async function updateBattleFeed() {
                 isOpen: false
             });
         });
+        
+        // Active User Trade
+        if (expCurrent && expCurrent.open_time) {
+            feed.push({
+                time: expCurrent.open_time > 1e12 ? expCurrent.open_time / 1000 : expCurrent.open_time,
+                actor: 'user',
+                action: expCurrent.side === 'BUY' ? 'BUY' : 'SELL',
+                pair: 'BTC/USDT',
+                pnl: expCurrent.pnl || 0,
+                isOpen: true
+            });
+        }
     }
 
-    // 4. Closed Bot History
+    // 2. Closed Bot History
     const btcBot = (botHistory || []).filter(t => t.symbol === 'BTCUSDT').slice(0, 10);
     btcBot.forEach(t => {
+        // CH Bot trades use absolute raw PnL from backend which is tiny.
+        // Scale it based on pnl_pct (1000 virtual exposure = 10 * pct)
+        const botVirtualPnl = t.pnl_pct !== undefined ? 10 * t.pnl_pct : (t.pnl || 0);
         feed.push({
             time: typeof t.close_time === 'number'
                 ? (t.close_time > 1e12 ? t.close_time / 1000 : t.close_time)
@@ -1078,12 +1107,28 @@ async function updateBattleFeed() {
             actor: 'bot',
             action: ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL',
             pair: 'BTC/USDT',
-            pnl: t.pnl || 0,
+            pnl: botVirtualPnl,
             isOpen: false
         });
     });
 
-    // 5. Closed Jo Bot History
+    // Active Bot Trades
+    const btcBotActive = (botPositions || []).filter(t => t.symbol === 'BTCUSDT');
+    btcBotActive.forEach(t => {
+        const botVirtualPnl = t.pnl_pct !== undefined ? 10 * t.pnl_pct : (t.pnl || 0);
+        feed.push({
+            time: typeof t.open_time === 'number'
+                ? (t.open_time > 1e12 ? t.open_time / 1000 : t.open_time)
+                : Date.now() / 1000,
+            actor: 'bot',
+            action: ['BUY','LONG'].includes(String(t.side).toUpperCase()) ? 'BUY' : 'SELL',
+            pair: 'BTC/USDT',
+            pnl: botVirtualPnl,
+            isOpen: true
+        });
+    });
+
+    // 3. Closed Jo Bot History
     (joHistory || []).forEach(h => {
         feed.push({
             time: h.close_time > 1e12 ? h.close_time / 1000 : h.close_time,
@@ -1094,6 +1139,18 @@ async function updateBattleFeed() {
             isOpen: false
         });
     });
+    
+    // Active Jo Bot Trade
+    if (joCurrent && joCurrent.open_time) {
+        feed.push({
+            time: joCurrent.open_time > 1e12 ? joCurrent.open_time / 1000 : joCurrent.open_time,
+            actor: 'jo',
+            action: joCurrent.side === 'BUY' ? 'BUY' : 'SELL',
+            pair: 'BTC/USDT',
+            pnl: joCurrent.pnl || 0,
+            isOpen: true
+        });
+    }
 
 
     // Sort feed chronologically to run our rivalry scanner over the timeline
@@ -1366,7 +1423,10 @@ function drawSparkline(canvas, history, isPositive) {
 }
 
 async function updateLeaderboard() {
-    const res = await API.getLeaderboard().catch(() => null);
+    const [res, botStats] = await Promise.all([
+        API.getLeaderboard().catch(() => null),
+        API.getBotStats().catch(() => null)
+    ]);
     if (!res) return;
 
     const battleTitleEl = document.getElementById('battle-title');
@@ -1383,14 +1443,14 @@ async function updateLeaderboard() {
         headerEl.innerHTML = isRu ? `
             <th style="width: 70px;">#</th>
             <th style="width: 30%;">УЧАСТНИК</th>
-            <th style="width: 15%;">ДЕПОЗИТ</th>
+            <th style="width: 15%;">БАЛАНС</th>
             <th style="width: 20%; text-align: center;">ДИНАМИКА</th>
             <th style="width: 15%;">ВИНРЕЙТ</th>
             <th style="width: 20%;">PNL ЗА ВСЕ ВРЕМЯ</th>
         ` : `
             <th style="width: 70px;">#</th>
             <th style="width: 30%;">PARTICIPANT</th>
-            <th style="width: 15%;">DEPOSIT</th>
+            <th style="width: 15%;">BALANCE</th>
             <th style="width: 20%; text-align: center;">EQUITY TREND</th>
             <th style="width: 15%;">WIN RATE</th>
             <th style="width: 20%;">TOTAL PNL</th>
@@ -1467,8 +1527,42 @@ async function updateLeaderboard() {
         `;
     }).join('');
 
+    // 3. Append CH Bot row with real live trading stats
+    if (botStats) {
+        const chBotPnl = parseFloat(botStats.total_pnl_usdt || botStats.total_realized_pnl || 0);
+        const chBotBalance = parseFloat(botStats.total_balance_usdt || botStats.balance || 0);
+        const chBotWr = parseFloat(botStats.win_rate_pct || botStats.win_rate || botStats.winrate || 0);
+        const chBotTrades = botStats.total_closed_trades || botStats.total_trades || 0;
+        const chBotWrFormatted = `${(chBotWr > 1 ? chBotWr : chBotWr * 100).toFixed(1)}%`;
+        const pnlSign = chBotPnl >= 0;
+        const formattedPnl = (pnlSign ? '+' : '') + '$' + chBotPnl.toFixed(2);
+        const formattedBal = '$' + chBotBalance.toFixed(2);
 
-    // 3. Render Sparklines in-line
+        const chBotRow = document.createElement('tr');
+        chBotRow.className = 'evb-hero-row';
+        chBotRow.style.cssText = 'background: #f8f8f8; border-top: 2px solid #000;';
+        chBotRow.innerHTML = `
+            <td class="td-rank">
+                <span style="font-size: 0.7rem; font-weight: 800; font-family: var(--font-mono); color: #888;">BOT</span>
+            </td>
+            <td class="td-actor">
+                <span class="evb-actor-label">
+                    <img src="/ch_bot.jpg" class="evb-avatar" alt="CH Bot" onerror="this.style.display='none'" />
+                    <span>CH Bot</span>
+                </span>
+                <span style="margin-left: 8px; background: #333; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 800;">LIVE</span>
+            </td>
+            <td class="td-val" style="font-weight: 600;">${formattedBal}</td>
+            <td style="text-align: center; vertical-align: middle; padding: 4px 8px; color: #888; font-size: 0.7rem; font-family: var(--font-mono);">${chBotTrades} trades</td>
+            <td class="td-val">${chBotWrFormatted}</td>
+            <td class="td-pnl ${pnlSign ? 'pos' : 'neg'}" style="color: ${pnlSign ? '#00C853' : '#FF1744'}; font-weight: bold;">
+                ${formattedPnl}
+            </td>
+        `;
+        bodyEl.appendChild(chBotRow);
+    }
+
+    // 4. Render Sparklines in-line
     document.querySelectorAll('.evb-sparkline').forEach(canvas => {
         try {
             const history = JSON.parse(canvas.dataset.history || '[100.0]');

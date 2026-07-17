@@ -1,0 +1,14 @@
+[
+  {
+    "date": "2026-07-16",
+    "tag": "UI",
+    "ru": "Новая вкладка BOT в терминальном стиле: баланс счёта Bybit, статистика по закрытым сделкам, открытые позиции и этот лог изменений.",
+    "en": "New terminal-style BOT tab: Bybit account balance, closed-trade statistics, open positions and this changelog."
+  },
+  {
+    "date": "2026-07-16",
+    "tag": "FIX",
+    "ru": "Кривая эквити показывала самые старые 100 точек вместо свежих — теперь берутся последние.",
+    "en": "Equity curve showed the oldest 100 points instead of the newest — now takes the latest ones."
+  }
+]

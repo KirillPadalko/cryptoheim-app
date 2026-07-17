@@ -21,12 +21,54 @@ function getFullUrl(endpoint) {
 console.log(`[API] Host: ${window.location.hostname}, Mode: ${isLocal ? 'Local' : 'Production'}, Base: ${BASE_URL || '(local proxy)'}`);
 
 /**
- * Common fetch utility with Accept-Language header
+ * Cache utility using sessionStorage
  */
-async function fetchApi(endpoint) {
+function getSessionCache(key) {
+    try {
+        const item = sessionStorage.getItem(key);
+        if (!item) return null;
+        const parsed = JSON.parse(item);
+        // Cache for 60 seconds
+        if (Date.now() - parsed.time < 60000) {
+            return parsed.data;
+        }
+        sessionStorage.removeItem(key);
+    } catch (e) {}
+    return null;
+}
+
+function setSessionCache(key, data) {
+    try {
+        sessionStorage.setItem(key, JSON.stringify({ time: Date.now(), data }));
+    } catch (e) {}
+}
+
+function clearApiCache() {
+    try {
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && key.startsWith('api_cache_')) {
+                sessionStorage.removeItem(key);
+            }
+        }
+    } catch (e) {}
+}
+
+/**
+ * Common fetch utility with Accept-Language header and sessionStorage caching
+ */
+async function fetchApi(endpoint, useCache = true) {
     const language = navigator.language || "en";
     const fullUrl = getFullUrl(endpoint);
     const token = localStorage.getItem('cryptoheim_token');
+    
+    const cacheKey = `api_cache_${fullUrl}_${language}_${token || ''}`;
+    
+    if (useCache) {
+        const cached = getSessionCache(cacheKey);
+        if (cached) return cached;
+    }
+
     try {
         const headers = { 
             "Accept-Language": language,
@@ -45,7 +87,11 @@ async function fetchApi(endpoint) {
             }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        if (useCache) {
+            setSessionCache(cacheKey, data);
+        }
+        return data;
     } catch (e) {
         console.error(`Fetch API Error for ${fullUrl}:`, e);
         return null;
@@ -77,7 +123,9 @@ async function postApi(endpoint, body) {
             }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        clearApiCache();
+        return data;
     } catch (e) {
         console.error(`Post API Error for ${fullUrl}:`, e);
         return null;
@@ -109,7 +157,9 @@ async function putApi(endpoint, body) {
             }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return await response.json();
+        const data = await response.json();
+        clearApiCache();
+        return data;
     } catch (e) {
         console.error(`Put API Error for ${fullUrl}:`, e);
         return null;
@@ -120,6 +170,8 @@ export const API = {
     getAssets: () => fetchApi("/assets"),
     getSparklines: () => fetchApi("/klines/sparklines"),
     getLatestNews: (lang = "ru") => fetchApi(`/news/latest?lang=${lang}`),
+    getBotAccount: () => fetchApi("/api/trading/account"),
+    getBotChangelog: () => fetchApi("/bot-changelog.json"),
     getBotPositions: () => fetchApi("/api/trading/positions"),
     getBotStats: () => fetchApi("/api/trading/stats"),
     getBotHistory: (limit = 10) => fetchApi(`/api/trading/history?limit=${limit}`),
@@ -149,9 +201,7 @@ export const API = {
     // Auth & Profile
     authStart: (nickname) => postApi("/api/auth/start", { nickname }),
     authVerify: (nickname, code_or_password) => postApi("/api/auth/verify", { nickname, code_or_password }),
-    registerSimple: (nickname, email, password) => postApi("/api/auth/register-simple", { nickname, email, password }),
-    loginSimple: (nickname_or_email, password) => postApi("/api/auth/login-simple", { nickname_or_email, password }),
-    loginGoogle: (credential) => postApi("/api/auth/google", { credential }),
+    loginNickname: (nickname, password) => postApi("/api/auth/login-nickname", { nickname, password }),
     getMe: () => fetchApi("/api/auth/me"),
     updateProfile: (data) => putApi("/api/auth/profile", data),
     

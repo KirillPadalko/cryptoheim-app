@@ -63,6 +63,7 @@ export default defineConfig({
             input: {
                 indicators: 'indicators.html',
                 expert: 'expert.html',
+                bot: 'bot.html',
                 'model-quality': 'model-quality.html',
                 privacy: 'privacy.html',
                 pro: 'pro.html',

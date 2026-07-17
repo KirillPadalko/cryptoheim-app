@@ -504,18 +504,9 @@ async function renderDecisionStrip() {
     }
     if (btcDomEl) btcDomEl.innerText = isRu ? "Чтение метрик доминирования..." : "Reading dominance metrics...";
 
-    try {
-        const [analysis, fngIndex, marketScan, domStream, forecastRes] = await Promise.allSettled([
-            API.getCryptoAnalysis(lang),
-            API.getFearGreedIndex(),
-            API.getMarketScan(),
-            API.getDominanceStreamgraph(),
-            API.getMarketForecast(lang)
-        ]);
-
-        const forecastData = forecastRes.status === "fulfilled" && forecastRes.value?.forecast
-            ? forecastRes.value.forecast : null;
-
+    // Start independent fetches
+    API.getMarketForecast(lang).then(forecastRes => {
+        const forecastData = forecastRes?.forecast || null;
         const regime = forecastData?.market_regime || null;
         const bias   = forecastData?.bias || null;
         const direction = forecastData?.direction || null;
@@ -523,35 +514,18 @@ async function renderDecisionStrip() {
 
         // --- 1. MARKET STATE ---
         const regimeConfig = {
-            "trend":           { 
-                label: isRu ? "ТРЕНД" : "TRENDING",   
-                color: "var(--color-green)", 
-                desc: isRu ? "Направленный поток" : "Directional flow" 
-            },
-            "chop":            { 
-                label: isRu ? "БОКОВИК" : "SIDEWAYS",    
-                color: "var(--text-muted)", 
-                desc: isRu ? "Диапазон" : "Range bound" 
-            },
-            "high_volatility": { 
-                label: isRu ? "ВОЛАТИЛЬНОСТЬ" : "VOLATILE",    
-                color: "var(--color-red)",  
-                desc: isRu ? "Высокий риск" : "High risk" 
-            },
-            "event":           { 
-                label: isRu ? "СОБЫТИЕ" : "EVENT",       
-                color: "var(--color-red)",  
-                desc: isRu ? "Событие / Черный лебедь" : "Black swan/Event" 
-            },
+            "trend":           { label: isRu ? "ТРЕНД" : "TRENDING", color: "var(--color-green)", desc: isRu ? "Направленный поток" : "Directional flow" },
+            "chop":            { label: isRu ? "БОКОВИК" : "SIDEWAYS", color: "var(--text-muted)", desc: isRu ? "Диапазон" : "Range bound" },
+            "high_volatility": { label: isRu ? "ВОЛАТИЛЬНОСТЬ" : "VOLATILE", color: "var(--color-red)", desc: isRu ? "Высокий риск" : "High risk" },
+            "event":           { label: isRu ? "СОБЫТИЕ" : "EVENT", color: "var(--color-red)", desc: isRu ? "Событие / Черный лебедь" : "Black swan/Event" },
         };
 
-        if (forecastRes.status === "fulfilled" && forecastData && regime) {
+        if (forecastData && regime) {
             const cfg = regimeConfig[regime] || { label: regime.toUpperCase(), color: "#000", desc: "" };
             if (stateValEl) {
                 stateValEl.innerText = cfg.label;
                 stateValEl.style.color = cfg.color;
             }
-            
             if (stateSubEl) {
                 let subtext = cfg.desc;
                 if (bias) {
@@ -566,25 +540,7 @@ async function renderDecisionStrip() {
                 stateValEl.innerText = isRu ? "ОФФЛАЙН" : "OFFLINE";
                 stateValEl.style.color = "var(--color-red)";
             }
-            if (stateSubEl) {
-                stateSubEl.innerText = isRu ? "ОШИБКА ДАННЫХ ПРОГНОЗА" : "FORECAST SERVER OFFLINE";
-            }
-        }
-
-        // --- 2. TREND & DIRECTION ---
-        if (marketScan.status === "fulfilled" && marketScan.value) {
-            let mood = marketScan.value.breadth?.mood || "NEUTRAL";
-            if (isRu) {
-                if (mood.toUpperCase() === 'NEUTRAL') mood = 'НЕЙТРАЛЬНО';
-                else if (mood.toUpperCase() === 'BULLISH') mood = 'БЫЧИЙ';
-                else if (mood.toUpperCase() === 'BEARISH') mood = 'МЕДВЕЖИЙ';
-            }
-            if (trendValEl) trendValEl.innerText = mood.toUpperCase();
-        } else {
-            if (trendValEl) {
-                trendValEl.innerText = isRu ? "СБОЙ" : "ERROR";
-                trendValEl.style.color = "var(--color-red)";
-            }
+            if (stateSubEl) stateSubEl.innerText = isRu ? "ОШИБКА ДАННЫХ ПРОГНОЗА" : "FORECAST SERVER OFFLINE";
         }
 
         if (trendBadgeEl && direction) {
@@ -600,23 +556,48 @@ async function renderDecisionStrip() {
         }
 
         if (trendSubEl) {
-            let st = forecastData?.short_term_outlook || (marketScan.status === "fulfilled" ? "Market Scan Synced" : "Stable market conditions");
+            let st = forecastData?.short_term_outlook || "Stable market conditions";
             if (isRu) {
                 if (st === "Stable market conditions") st = "СТАБИЛЬНЫЕ РЫНОЧНЫЕ УСЛОВИЯ";
                 else if (st === "Market Scan Synced") st = "СКАНЕР РЫНКА АКТИВЕН";
             }
             trendSubEl.innerText = st.toUpperCase();
         }
+        
+        // Use forecastData for volatility if domStream fails or hasn't loaded
+        if (forecastData?.market_cap_24h_change !== undefined && volValEl && volValEl.innerText.includes("SYNCING")) {
+            const isHigh = Math.abs(forecastData.market_cap_24h_change) > 2.5;
+            volValEl.innerText = isRu ? (isHigh ? "ВЫСОКАЯ" : "НОРМА") : (isHigh ? "HIGH" : "NORMAL");
+            volValEl.style.color = isHigh ? "var(--color-red)" : "var(--color-green)";
+        }
+    }).catch(e => console.error("Forecast error:", e));
 
-        // --- 3. FEAR & GREED ---
-        if (fngIndex.status === "fulfilled" && fngIndex.value) {
+    API.getMarketScan().then(marketScan => {
+        if (marketScan) {
+            let mood = marketScan.breadth?.mood || "NEUTRAL";
+            if (isRu) {
+                if (mood.toUpperCase() === 'NEUTRAL') mood = 'НЕЙТРАЛЬНО';
+                else if (mood.toUpperCase() === 'BULLISH') mood = 'БЫЧИЙ';
+                else if (mood.toUpperCase() === 'BEARISH') mood = 'МЕДВЕЖИЙ';
+            }
+            if (trendValEl) trendValEl.innerText = mood.toUpperCase();
+        } else {
+            if (trendValEl) {
+                trendValEl.innerText = isRu ? "СБОЙ" : "ERROR";
+                trendValEl.style.color = "var(--color-red)";
+            }
+        }
+    }).catch(e => console.error("Market scan error:", e));
+
+    API.getFearGreedIndex().then(fngIndex => {
+        if (fngIndex) {
             if (fngValEl) {
-                fngValEl.innerText = fngIndex.value.current_value;
-                const val = parseInt(fngIndex.value.current_value);
+                fngValEl.innerText = fngIndex.current_value;
+                const val = parseInt(fngIndex.current_value);
                 fngValEl.style.color = val > 70 ? 'var(--color-green)' : val < 30 ? 'var(--color-red)' : 'inherit';
             }
             if (fngLblEl) {
-                let cls = fngIndex.value.current_classification;
+                let cls = fngIndex.current_classification;
                 if (isRu) {
                     if (cls.toUpperCase() === 'NEUTRAL') cls = 'НЕЙТРАЛЬНО';
                     else if (cls.toUpperCase().includes('GREED')) cls = 'ЖАДНОСТЬ';
@@ -625,41 +606,29 @@ async function renderDecisionStrip() {
                 fngLblEl.innerText = cls.toUpperCase();
             }
         } else {
-            if (fngValEl) {
-                fngValEl.innerText = "—";
-            }
-            if (fngLblEl) {
-                fngLblEl.innerText = isRu ? "ИНДЕКС СТРАХА НЕДОСТУПЕН" : "FEAR INDEX OFFLINE";
-            }
+            if (fngValEl) fngValEl.innerText = "—";
+            if (fngLblEl) fngLblEl.innerText = isRu ? "ИНДЕКС СТРАХА НЕДОСТУПЕН" : "FEAR INDEX OFFLINE";
         }
+    }).catch(e => console.error("FnG error:", e));
 
-        // --- 4. VOLATILITY & BTC DOM ---
-        if (domStream.status === "fulfilled" && domStream.value) {
-            const latest = domStream.value.data?.[domStream.value.data.length - 1];
+    API.getDominanceStreamgraph().then(domStream => {
+        if (domStream) {
+            const latest = domStream.data?.[domStream.data.length - 1];
             if (btcDomEl && latest) btcDomEl.innerText = `BTC DOM: ${latest.btc_dominance.toFixed(1)}%`;
             
-            const mc24 = forecastData?.market_cap_24h_change ?? domStream.value.market_cap_24h_change;
+            const mc24 = domStream.market_cap_24h_change;
             if (volValEl && mc24 !== undefined) {
                 const isHigh = Math.abs(mc24) > 2.5;
-                if (isRu) {
-                    volValEl.innerText = isHigh ? "ВЫСОКАЯ" : "НОРМА";
-                } else {
-                    volValEl.innerText = isHigh ? "HIGH" : "NORMAL";
-                }
+                volValEl.innerText = isRu ? (isHigh ? "ВЫСОКАЯ" : "НОРМА") : (isHigh ? "HIGH" : "NORMAL");
                 volValEl.style.color = isHigh ? "var(--color-red)" : "var(--color-green)";
             }
         } else {
-            if (volValEl) {
+            if (volValEl && !volValEl.innerText.includes("NORMAL") && !volValEl.innerText.includes("HIGH")) {
                 volValEl.innerText = "—";
             }
-            if (btcDomEl) {
-                btcDomEl.innerText = isRu ? "СБОЙ ИНТЕГРАЦИИ DOMINANCE" : "DOMINANCE DATA OFFLINE";
-            }
+            if (btcDomEl) btcDomEl.innerText = isRu ? "СБОЙ ИНТЕГРАЦИИ DOMINANCE" : "DOMINANCE DATA OFFLINE";
         }
-
-    } catch (e) {
-        console.error("Decision Strip error:", e);
-    }
+    }).catch(e => console.error("DomStream error:", e));
 }
 
 
@@ -1078,7 +1047,7 @@ async function renderExposureAndPositions() {
                             <div class="side-badge ${sideClass}">${side}</div>
                             <div class="time-ago">${timeStr}</div>
                         </div>
-                        <div class="pnl-pct ${pnlClass}">${(pnlPct >= 0 ? '+' : '')}${pnlPct.toFixed(2)}%</div>
+                        <div class="pnl-pct ${pnlClass}">${(pnlAbs >= 0 ? '+' : '')}$${Math.abs(pnlAbs).toFixed(2)}</div>
                     </div>
                 `);
             });
@@ -1092,16 +1061,22 @@ async function renderExposureAndPositions() {
 
         // Update Stats Grid
         if (stats) {
-            const pnlEl = document.getElementById('exp-pnl');
-            // stats.total_pnl_usdt is the realized PNL
+            const currentBalance = parseFloat(stats.total_balance_usdt || stats.balance || 100);
             const relPnl = parseFloat(stats.total_pnl_usdt || stats.total_realized_pnl || stats.realized_pnl || 0);
             const allTimePnl = relPnl + unrealizedPnl;
-            
+
+            // Show real USD balance
+            const balanceEl = document.getElementById('exp-balance');
+            if (balanceEl) {
+                balanceEl.innerText = `$${currentBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                balanceEl.className = 'exp-value';
+            }
+
+            const pnlEl = document.getElementById('exp-pnl');
+            // Show PnL in USD (absolute)
             if (pnlEl) {
-                const currentBalance = parseFloat(stats.total_balance_usdt || stats.balance || 100);
-                const totalPct = (allTimePnl / Math.max(1, currentBalance - allTimePnl)) * 100;
-                pnlEl.innerText = `${(totalPct >= 0 ? '+' : '')}${totalPct.toFixed(2)}%`;
-                pnlEl.className = `exp-value ${totalPct >= 0 ? 'text-green' : 'text-red'}`;
+                pnlEl.innerText = `${allTimePnl >= 0 ? '+' : ''}$${allTimePnl.toFixed(2)}`;
+                pnlEl.className = `exp-value ${allTimePnl >= 0 ? 'text-green' : 'text-red'}`;
             }
 
             const expEl = document.getElementById('exp-exposure');
@@ -1200,7 +1175,7 @@ async function renderBalanceChart() {
         if (!stats) return;
 
         // Increased history depth to 200 trades
-        const rawHistory = await API.getBotHistory(200).catch(() => []);
+        const rawHistory = await API.getBotHistory(10000).catch(() => []);
         const trades = (Array.isArray(rawHistory) ? rawHistory : (rawHistory?.history || []));
         
         if (trades.length === 0) {
@@ -1223,10 +1198,9 @@ async function renderBalanceChart() {
         const timeSeriesPoints = sortedTrades.map(t => {
             const timeVal = typeof t.close_time === 'number' ? t.close_time : new Date(t.close_time).getTime() / 1000;
             runningBalance += (t.pnl || 0);
-            const pctChange = ((runningBalance - initialBalance) / initialBalance) * 100;
             return {
                 x: timeVal * 1000,
-                y: pctChange,
+                y: runningBalance,   // actual USD balance value
                 pnl: t.pnl,
                 symbol: t.symbol,
                 close_time: timeVal
@@ -1293,7 +1267,7 @@ async function renderBalanceChart() {
                         grid: { display: false },
                         ticks: {
                             font: { size: 9, weight: '800', family: 'var(--font-mono)' },
-                            callback: (v) => v.toFixed(1) + '%'
+                            callback: (v) => '$' + v.toFixed(0)
                         }
                     }
                 },
@@ -1350,20 +1324,20 @@ function openBalanceModal() {
 
     const relEl = document.getElementById('balance-modal-realized');
     if (relEl) {
-        relEl.textContent = `${relPct >= 0 ? '+' : ''}${relPct.toFixed(2)}%`;
-        relEl.className = `chart-modal-stat-value ${relPct >= 0 ? 'text-green' : 'text-red'}`;
+        relEl.textContent = `${realizedPnl >= 0 ? '+' : ''}$${realizedPnl.toFixed(2)}`;
+        relEl.className = `chart-modal-stat-value ${realizedPnl >= 0 ? 'text-green' : 'text-red'}`;
     }
 
     const unrelEl = document.getElementById('balance-modal-unrealized');
     if (unrelEl) {
-        unrelEl.textContent = `${unrelPct >= 0 ? '+' : ''}${unrelPct.toFixed(2)}%`;
-        unrelEl.className = `chart-modal-stat-value ${unrelPct >= 0 ? 'text-green' : 'text-red'}`;
+        unrelEl.textContent = `${unrealizedPnl >= 0 ? '+' : ''}$${unrealizedPnl.toFixed(2)}`;
+        unrelEl.className = `chart-modal-stat-value ${unrealizedPnl >= 0 ? 'text-green' : 'text-red'}`;
     }
 
     const returnEl = document.getElementById('balance-modal-return');
     if (returnEl) {
-        returnEl.textContent = `${totalPct >= 0 ? '+' : ''}${totalPct.toFixed(2)}%`;
-        returnEl.className = `chart-modal-stat-value ${totalPct >= 0 ? 'text-green' : 'text-red'}`;
+        returnEl.textContent = `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`;
+        returnEl.className = `chart-modal-stat-value ${totalPnl >= 0 ? 'text-green' : 'text-red'}`;
     }
 
     const points = data.points;
@@ -1921,8 +1895,9 @@ window.openTradeDetailModal = function(data, isActive) {
     document.getElementById('tdm-pnl').innerText   = `${(pnlPct >= 0 ? '+' : '')}${pnlPct.toFixed(2)}%`;
     document.getElementById('tdm-pnl').className   = pnlPct >= 0 ? 'text-green' : 'text-red';
 
-    const t = data.time || data.updateTime || data.close_time;
-    const date = new Date(typeof t === 'number' && t < 10000000000 ? t * 1000 : (t || Date.now()));
+    const t = data.time || data.updateTime || data.updatedTime || data.close_time || data.open_time || data.openTime || data.createdTime;
+    const date = new Date(typeof t === 'number' && t < 10000000000 ? t * 1000 : (t ? Number(t) : Date.now()));
+    // Note: if t is a string of milliseconds, Number(t) handles it nicely.
     document.getElementById('tdm-time').innerText = date.toLocaleString();
 
     const statusBox = document.getElementById('tdm-status-box');

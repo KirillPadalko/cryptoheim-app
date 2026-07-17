@@ -65,6 +65,7 @@
             <div class="nav-links">
                 <a href="indicators.html" class="active" data-i18n-nav="Signals">Signals</a>
                 <a href="expert.html" data-i18n-nav="Battle">Battle</a>
+                <a href="bot.html" data-i18n-nav="Bot">Bot</a>
                 <a href="pro.html" class="pro-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -189,11 +190,14 @@
             <!-- RIGHT COLUMN (40%) -->
             <div class="right-column">
                 
-                <!-- YOUR EXPOSURE & TABLE -->
                 <div class="brutal-card" style="padding: 0;">
-                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.5rem; border-bottom: none; margin-bottom: 0;" data-i18n="exposure">YOUR EXPOSURE</div>
+                    <div class="brutal-title" style="padding: 1rem 1.5rem 0.5rem; border-bottom: none; margin-bottom: 0;" data-i18n="exposure">BOT TRADING STATS</div>
                     
                     <div class="exposure-grid" id="exposure-grid" style="padding: 0 1.5rem 1rem;">
+                        <div class="exp-col">
+                            <div class="exp-label" data-i18n="balance_usd">BALANCE (USD)</div>
+                            <div class="exp-value" id="exp-balance">...</div>
+                        </div>
                         <div class="exp-col">
                             <div class="exp-label" data-i18n="pnl_all">PNL (ALL TIME)</div>
                             <div class="exp-value text-green" id="exp-pnl">...</div>
@@ -227,7 +231,7 @@
                     <!-- ALLOCATION REMOVED -->
 
                     <div class="balance-chart-container" id="balance-chart-box" style="border-top: var(--border-thick); padding: 1rem 1.5rem; height: 220px; cursor: pointer; position: relative;">
-                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); position: absolute; top: 10px; left: 24px; z-index: 10; text-transform: uppercase;">Growth Curve (%)</div>
+                        <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); position: absolute; top: 10px; left: 24px; z-index: 10; text-transform: uppercase;">Balance Growth (USD)</div>
                         <canvas id="balance-chart"></canvas>
                     </div>
 
