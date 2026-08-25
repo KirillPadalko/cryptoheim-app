@@ -1,5 +1,65 @@
 [
   {
+    "date": "2026-08-25",
+    "tag": "ANALYSIS",
+    "ru": "Проверили качество сигналов модели на 18 566 исторических прогнозах. Сигналы несут реальную информацию о направлении движения и вдвое опережают простое следование тренду; действующие фильтры отбора улучшают результат. По итогам проверки стратегия оставлена без изменений — она набирает статистику в неизменном виде.",
+    "en": "Validated model signal quality across 18,566 historical forecasts. The signals carry genuine directional information and outperform simple trend-following by 2x; the existing filters improve results further. The review led to no strategy changes — the configuration stays frozen while it accumulates a clean sample."
+  },
+  {
+    "date": "2026-07-27",
+    "tag": "FIX",
+    "ru": "Исправлен расчёт размера позиции: из-за округления вниз по шагу лота часть сделок открывалась вдвое меньше запланированного риска. Снят устаревший ограничитель, который блокировал новые входы по метрике, не подходящей текущей стратегии, и убран лимит маржи, урезавший позиции на низковолатильных монетах.",
+    "en": "Fixed position sizing: rounding down to the lot step meant some trades opened at half the intended risk. Removed a stale gate that blocked new entries based on a metric unsuited to the current strategy, and lifted a margin cap that was truncating positions on low-volatility coins."
+  },
+  {
+    "date": "2026-07-22",
+    "tag": "EXEC",
+    "ru": "Лимитные ордера теперь выставляются вплотную к рынку, а не на отступе: заявки исполняются за секунды вместо того, чтобы висеть неисполненными. При необходимости ордер переставляется вслед за ценой.",
+    "en": "Limit orders now rest at the touch instead of at an offset: entries fill within seconds rather than sitting unfilled. The order re-pegs if price drifts away."
+  },
+  {
+    "date": "2026-07-19",
+    "tag": "DATA",
+    "ru": "Модель получила новые данные: календарь макро-событий (FOMC, NFP), дневные потоки спотовых BTC/ETH ETF и ставки финансирования с открытым интересом. Прогноз обновляется каждые 2 часа — в такт обновлению рыночных данных.",
+    "en": "New model inputs: macro event calendar (FOMC, NFP), daily spot BTC/ETH ETF flows, funding rates and open interest. Forecasts now refresh every 2 hours — matching the cadence of the underlying market data."
+  },
+  {
+    "date": "2026-07-19",
+    "tag": "STRATEGY",
+    "ru": "Позиции переведены в режим set-and-forget: сделка живёт до 7 дней и закрывается только по цели, стопу или тайм-ауту. Раннее управление (безубыток, частичная фиксация, выходы по смене сигнала) убрано — тесты трижды показали, что оно резало прибыльные сделки.",
+    "en": "Positions switched to set-and-forget: a trade lives up to 7 days and exits only via target, stop or time cap. Early management (breakeven moves, partial exits, signal-flip closes) removed — testing showed three separate times that it was cutting winners short."
+  },
+  {
+    "date": "2026-07-18",
+    "tag": "EXEC",
+    "ru": "Входы переведены на лимитные PostOnly-ордера (maker): комиссия почти втрое ниже, проскальзывание на входе — ноль. Экспериментальный Jo Bot V2 отключён: ретест его стратегии с учётом реальных издержек не подтвердил преимущества.",
+    "en": "Entries moved to PostOnly limit orders (maker): nearly 3x lower fees and zero entry slippage. Experimental Jo Bot V2 retired: a cost-aware retest of its strategy showed no edge after fees and slippage."
+  },
+  {
+    "date": "2026-07-16",
+    "tag": "STRATEGY",
+    "ru": "Стопы расширены до 2.5×ATR, цели — до 4×ATR. Анализ исполнения показал: на узких стопах комиссии и проскальзывание съедали всё преимущество стратегии. Широкий стоп решает это арифметически, размер позиции автоматически уменьшен пропорционально.",
+    "en": "Stops widened to 2.5x ATR, targets to 4x ATR. Execution analysis showed fees and slippage were consuming the entire edge at tight stops. A wider stop fixes the arithmetic; position size scales down proportionally."
+  },
+  {
+    "date": "2026-07-15",
+    "tag": "FILTER",
+    "ru": "Добавлен фильтр по собственному тренду каждой монеты: сигналы против её тренда отклоняются. Глобальный режим рынка решает, можно ли торговать, тренд монеты — в какую сторону.",
+    "en": "Added a per-coin trend filter: signals against the coin's own trend are rejected. The global market regime decides whether to trade at all; the coin's trend decides which direction is allowed."
+  },
+  {
+    "date": "2026-07-14",
+    "tag": "RISK",
+    "ru": "Внедрён контур защиты капитала: дневной автостоп при просадке 3%, максимум 2 однонаправленные позиции одновременно (защита от коррелированных потерь), 4-часовой кулдаун после убытка и проверка свободной маржи перед каждым входом.",
+    "en": "Capital-protection layer deployed: daily 3% drawdown circuit breaker, max 2 same-direction positions at once (correlated-loss protection), 4-hour cooldown after a loss, and a free-margin check before every entry."
+  },
+  {
+    "date": "2026-07-13",
+    "tag": "STRATEGY",
+    "ru": "Перекалибровка стратегии по бэктесту 28 000+ исторических сигналов против реальных котировок: TP/SL привязаны к волатильности (ATR), торговый портфель пересобран по результатам тестов — BTC, SOL, XRP, DOGE, TRX, ADA.",
+    "en": "Strategy recalibrated via a backtest replaying 28,000+ historical signals against real market data: TP/SL now volatility-based (ATR), trading portfolio rebuilt from test results — BTC, SOL, XRP, DOGE, TRX, ADA."
+  },
+  {
     "date": "2026-07-16",
     "tag": "UI",
     "ru": "Новая вкладка BOT в терминальном стиле: баланс счёта Bybit, статистика по закрытым сделкам, открытые позиции и этот лог изменений.",
