@@ -82,6 +82,7 @@ body {
 .pnl-badge { font-size: 14px; padding: 2px 8px; border: 1px solid currentColor; }
 .equity-svg { display: block; overflow: visible; width: 100%; height: 180px; }
 .axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--bot-dim); margin-top: 6px; letter-spacing: 0.05em; }
+.chart-note { font-size: 10px; color: var(--bot-dim); margin-top: 8px; line-height: 1.4; }
 
 /* Stats grid */
 .stats-grid {
@@ -94,7 +95,7 @@ body {
 
 /* Positions table */
 .pos-head, .pos-row {
-  display: grid; grid-template-columns: 1.4fr 0.8fr 1fr 1fr; align-items: center;
+  display: grid; grid-template-columns: 1.2fr 0.7fr 1.2fr 0.9fr 0.9fr; align-items: center; gap: 4px;
 }
 .pos-head {
   font-size: 10px; color: oklch(0.5 0 0); letter-spacing: 0.06em;
@@ -104,7 +105,7 @@ body {
 .pos-row { font-size: 13px; padding: 10px 4px; border-bottom: 1px solid var(--bot-line-soft); }
 .pos-row:hover { background: oklch(1 0 0 / 0.04); }
 .pos-pair { font-weight: 500; }
-.pos-entry { color: var(--bot-muted2); }
+.pos-entry, .pos-time { color: var(--bot-muted2); }
 .pos-pnl { font-weight: 700; }
 .pos-empty { padding: 16px 4px; font-size: 13px; color: var(--bot-muted); }
 

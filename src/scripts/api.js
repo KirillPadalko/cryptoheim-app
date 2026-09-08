@@ -171,6 +171,7 @@ export const API = {
     getSparklines: () => fetchApi("/klines/sparklines"),
     getLatestNews: (lang = "ru") => fetchApi(`/news/latest?lang=${lang}`),
     getBotAccount: () => fetchApi("/api/trading/account"),
+    getBotBalanceHistory: (points = 400) => fetchApi(`/api/trading/balance-history?points=${points}`),
     getBotChangelog: () => fetchApi("/bot-changelog.json"),
     getBotPositions: () => fetchApi("/api/trading/positions"),
     getBotStats: () => fetchApi("/api/trading/stats"),

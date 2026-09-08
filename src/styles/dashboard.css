@@ -147,7 +147,7 @@ a { text-decoration: none; color: inherit; }
 .decision-wrapper {
     border: var(--border-thick);
     background: var(--bg-card);
-    max-width: calc(1600px - 40px);
+    max-width: 860px;
     width: calc(100% - 40px);
     margin: 20px auto 0 auto;
     display: flex;
@@ -825,7 +825,7 @@ a { text-decoration: none; color: inherit; }
         position: static !important;
     }
     .decision-wrapper {
-        width: calc(100% - 20px);
+        width: calc(100% - 40px);
         margin: 10px auto;
     }
 }

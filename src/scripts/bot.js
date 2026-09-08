@@ -8,9 +8,12 @@ const WHITE = 'var(--bot-white)';
 const I18N = {
     ru: {
         live: 'ОНЛАЙН', offline: 'НЕТ СВЯЗИ', now: 'СЕЙЧАС', allTime: 'ЗА ВСЁ ВРЕМЯ',
+        tradingPnl: 'PNL ТОРГОВЛИ',
+        chartNote: 'Накопленный реализованный PnL закрытых сделок — без учёта ввода/вывода и переводов',
         balanceTitle: 'БАЛАНС СЧЁТА', statsTitle: 'СТАТИСТИКА ПО ЗАКРЫТЫМ СДЕЛКАМ',
         positionsTitle: 'ОТКРЫТЫЕ ПОЗИЦИИ', changelogTitle: 'ЛОГ ИЗМЕНЕНИЙ СТРАТЕГИИ',
-        pair: 'ПАРА', side: 'СТОРОНА', entry: 'ВХОД', pnl: 'PNL',
+        pair: 'ПАРА', side: 'СТОРОНА', opened: 'ОТКРЫТА', closed: 'ЗАКРЫТА', entry: 'ВХОД', pnl: 'PNL',
+        closedTitle: 'ЗАКРЫТЫЕ СДЕЛКИ',
         disclaimer: 'Результаты в прошлом не гарантируют доходность в будущем.', updated: 'ОБНОВЛЕНО',
         noPositions: 'Открытых позиций нет.', noData: 'Нет данных.',
         statLabels: {
@@ -20,9 +23,12 @@ const I18N = {
     },
     en: {
         live: 'LIVE', offline: 'OFFLINE', now: 'NOW', allTime: 'ALL TIME',
+        tradingPnl: 'TRADING PNL',
+        chartNote: 'Cumulative realized PnL of closed trades — excludes deposits, withdrawals and transfers',
         balanceTitle: 'ACCOUNT BALANCE', statsTitle: 'CLOSED TRADES STATS',
         positionsTitle: 'OPEN POSITIONS', changelogTitle: 'STRATEGY CHANGELOG',
-        pair: 'PAIR', side: 'SIDE', entry: 'ENTRY', pnl: 'PNL',
+        pair: 'PAIR', side: 'SIDE', opened: 'OPENED', closed: 'CLOSED', entry: 'ENTRY', pnl: 'PNL',
+        closedTitle: 'CLOSED TRADES',
         disclaimer: 'Past performance does not guarantee future results.', updated: 'UPDATED',
         noPositions: 'No open positions.', noData: 'No data.',
         statLabels: {
@@ -78,7 +84,8 @@ function formatPair(symbol) {
 }
 
 // ─── Derived stats the backend does not expose ───
-function computeExtraStats(history, balanceHistory) {
+// All computed from trade PnL, so deposits/withdrawals/transfers never enter.
+function computeExtraStats(history) {
     const pnls = (history || []).map((t) => num(t.pnl)).filter((n) => n !== null && n !== 0);
     const wins = pnls.filter((n) => n > 0);
     const losses = pnls.filter((n) => n < 0);
@@ -89,19 +96,22 @@ function computeExtraStats(history, balanceHistory) {
     const avgWin = wins.length ? grossWin / wins.length : null;
     const avgLoss = losses.length ? -grossLoss / losses.length : null;
 
-    // Max drawdown from equity curve (peak-to-trough %)
-    let maxDD = null;
-    const eq = (balanceHistory || []).map((h) => num(h.equity)).filter((n) => n !== null);
-    if (eq.length >= 2) {
-        let peak = eq[0];
-        let worst = 0;
-        for (const v of eq) {
-            if (v > peak) peak = v;
-            if (peak > 0) worst = Math.min(worst, (v - peak) / peak * 100);
+    // Max drawdown of cumulative realized PnL, in USD (peak-to-trough).
+    let maxDDUsd = null;
+    const chron = (history || [])
+        .map((t) => ({ ts: num(t.close_time), pnl: num(t.pnl) }))
+        .filter((t) => t.ts !== null && t.pnl !== null && t.pnl !== 0)
+        .sort((a, b) => a.ts - b.ts);
+    if (chron.length) {
+        let cum = 0, peak = 0, worst = 0;
+        for (const t of chron) {
+            cum += t.pnl;
+            if (cum > peak) peak = cum;
+            worst = Math.min(worst, cum - peak);
         }
-        maxDD = worst;
+        maxDDUsd = worst;
     }
-    return { profitFactor, avgWin, avgLoss, maxDrawdown: maxDD };
+    return { profitFactor, avgWin, avgLoss, maxDrawdownUsd: maxDDUsd };
 }
 
 // ─── Renderers ───
@@ -117,31 +127,37 @@ function renderStaticI18n() {
     });
 }
 
+// Cumulative realized PnL of closed trades over time. Deposit/withdrawal/
+// transfer-free by construction — it only ever sums trade PnL.
+function pnlSeries() {
+    const trades = (data.history || [])
+        .map((t) => ({ ts: num(t.close_time), pnl: num(t.pnl) }))
+        .filter((t) => t.ts !== null && t.pnl !== null)
+        .sort((a, b) => a.ts - b.ts);
+    let cum = 0;
+    return trades.map((t) => { cum += t.pnl; return { ts: t.ts, v: cum }; });
+}
+
 function renderBalance() {
     const t = I18N[lang];
-    const bh = (data.stats?.balance_history || [])
-        .map((h) => ({ ts: num(h.timestamp), v: num(h.equity) }))
-        .filter((p) => p.v !== null)
-        .sort((a, b) => a.ts - b.ts);
+    const bh = pnlSeries();
 
+    // Big number stays the real live account balance (actual money on the account).
     const liveEquity = num(data.account?.equity_usdt);
-    const lastEquity = bh.length ? bh[bh.length - 1].v : null;
-    const startEquity = bh.length ? bh[0].v : null;
-    const balance = liveEquity ?? lastEquity;
+    $('balance-num').textContent = liveEquity === null ? '$—' : usd(liveEquity);
 
-    $('balance-num').textContent = balance === null ? '$—' : usd(balance);
-
+    // Badge shows the pure trading result (total realized PnL), not balance growth.
+    const totalPnl = bh.length ? bh[bh.length - 1].v : num(data.stats?.total_pnl_usdt);
     const badge = $('pnl-badge');
-    if (startEquity && balance !== null && startEquity > 0) {
-        const p = (balance - startEquity) / startEquity * 100;
-        badge.textContent = `${pct(p)} ${t.allTime}`;
-        badge.style.color = p >= 0 ? GREEN : RED;
+    if (totalPnl !== null) {
+        badge.textContent = `${usd(totalPnl, true)} · ${t.tradingPnl}`;
+        badge.style.color = totalPnl >= 0 ? GREEN : RED;
     } else {
         badge.textContent = '—';
         badge.style.color = 'var(--bot-muted)';
     }
 
-    // Equity curve
+    // Trading-PnL curve
     const line = $('equity-line');
     const area = $('equity-area');
     if (bh.length >= 2) {
@@ -159,21 +175,52 @@ function renderBalance() {
         line.setAttribute('points', pts.join(' '));
         line.setAttribute('stroke', stroke);
         area.setAttribute('points', `0,${H} ${pts.join(' ')} ${W},${H}`);
-        const startDate = toDate(bh[0].ts);
-        $('chart-start').textContent = startDate
-            ? `−${Math.max(1, Math.round((Date.now() - startDate.getTime()) / 86400000))}D`
-            : '';
+        renderEquityAxis(bh);
     } else {
         line.setAttribute('points', '');
         area.setAttribute('points', '');
-        $('chart-start').textContent = '';
+        renderEquityAxis([]);
     }
+}
+
+// Time-axis label: DD.MM, plus HH:MM when the range is short enough that
+// bare dates would repeat.
+function formatTick(ts, withTime) {
+    const d = toDate(ts);
+    if (!d) return '';
+    const p = (x) => String(x).padStart(2, '0');
+    const date = `${p(d.getDate())}.${p(d.getMonth() + 1)}`;
+    return withTime ? `${date} ${p(d.getHours())}:${p(d.getMinutes())}` : date;
+}
+
+// Distribute date ticks along the equity curve, aligned with the plotted
+// (index-spaced) points so labels sit under their data.
+function renderEquityAxis(bh) {
+    const axis = $('equity-axis');
+    if (!axis) return;
+    if (!bh || bh.length < 2) { axis.innerHTML = ''; return; }
+
+    const t0 = toDate(bh[0].ts)?.getTime();
+    const t1 = toDate(bh[bh.length - 1].ts)?.getTime();
+    const spanDays = (t0 && t1) ? (t1 - t0) / 86400000 : 0;
+    const withTime = spanDays <= 3;
+    const ticks = Math.min(withTime ? 4 : 6, bh.length);
+
+    const seen = new Set();
+    const spans = [];
+    for (let i = 0; i < ticks; i++) {
+        const idx = Math.round((i / (ticks - 1)) * (bh.length - 1));
+        if (seen.has(idx)) continue;
+        seen.add(idx);
+        spans.push(`<span>${escapeHtml(formatTick(bh[idx].ts, withTime))}</span>`);
+    }
+    axis.innerHTML = spans.join('');
 }
 
 function renderStats() {
     const t = I18N[lang];
     const s = data.stats || {};
-    const extra = computeExtraStats(data.history, s.balance_history);
+    const extra = computeExtraStats(data.history);
 
     const pf = extra.profitFactor;
     const cards = [
@@ -183,7 +230,7 @@ function renderStats() {
         { label: t.statLabels.profitFactor, value: pf === null ? '—' : (pf === Infinity ? '∞' : pf.toFixed(2)), color: WHITE },
         { label: t.statLabels.avgWin, value: usd(extra.avgWin, true), color: GREEN },
         { label: t.statLabels.avgLoss, value: usd(extra.avgLoss, true), color: RED },
-        { label: t.statLabels.maxDrawdown, value: extra.maxDrawdown === null ? '—' : pct(extra.maxDrawdown), color: RED },
+        { label: t.statLabels.maxDrawdown, value: extra.maxDrawdownUsd === null ? '—' : usd(extra.maxDrawdownUsd, true), color: RED },
         { label: t.statLabels.bestTrade, value: usd(s.best_trade_pnl, true), color: GREEN }
     ];
 
@@ -209,14 +256,60 @@ function renderPositions() {
         const sideRaw = String(p.side || '').toUpperCase();
         const isLong = sideRaw === 'BUY' || sideRaw === 'LONG';
         const side = isLong ? 'LONG' : 'SHORT';
-        const pnlP = num(p.pnl_pct);
-        const pnlColor = pnlP >= 0 ? GREEN : RED;
+
+        // Actual unrealized PnL in USD: (mark − entry) × size, sign-flipped for shorts.
+        const entry = num(p.entry_price);
+        const mark = num(p.mark_price ?? p.price);
+        const size = num(p.size);
+        let pnlUsd = null;
+        if (entry !== null && mark !== null && size !== null) {
+            const diff = (isLong ? 1 : -1) * (mark - entry);
+            pnlUsd = diff * size;
+        }
+        const pnlColor = (pnlUsd ?? 0) >= 0 ? GREEN : RED;
+
         return `
             <div class="pos-row">
                 <div class="pos-pair">${escapeHtml(formatPair(p.symbol))}</div>
                 <div style="color:${isLong ? GREEN : RED}">[${side}]</div>
+                <div class="pos-time">${escapeHtml(formatTick(p.open_time, true))}</div>
                 <div class="pos-entry">${escapeHtml(p.entry_price ?? '—')}</div>
-                <div class="pos-pnl r" style="color:${pnlColor}">${pnlP === null ? '—' : pct(pnlP)}</div>
+                <div class="pos-pnl r" style="color:${pnlColor}">${pnlUsd === null ? '—' : usd(pnlUsd, true)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Recent closed trades, newest first. Realized PnL comes straight from the row.
+function renderClosed() {
+    const t = I18N[lang];
+    const body = $('closed-body');
+    if (!body) return;
+
+    const list = (Array.isArray(data.history) ? data.history : [])
+        .filter((x) => x)
+        .slice()
+        .sort((a, b) => (num(b.close_time) || 0) - (num(a.close_time) || 0))
+        .slice(0, 25);
+
+    if (list.length === 0) {
+        body.innerHTML = `<div class="pos-empty">${escapeHtml(t.noData)}</div>`;
+        return;
+    }
+
+    body.innerHTML = list.map((p) => {
+        const sideRaw = String(p.side || '').toUpperCase();
+        const isLong = sideRaw === 'BUY' || sideRaw === 'LONG';
+        const side = isLong ? 'LONG' : 'SHORT';
+        const pnl = num(p.pnl);
+        const pnlColor = (pnl ?? 0) >= 0 ? GREEN : RED;
+        return `
+            <div class="pos-row">
+                <div class="pos-pair">${escapeHtml(formatPair(p.symbol))}</div>
+                <div style="color:${isLong ? GREEN : RED}">[${side}]</div>
+                <div class="pos-time">${escapeHtml(formatTick(p.close_time, true))}</div>
+                <div class="pos-entry">${escapeHtml(p.entry_price ?? '—')}</div>
+                <div class="pos-pnl r" style="color:${pnlColor}">${pnl === null ? '—' : usd(pnl, true)}</div>
             </div>
         `;
     }).join('');
@@ -261,6 +354,7 @@ function renderAll() {
     renderBalance();
     renderStats();
     renderPositions();
+    renderClosed();
     renderChangelog();
     renderLive();
 }

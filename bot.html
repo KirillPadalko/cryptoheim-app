@@ -47,10 +47,8 @@
                 <polygon id="equity-area" points="" fill="oklch(0.94 0 0 / 0.06)"></polygon>
                 <polyline id="equity-line" points="" fill="none" stroke="var(--bot-green)" stroke-width="1.5"></polyline>
             </svg>
-            <div class="axis">
-                <span id="chart-start">—</span>
-                <span data-i18n="now">СЕЙЧАС</span>
-            </div>
+            <div class="axis" id="equity-axis"></div>
+            <div class="chart-note" data-i18n="chartNote">Накопленный реализованный PnL закрытых сделок — без учёта ввода/вывода и переводов</div>
         </div>
 
         <!-- Stats -->
@@ -65,10 +63,24 @@
             <div class="pos-head">
                 <div data-i18n="pair">ПАРА</div>
                 <div data-i18n="side">СТОРОНА</div>
+                <div data-i18n="opened">ОТКРЫТА</div>
                 <div data-i18n="entry">ВХОД</div>
                 <div class="r" data-i18n="pnl">PNL</div>
             </div>
             <div id="positions-body"></div>
+        </div>
+
+        <!-- Closed trades -->
+        <div class="section section-bordered">
+            <div class="section-title"># <span data-i18n="closedTitle">ЗАКРЫТЫЕ СДЕЛКИ</span></div>
+            <div class="pos-head">
+                <div data-i18n="pair">ПАРА</div>
+                <div data-i18n="side">СТОРОНА</div>
+                <div data-i18n="closed">ЗАКРЫТА</div>
+                <div data-i18n="entry">ВХОД</div>
+                <div class="r" data-i18n="pnl">PNL</div>
+            </div>
+            <div id="closed-body"></div>
         </div>
 
         <!-- Changelog -->

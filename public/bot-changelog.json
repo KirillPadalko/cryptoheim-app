@@ -1,5 +1,23 @@
 [
   {
+    "date": "2026-09-07",
+    "tag": "ANALYSIS",
+    "ru": "Итоги периода с 28 августа по 7 сентября на замороженной конфигурации: 12 закрытых сделок, прибыльных 2 (16.7%), суммарный результат −$20.76, средняя длительность сделки 2.9 дня; ещё 2 позиции остаются открытыми. По монетам: ADA +$2.31, XRP −$1.23, DOGE −$3.34, TRX −$3.67, SOL −$6.14, BTC −$8.69. Выборка мала: 12 сделок не позволяют отличить неудачную полосу от системной проблемы, поэтому правила входа по этому результату не менялись — изменения затронули только контур обратной связи и разделение ролей между моделью и системой.",
+    "en": "Results for 28 August - 7 September on the frozen configuration: 12 closed trades, 2 of them profitable (16.7%), net result -$20.76, average hold 2.9 days; 2 more positions are still open. By coin: ADA +$2.31, XRP -$1.23, DOGE -$3.34, TRX -$3.67, SOL -$6.14, BTC -$8.69. The sample is small: 12 trades cannot separate a bad run from a systematic problem, so entry rules were not changed on the back of this result — the changes touched only the feedback loop and the split of responsibilities between model and system."
+  },
+  {
+    "date": "2026-09-07",
+    "tag": "STRATEGY",
+    "ru": "Период сбора чистой статистики на замороженной конфигурации закрыт — предыдущий сетап зафиксирован сегодняшним днём. Разграничены роли: модель отвечает только за направление сделки, а уровни тейк-профита, стоп-лосса и размер позиции полностью на стороне системы (они и раньше считались от волатильности, но модель продолжали спрашивать о них впустую). Из задания модели убраны разделы про управление открытой позицией — с переходом на режим set-and-forget они ни на что не влияли. Добавлено требование давать честную вероятность движения и конкретное условие, при котором прогноз считается опровергнутым: это делает качество прогнозов измеримым.",
+    "en": "The clean-sample period on the frozen configuration is closed — the previous setup is sealed as of today. Roles are now separated: the model owns the trade direction only, while take-profit, stop-loss and position size sit entirely with the system (they were already volatility-derived, but the model was still being asked for them to no effect). Sections about managing an open position were removed from the model's brief — they influenced nothing once the bot moved to set-and-forget. The model must now state a calibrated probability and a concrete condition that would prove its call wrong, which makes forecast quality measurable."
+  },
+  {
+    "date": "2026-09-07",
+    "tag": "FIX",
+    "ru": "Исправлен ежедневный разбор торговли. Он отбирал сделки по дате открытия, а не закрытия: при удержании позиции до 7 дней это означало, что в отчёт попадали ещё не завершённые сделки, а те, что реально закрылись за день, не попадали вовсе. Кроме того, разбор смотрел только на BTC и DOGE, хотя торгуется шесть монет. Теперь он охватывает весь торгуемый список, а статистика (сделки, доля прибыльных, PnL, длительность, причины выхода) считается в коде — модель её только интерпретирует и обязана указывать размер выборки, стоящий за каждым выводом.",
+    "en": "Fixed the daily trading review. It selected trades by open date rather than close date: with holds of up to 7 days that meant the report covered trades that had not finished yet, while the trades that actually closed that day were missed entirely. It also looked only at BTC and DOGE though six coins are traded. It now covers the full traded list, and the statistics (trade count, win rate, PnL, hold time, exit reasons) are computed in code — the model only interprets them and must state the sample size behind every claim."
+  },
+  {
     "date": "2026-08-25",
     "tag": "ANALYSIS",
     "ru": "Проверили качество сигналов модели на 18 566 исторических прогнозах. Сигналы несут реальную информацию о направлении движения и вдвое опережают простое следование тренду; действующие фильтры отбора улучшают результат. По итогам проверки стратегия оставлена без изменений — она набирает статистику в неизменном виде.",
