@@ -107,6 +107,7 @@ body {
 .pos-pair { font-weight: 500; }
 .pos-entry, .pos-time { color: var(--bot-muted2); }
 .pos-pnl { font-weight: 700; }
+.pos-comment { grid-column: 1 / -1; font-size: 11px; line-height: 1.5; color: var(--bot-muted); padding-top: 4px; }
 .pos-empty { padding: 16px 4px; font-size: 13px; color: var(--bot-muted); }
 
 /* Changelog */

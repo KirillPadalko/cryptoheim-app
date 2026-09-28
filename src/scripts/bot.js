@@ -242,6 +242,13 @@ function renderStats() {
     `).join('');
 }
 
+// Note attached by the backend to trades of a named mechanism (open_context.comment = {ru, en}).
+function tradeComment(p) {
+    const c = p && p.open_context && p.open_context.comment;
+    const text = c && (c[lang] || c.en || c.ru);
+    return text ? `<div class="pos-comment">${escapeHtml(text)}</div>` : '';
+}
+
 function renderPositions() {
     const t = I18N[lang];
     const list = Array.isArray(data.positions) ? data.positions : [];
@@ -275,6 +282,7 @@ function renderPositions() {
                 <div class="pos-time">${escapeHtml(formatTick(p.open_time, true))}</div>
                 <div class="pos-entry">${escapeHtml(p.entry_price ?? '—')}</div>
                 <div class="pos-pnl r" style="color:${pnlColor}">${pnlUsd === null ? '—' : usd(pnlUsd, true)}</div>
+                ${tradeComment(p)}
             </div>
         `;
     }).join('');
@@ -310,6 +318,7 @@ function renderClosed() {
                 <div class="pos-time">${escapeHtml(formatTick(p.close_time, true))}</div>
                 <div class="pos-entry">${escapeHtml(p.entry_price ?? '—')}</div>
                 <div class="pos-pnl r" style="color:${pnlColor}">${pnl === null ? '—' : usd(pnl, true)}</div>
+                ${tradeComment(p)}
             </div>
         `;
     }).join('');
