@@ -39,7 +39,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('bot_lang') || 'ru';
-let data = { account: null, stats: null, positions: [], history: [], changelog: [] };
+let data = { account: null, stats: null, positions: [], history: [], series: null, changelog: [] };
 
 const $ = (id) => document.getElementById(id);
 
@@ -85,8 +85,8 @@ function formatPair(symbol) {
 
 // ─── Derived stats the backend does not expose ───
 // All computed from trade PnL, so deposits/withdrawals/transfers never enter.
-function computeExtraStats(history) {
-    const pnls = (history || []).map((t) => num(t.pnl)).filter((n) => n !== null && n !== 0);
+function computeExtraStats(trades) {
+    const pnls = (trades || []).map((t) => num(t.pnl)).filter((n) => n !== null && n !== 0);
     const wins = pnls.filter((n) => n > 0);
     const losses = pnls.filter((n) => n < 0);
 
@@ -98,8 +98,7 @@ function computeExtraStats(history) {
 
     // Max drawdown of cumulative realized PnL, in USD (peak-to-trough).
     let maxDDUsd = null;
-    const chron = (history || [])
-        .map((t) => ({ ts: num(t.close_time), pnl: num(t.pnl) }))
+    const chron = (trades || [])
         .filter((t) => t.ts !== null && t.pnl !== null && t.pnl !== 0)
         .sort((a, b) => a.ts - b.ts);
     if (chron.length) {
@@ -127,15 +126,22 @@ function renderStaticI18n() {
     });
 }
 
-// Cumulative realized PnL of closed trades over time. Deposit/withdrawal/
-// transfer-free by construction — it only ever sums trade PnL.
+// Closed trades as [{ts, pnl}], oldest first. Comes from the compact /pnl-series endpoint (the whole
+// history, ~10 KB); if that fails we degrade to the recent trades the page already has.
+function closedTrades() {
+    const raw = Array.isArray(data.series)
+        ? data.series.map(([ts, pnl]) => ({ ts: num(ts), pnl: num(pnl) }))
+        : (data.history || []).map((t) => ({ ts: num(t.close_time), pnl: num(t.pnl) }));
+    return raw.filter((t) => t.ts !== null && t.pnl !== null).sort((a, b) => a.ts - b.ts);
+}
+
+// Cumulative realized PnL of closed trades over time, starting from 0 before the first trade.
+// Deposit/withdrawal/transfer-free by construction — it only ever sums trade PnL.
 function pnlSeries() {
-    const trades = (data.history || [])
-        .map((t) => ({ ts: num(t.close_time), pnl: num(t.pnl) }))
-        .filter((t) => t.ts !== null && t.pnl !== null)
-        .sort((a, b) => a.ts - b.ts);
+    const trades = closedTrades();
+    if (!trades.length) return [];
     let cum = 0;
-    return trades.map((t) => { cum += t.pnl; return { ts: t.ts, v: cum }; });
+    return [{ ts: trades[0].ts, v: 0 }, ...trades.map((t) => { cum += t.pnl; return { ts: t.ts, v: cum }; })];
 }
 
 function renderBalance() {
@@ -165,12 +171,14 @@ function renderBalance() {
         const vals = bh.map((p) => p.v);
         const min = Math.min(...vals), max = Math.max(...vals);
         const range = max - min || 1;
-        const pts = bh.map((p, i) => {
-            const x = (i / (bh.length - 1)) * W;
+        // x is proportional to TIME, so quiet days look quiet and the date labels below are truthful.
+        const t0 = bh[0].ts, span = (bh[bh.length - 1].ts - t0) || 1;
+        const pts = bh.map((p) => {
+            const x = ((p.ts - t0) / span) * W;
             const y = H - ((p.v - min) / range) * (H - 10) - 5;
             return `${x.toFixed(1)},${y.toFixed(1)}`;
         });
-        const rising = vals[vals.length - 1] >= vals[0];
+        const rising = vals[vals.length - 1] >= 0;
         const stroke = rising ? GREEN : RED;
         line.setAttribute('points', pts.join(' '));
         line.setAttribute('stroke', stroke);
@@ -204,15 +212,13 @@ function renderEquityAxis(bh) {
     const t1 = toDate(bh[bh.length - 1].ts)?.getTime();
     const spanDays = (t0 && t1) ? (t1 - t0) / 86400000 : 0;
     const withTime = spanDays <= 3;
-    const ticks = Math.min(withTime ? 4 : 6, bh.length);
+    const ticks = withTime ? 4 : 6;
 
-    const seen = new Set();
+    // The plot is time-proportional, so the labels are evenly spaced in time as well.
     const spans = [];
     for (let i = 0; i < ticks; i++) {
-        const idx = Math.round((i / (ticks - 1)) * (bh.length - 1));
-        if (seen.has(idx)) continue;
-        seen.add(idx);
-        spans.push(`<span>${escapeHtml(formatTick(bh[idx].ts, withTime))}</span>`);
+        const ms = t0 + (i / (ticks - 1)) * (t1 - t0);
+        spans.push(`<span>${escapeHtml(formatTick(ms, withTime))}</span>`);
     }
     axis.innerHTML = spans.join('');
 }
@@ -220,7 +226,7 @@ function renderEquityAxis(bh) {
 function renderStats() {
     const t = I18N[lang];
     const s = data.stats || {};
-    const extra = computeExtraStats(data.history);
+    const extra = computeExtraStats(closedTrades());
 
     const pf = extra.profitFactor;
     const cards = [
@@ -370,11 +376,14 @@ function renderAll() {
 
 // ─── Boot ───
 async function load() {
-    const [account, stats, positions, history, changelog] = await Promise.all([
+    // 25 recent trades for the list (each carries its open_context comment); the chart and the
+    // stat cards use the compact full-history series instead of 1000 heavy rows.
+    const [account, stats, positions, history, series, changelog] = await Promise.all([
         API.getBotAccount().catch(() => null),
         API.getBotStats().catch(() => null),
         API.getBotPositions().catch(() => []),
-        API.getBotHistory(1000).catch(() => []),
+        API.getBotHistory(25).catch(() => []),
+        API.getBotPnlSeries().catch(() => null),
         API.getBotChangelog().catch(() => [])
     ]);
     data = {
@@ -382,6 +391,7 @@ async function load() {
         stats,
         positions: Array.isArray(positions) ? positions : [],
         history: Array.isArray(history) ? history : (history?.history || []),
+        series: Array.isArray(series?.trades) ? series.trades : null,
         changelog: Array.isArray(changelog) ? changelog : []
     };
     renderAll();

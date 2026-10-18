@@ -176,6 +176,7 @@ export const API = {
     getBotPositions: () => fetchApi("/api/trading/positions"),
     getBotStats: () => fetchApi("/api/trading/stats"),
     getBotHistory: (limit = 10) => fetchApi(`/api/trading/history?limit=${limit}`),
+    getBotPnlSeries: () => fetchApi("/api/trading/pnl-series"),
     getKlinesSummary: (symbols) => fetchApi(`/klines${symbols ? '?symbols='+symbols : ''}`),
     getKlinesForSymbol: (symbol, timeframe = "15m", limit = 500) => fetchApi(`/klines/${symbol}?timeframe=${timeframe}&limit=${limit}`),
     getMarketScan: () => fetchApi("/analytics/market-scan"),
