@@ -1,0 +1,239 @@
+{
+  "updated": "2026-10-27",
+  "strategies": [
+    {
+      "id": "listing", "status": "live", "since": "2026-10-08",
+      "name": {"ru": "Шорт нового листинга (Binance, Upbit)", "en": "New-listing short (Binance, Upbit)"},
+      "what": {
+        "ru": "После листинга токена на Binance или после добавления рынка KRW на Upbit цена обычно сначала растёт, а потом снижается. Через 3 дня после события открываем шорт на бессрочном контракте Bybit и держим 14 дней.",
+        "en": "After a token is listed on Binance or gets a KRW market on Upbit its price usually spikes first and then drifts down. Three days after the event we open a short on the Bybit perpetual and hold it for 14 days."
+      },
+      "params": {
+        "ru": "$30 на сделку, плечо 2, аварийный стоп +60% от входа, без тейк-профита, до 5 позиций. Binance — с октября, Upbit — с 19 октября 2026.",
+        "en": "$30 per trade, leverage 2, catastrophe stop +60% from entry, no take-profit, up to 5 positions. Binance since October, Upbit since 19 Oct 2026."
+      },
+      "evidence": {
+        "ru": "История 2025–26: в среднем +11–12% на сделку по 108 событиям (медиана около +14%, прибыльных 74%), худшая сделка −96%. Эффект проявлялся в 2025–26 и был слабым до 2025 года. На реальных деньгах закрытых сделок пока мало.",
+        "en": "History 2025-26: about +11-12% per trade over 108 events (median about +14%, 74% profitable), worst trade -96%. The effect showed in 2025-26 and was weak before 2025. Few closed trades on real money so far."
+      }
+    },
+    {
+      "id": "unlock", "status": "live", "since": "2026-10-02",
+      "name": {"ru": "Шорт перед разблокировкой токенов", "en": "Short before a token unlock"},
+      "what": {
+        "ru": "Когда большая часть токенов проекта скоро поступит на рынок (разблокировка), давление продавцов обычно растёт заранее. Открываем шорт за 8 дней до разблокировки и закрываем в день разблокировки.",
+        "en": "When a large share of a project's tokens is about to enter the market (an unlock), selling pressure tends to build up beforehand. We open a short 8 days before the unlock and close it on the unlock day."
+      },
+      "params": {
+        "ru": "$30 на сделку, плечо 2, аварийный стоп +60%, до 8 позиций; список разблокировок заморожен до 31 марта 2027.",
+        "en": "$30 per trade, leverage 2, catastrophe stop +60%, up to 8 positions; the unlock calendar is frozen until 31 March 2027."
+      },
+      "evidence": {
+        "ru": "История 2025–26: в среднем +1.8% на сделку по 322 сделкам — слабое, статистическая планка не пройдена. Это самая частая и самая слабая из стратегий; выборка на реальных деньгах пока мала.",
+        "en": "History 2025-26: about +1.8% per trade over 322 trades - weak, the statistical bar was not met. It is the most frequent and the weakest of the strategies; the real-money sample is still small."
+      }
+    },
+    {
+      "id": "notice", "status": "live", "since": "2026-09-28",
+      "name": {"ru": "Шорт после негативного уведомления биржи", "en": "Short after a negative exchange notice"},
+      "what": {
+        "ru": "После объявления о делистинге на Binance, присвоении мониторингового тега Binance или предупреждения Upbit цена токена чаще снижается. Открываем шорт по первому дневному закрытию и держим 7 дней.",
+        "en": "After a Binance delisting notice, a Binance monitoring tag or an Upbit trading warning the token's price tends to fall. We open a short at the first daily close and hold it for 7 days."
+      },
+      "params": {
+        "ru": "$30 на сделку, плечо 2, аварийный стоп +60%, до 5 позиций.",
+        "en": "$30 per trade, leverage 2, catastrophe stop +60%, up to 5 positions."
+      },
+      "evidence": {
+        "ru": "История: положительная медиана, но тяжёлые хвосты (резкие выкупы шортов могут выносить цену в десятки раз), поэтому запущена малыми суммами на реальных деньгах как проверка вперёд.",
+        "en": "History: positive median but heavy tails (short squeezes can push a price up many times), so it was started with small real-money sizes as a forward test."
+      }
+    },
+    {
+      "id": "btc", "status": "live", "since": "2026-10-19",
+      "name": {"ru": "Тренд BTC", "en": "BTC trend"},
+      "what": {
+        "ru": "Держим BTC в лонге, пока закрытие дня выше средней цены за последние 100 дней, и уходим в деньги, когда закрытие ниже. Защитная стратегия: лучше «купи и держи» в падениях, хуже в бурном росте; в паре с шортами по альтам частично хеджирует рынок.",
+        "en": "We hold BTC long while the daily close is above its 100-day average and go to cash when it closes below. A defensive rule: better than buy-and-hold in sell-offs, worse in booms; it partly hedges the alt shorts."
+      },
+      "params": {
+        "ru": "0.001 BTC, без плеча, аварийный стоп −30%.",
+        "en": "0.001 BTC, no leverage, catastrophe stop -30%."
+      },
+      "evidence": {
+        "ru": "Правило проверено на истории BTC; худшая историческая сделка −21.7%. Пересмотр через год или раньше, если убыток этой ноги превысит $30.",
+        "en": "The rule was checked on BTC history; the worst historical trade was -21.7%. Review in a year or earlier if this leg loses more than $30."
+      }
+    },
+    {
+      "id": "wick", "status": "pilot", "since": "2026-10-26",
+      "name": {"ru": "Пилот: заявка на продажу далеко выше рынка", "en": "Pilot: a sell order far above the market"},
+      "what": {
+        "ru": "Каждый день ставим лимитные заявки на продажу на 30% выше цены на полночь по самым волатильным токенам. Если токен резко «выстрелит» вверх и заявка исполнится, это шорт на пампе: на истории 2025–26 такие выстрелы чаще откатывались. Цель пилота — не заработать, а проверить, исполняются ли реальные заявки.",
+        "en": "Every day we place limit sell orders 30% above the midnight price on the most volatile tokens. If a token spikes and the order fills, it is a short on the spike: in 2025-26 history such spikes mostly faded. The pilot is meant to measure whether real orders get filled, not to earn."
+      },
+      "params": {
+        "ru": "До 3 заявок в день по $40, стоп +40% от цены исполнения, выход через 24 часа; пилот останавливается при убытке $60 или после 30 исполнений.",
+        "en": "Up to 3 orders a day of $40, stop +40% from the fill price, exit after 24 hours; the pilot stops at a $60 loss or after 30 fills."
+      },
+      "evidence": {
+        "ru": "Не доказанная стратегия. Первая заявка (DOOD, 27 октября) исполнилась по цене уровня за ~2 часа.",
+        "en": "Not a proven strategy. The first order (DOOD, 27 Oct) filled at its level within about 2 hours."
+      }
+    }
+  ],
+  "research": [
+    {
+      "id": "liquidations", "status": "collecting", "started": "2026-09-28",
+      "name": {"ru": "Каскады ликвидаций как сигнал", "en": "Liquidation cascades as a signal"},
+      "what": {
+        "ru": "Сервер записывает принудительные закрытия позиций на Bybit; проверяем, даёт ли отскок или продолжение после каскада предсказуемую прибыль.",
+        "en": "The server records forced position closures on Bybit; we test whether the rebound or continuation after a cascade is predictably profitable."
+      },
+      "done_when": {
+        "ru": "Накоплено не менее месяца данных и достаточно каскадов для проверки по заранее записанным правилам.",
+        "en": "At least a month of data and enough cascades to test under rules written down in advance."
+      },
+      "eta": {"ru": "Первая оценка около 1 ноября 2026.", "en": "First evaluation around 1 November 2026."}
+    },
+    {
+      "id": "sniper", "status": "collecting", "started": "2026-10-20",
+      "name": {"ru": "Снайпер листингов: скачок цены как сигнал", "en": "Listing sniper: a price jump as a signal"},
+      "what": {
+        "ru": "Сервер следит за ценами ~800 контрактов Bybit и за анонсами бирж и записывает каждый скачок цены ≥3% за 2 секунды. Проверяем, можно ли по скачку отличить настоящий листинг от обычного шума. Торговли нет.",
+        "en": "The server watches ~800 Bybit perpetuals and exchange announcements and records every price jump of 3% or more within 2 seconds. We test whether a jump separates a real listing from ordinary noise. No trading."
+      },
+      "done_when": {
+        "ru": "Накоплено 3–5 листингов, у которых есть контракт на Bybit: тогда считаем долю скачков, оказавшихся листингом. Торговать имеет смысл, только если она выше ~11%.",
+        "en": "3-5 listings that have a Bybit perpetual are collected: then we compute the share of jumps that were listings. Trading makes sense only if it exceeds ~11%."
+      },
+      "eta": {"ru": "Такие листинги приходят примерно раз в 2 недели: ориентир декабрь 2026.", "en": "Such listings arrive about every two weeks: roughly December 2026."}
+    },
+    {
+      "id": "wick-paper", "status": "collecting", "started": "2026-10-27",
+      "name": {"ru": "Заявки далеко от рынка: бумажный тест", "en": "Orders far from the market: paper test"},
+      "what": {
+        "ru": "Параллельно с пилотом сервер считает те же заявки на бумаге для ~650 токенов: когда цена касается уровня, записывается исполнение и результат через 5 минут, 1, 4 и 24 часа.",
+        "en": "Alongside the pilot the server paper-trades the same orders on ~650 tokens: when the price touches a level the fill is recorded with the result after 5 minutes, 1, 4 and 24 hours."
+      },
+      "done_when": {
+        "ru": "Закрыто 30 бумажных продаж на уровне +30% минимум на 15 разных днях. Успех: среднее ≥ +1%, медиана > 0, нижняя граница доверительного интервала > 0.",
+        "en": "30 paper sells at the +30% level are closed on at least 15 different days. Success: mean >= +1%, median > 0, lower confidence bound > 0."
+      },
+      "eta": {"ru": "Ориентир: конец ноября – середина декабря 2026.", "en": "Roughly late November to mid-December 2026."}
+    },
+    {
+      "id": "wick-pilot", "status": "collecting", "started": "2026-10-26",
+      "name": {"ru": "Заявки далеко от рынка: реальный пилот", "en": "Orders far from the market: real pilot"},
+      "what": {
+        "ru": "Проверяем то, чего не видно на бумаге: исполняется ли заявка при касании цены, по какой цене, как ведёт себя стоп и сколько маржи занимают стоящие заявки.",
+        "en": "We check what paper cannot show: whether an order is filled when the price touches it, at what price, how the stop behaves and how much margin resting orders tie up."
+      },
+      "done_when": {
+        "ru": "30 исполнений либо остановка по убытку $60. Если бумажный тест успешен, решаем о масштабе отдельно.",
+        "en": "30 fills or a stop at a $60 loss. If the paper test succeeds, the scale is decided separately."
+      },
+      "eta": {"ru": "Ориентир: декабрь 2026 – январь 2027 (около одного исполнения в 1–3 дня).", "en": "Roughly December 2026 to January 2027 (about one fill every 1-3 days)."}
+    },
+    {
+      "id": "dex", "status": "collecting", "started": "2026-10-24",
+      "name": {"ru": "Цена на DEX опережает фьючерс?", "en": "Does the DEX price lead the perpetual?"},
+      "what": {
+        "ru": "Сервер каждые 30 секунд записывает цены ~170 токенов на децентрализованных биржах и на Bybit. Проверяем, предсказывает ли разрыв цен движение фьючерса в ближайшие минуты.",
+        "en": "Every 30 seconds the server records the prices of ~170 tokens on decentralised exchanges and on Bybit. We test whether a price gap predicts the perpetual's move over the next minutes."
+      },
+      "done_when": {
+        "ru": "Не менее 14 суток данных и 100 событий разрыва ≥1% по 15 и более токенам; правила проверки и порог успеха записаны заранее.",
+        "en": "At least 14 days of data and 100 gap events of 1% or more across 15+ tokens; the test rules and the success bar are fixed in advance."
+      },
+      "eta": {"ru": "Не раньше 7 ноября 2026; решение, вероятно, в ноябре – декабре.", "en": "Not before 7 November 2026; a decision probably in November-December."}
+    },
+    {
+      "id": "coinbase", "status": "collecting", "started": "2026-10-22",
+      "name": {"ru": "Листинги на Coinbase, OKX, Bithumb (теневой журнал)", "en": "Listings on Coinbase, OKX, Bithumb (shadow log)"},
+      "what": {
+        "ru": "На истории шорт после первого листинга на этих биржах прошёл планку, но две трети эффекта — это известное падение новых токенов. Поэтому не торгуем, а записываем каждую новую пару вперёд.",
+        "en": "In history a short after a first listing on these venues passed the bar, but two thirds of the effect is the known fall of brand-new tokens. So we do not trade it; we record every new pair going forward."
+      },
+      "done_when": {
+        "ru": "25 новых событий вперёд для токенов с контрактом на Bybit, затем проверка по тем же правилам, что и на истории.",
+        "en": "25 new forward events for tokens with a Bybit perpetual, then the same rules as in the history test."
+      },
+      "eta": {"ru": "Зависит от числа новых пар; ориентир — зима 2026–27.", "en": "Depends on how many new pairs appear; roughly winter 2026-27."}
+    },
+    {
+      "id": "unlock-liq", "status": "collecting", "started": "2026-10-23",
+      "name": {"ru": "Разблокировки: пропускать неликвидные токены?", "en": "Unlocks: skip illiquid tokens?"},
+      "what": {
+        "ru": "На истории шорты в токенах с оборотом ниже $1 млн в сутки были хуже, но после поправки на подбор порога значимости не хватило. Теперь ликвидность записывается с каждой новой сделкой.",
+        "en": "In history shorts in tokens trading under $1M a day did worse, but the result was not significant after correcting for the threshold search. Liquidity is now logged with every new trade."
+      },
+      "done_when": {
+        "ru": "40 новых разблокировок с записанной ликвидностью: повторная проверка. Фильтр включаем только если эффект подтвердится.",
+        "en": "40 new unlocks with logged liquidity: a re-test. The filter is added only if the effect is confirmed."
+      },
+      "eta": {"ru": "Ориентир: середина января 2027.", "en": "Roughly mid-January 2027."}
+    },
+    {
+      "id": "unlock-live", "status": "waiting", "started": "2026-10-02",
+      "name": {"ru": "Оценка живых результатов разблокировок", "en": "Evaluation of live unlock results"},
+      "what": {
+        "ru": "Сравниваем реальные сделки по разблокировкам с результатами на истории.",
+        "en": "We compare real unlock trades with the history results."
+      },
+      "done_when": {
+        "ru": "20 закрытых сделок: если среднее отрицательно, пересматриваем размер или отключаем стратегию.",
+        "en": "20 closed trades: if the mean is negative we cut the size or switch the strategy off."
+      },
+      "eta": {"ru": "Ориентир: середина – конец ноября 2026.", "en": "Roughly mid to late November 2026."}
+    },
+    {
+      "id": "listing-live", "status": "waiting", "started": "2026-10-19",
+      "name": {"ru": "Листинг-шорты: срок удержания и оценка вперёд", "en": "Listing shorts: holding period and forward evaluation"},
+      "what": {
+        "ru": "Проверяем, стоит ли держать листинг-шорт 28 дней вместо 14: на истории чем дольше, тем больше суммарная прибыль, но выше риск. Параметры не менялись, чтобы не подгонять под историю; 28-дневный исход считается вперёд по ценам.",
+        "en": "We check whether holding a listing short 28 days instead of 14 is better: in history the longer hold earns more in total but carries more risk. The parameters were not changed to avoid fitting to history; the 28-day outcome is computed forward from prices."
+      },
+      "done_when": {
+        "ru": "20 закрытых листинг-шортов для оценки живых результатов (январь 2027) и 25 событий для сравнения 14 и 28 дней.",
+        "en": "20 closed listing shorts for the live evaluation (January 2027) and 25 events for the 14 vs 28 day comparison."
+      },
+      "eta": {"ru": "Живая оценка — около января 2027; сравнение сроков — около марта 2027.", "en": "Live evaluation around January 2027; the holding-period comparison around March 2027."}
+    },
+    {
+      "id": "notice-live", "status": "waiting", "started": "2026-09-28",
+      "name": {"ru": "Оценка уведомлений бирж (делистинг, мониторинг, предупреждения)", "en": "Evaluation of exchange notices (delisting, monitoring, warnings)"},
+      "what": {
+        "ru": "Один раз оцениваем реальные результаты шортов после негативных уведомлений бирж и долю срабатывания стопов.",
+        "en": "A single evaluation of the real results of shorts after negative exchange notices and how often the stop is hit."
+      },
+      "done_when": {
+        "ru": "40 закрытых сделок: средний чистый результат положителен с вероятностью не менее 90% (бутстреп по месяцам).",
+        "en": "40 closed trades: the mean net result is positive with at least 90% probability (bootstrap by months)."
+      },
+      "eta": {"ru": "Событий около 5–6 в месяц: ориентир март – апрель 2027.", "en": "About 5-6 events a month: roughly March-April 2027."}
+    }
+  ],
+  "closed": [
+    {
+      "name": {"ru": "Прогноз направления на основе ИИ (LLM)", "en": "AI (LLM) direction forecasts"},
+      "verdict": {"ru": "Остановлено 28 сентября: вне выборки −0.23R на сделку, не лучше случайного выбора.", "en": "Stopped on 28 September: -0.23R per trade out of sample, no better than a random direction."}
+    },
+    {
+      "name": {"ru": "Аномальные движения на альтах (рост, падение, объём)", "en": "Abnormal moves on alts (rises, falls, volume)"},
+      "verdict": {"ru": "Четыре раунда, 77 проверок на 5- и 1-минутных свечах и на новых токенах: стратегии нет, быстрый вход не помогает.", "en": "Four rounds, 77 tests on 5- and 1-minute bars and on unseen tokens: no strategy, a fast entry does not help."}
+    },
+    {
+      "name": {"ru": "Позиционирование трейдеров на Binance", "en": "Trader positioning on Binance"},
+      "verdict": {"ru": "Топ-трейдеры против толпы, рост открытого интереса, доля лонгов: ни один сигнал не прошёл проверку.", "en": "Top traders vs the crowd, open-interest growth, long ratio: no signal passed."}
+    },
+    {
+      "name": {"ru": "Сбор фандинга без риска цены", "en": "Funding capture without price risk"},
+      "verdict": {"ru": "Спот + перп на Bybit и разница Bybit/Binance безопасны, но дают 3–7% годовых и редкие сигналы; не стоит рисков на сегодняшних суммах.", "en": "Spot + perp on Bybit and the Bybit/Binance spread are safe but earn 3-7% a year with rare signals; not worth the effort at today's sizes."}
+    },
+    {
+      "name": {"ru": "Новые события Binance, упоминания на Reddit, фильтр «накачанных» токенов, шорты новых контрактов", "en": "New Binance events, Reddit mentions, a filter for pumped tokens, shorts of new perpetuals"},
+      "verdict": {"ru": "Не прошли предрегистрированные проверки (малые выборки или нет эффекта).", "en": "Failed the pre-registered tests (small samples or no effect)."}
+    }
+  ]
+}

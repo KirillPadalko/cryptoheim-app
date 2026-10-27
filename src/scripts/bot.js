@@ -14,6 +14,10 @@ const I18N = {
         positionsTitle: 'ОТКРЫТЫЕ ПОЗИЦИИ', changelogTitle: 'ЛОГ ИЗМЕНЕНИЙ СТРАТЕГИИ',
         pair: 'ПАРА', side: 'СТОРОНА', opened: 'ОТКРЫТА', closed: 'ЗАКРЫТА', entry: 'ВХОД', pnl: 'PNL',
         closedTitle: 'ЗАКРЫТЫЕ СДЕЛКИ',
+        researchTitle: 'СТРАТЕГИИ И ИССЛЕДОВАНИЯ', researchIntro: 'Что бот делает сейчас и что мы проверяем. Результаты исследований не гарантируют доходность.',
+        strategiesSub: 'ТЕКУЩИЕ СТРАТЕГИИ', researchSub: 'ТЕКУЩИЕ ИССЛЕДОВАНИЯ', closedResearchSub: 'ЗАКРЫТЫЕ ИССЛЕДОВАНИЯ', researchUpdated: 'Обновлено',
+        srLive: 'РАБОТАЕТ', srPilot: 'ПИЛОТ', srCollecting: 'СБОР ДАННЫХ', srWaiting: 'ЖДЁМ СДЕЛОК',
+        srSince: 'С', srStarted: 'Начато', srParams: 'Параметры', srEvidence: 'Что показала история', srDone: 'Когда можно заканчивать', srEta: 'Ориентир по срокам',
         disclaimer: 'Результаты в прошлом не гарантируют доходность в будущем.', updated: 'ОБНОВЛЕНО',
         noPositions: 'Открытых позиций нет.', noData: 'Нет данных.',
         statLabels: {
@@ -29,6 +33,10 @@ const I18N = {
         positionsTitle: 'OPEN POSITIONS', changelogTitle: 'STRATEGY CHANGELOG',
         pair: 'PAIR', side: 'SIDE', opened: 'OPENED', closed: 'CLOSED', entry: 'ENTRY', pnl: 'PNL',
         closedTitle: 'CLOSED TRADES',
+        researchTitle: 'STRATEGIES & RESEARCH', researchIntro: 'What the bot does now and what we are testing. Research results do not guarantee returns.',
+        strategiesSub: 'CURRENT STRATEGIES', researchSub: 'CURRENT RESEARCH', closedResearchSub: 'CLOSED RESEARCH', researchUpdated: 'Updated',
+        srLive: 'LIVE', srPilot: 'PILOT', srCollecting: 'COLLECTING DATA', srWaiting: 'AWAITING TRADES',
+        srSince: 'Since', srStarted: 'Started', srParams: 'Parameters', srEvidence: 'What history showed', srDone: 'When it can be finished', srEta: 'Expected timing',
         disclaimer: 'Past performance does not guarantee future results.', updated: 'UPDATED',
         noPositions: 'No open positions.', noData: 'No data.',
         statLabels: {
@@ -39,7 +47,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('bot_lang') || 'ru';
-let data = { account: null, stats: null, positions: [], history: [], series: null, changelog: [] };
+let data = { account: null, stats: null, positions: [], history: [], series: null, changelog: [], research: null };
 
 const $ = (id) => document.getElementById(id);
 
@@ -356,6 +364,38 @@ function renderChangelog() {
     }).join('');
 }
 
+function loc(o) { return o ? (o[lang] || o.en || o.ru || '') : ''; }
+
+function renderResearch() {
+    const t = I18N[lang];
+    const r = data.research;
+    const badgeText = { live: t.srLive, pilot: t.srPilot, collecting: t.srCollecting, waiting: t.srWaiting };
+    const card = (head, badge, date, rows) => `
+        <div class="sr-card">
+            <div class="sr-head">
+                <span class="sr-name">${escapeHtml(head)}</span>
+                ${badge ? `<span class="sr-badge ${escapeHtml(badge)}">${escapeHtml(badgeText[badge] || badge)}</span>` : ''}
+                ${date ? `<span class="sr-date">${escapeHtml(date)}</span>` : ''}
+            </div>
+            ${rows}
+        </div>`;
+    if (!r) {
+        ['strategies-body', 'research-body', 'closed-research-body'].forEach((id) => {
+            $(id).innerHTML = `<div class="sr-card"><div class="sr-text">${escapeHtml(t.noData)}</div></div>`;
+        });
+        return;
+    }
+    $('strategies-body').innerHTML = (r.strategies || []).map((s) => card(loc(s.name), s.status, `${t.srSince} ${s.since || ''}`, `
+        <div class="sr-text">${escapeHtml(loc(s.what))}</div>
+        <div class="sr-row"><b>${escapeHtml(t.srParams)}:</b> ${escapeHtml(loc(s.params))}</div>
+        <div class="sr-row"><b>${escapeHtml(t.srEvidence)}:</b> ${escapeHtml(loc(s.evidence))}</div>`)).join('');
+    $('research-body').innerHTML = (r.research || []).map((x) => card(loc(x.name), x.status, `${t.srStarted} ${x.started || ''}`, `
+        <div class="sr-text">${escapeHtml(loc(x.what))}</div>
+        <div class="sr-done"><b>${escapeHtml(t.srDone)}:</b> ${escapeHtml(loc(x.done_when))}<br><b>${escapeHtml(t.srEta)}:</b> ${escapeHtml(loc(x.eta))}</div>`)).join('');
+    $('closed-research-body').innerHTML = (r.closed || []).map((x) => card(loc(x.name), '', '', `<div class="sr-verdict">${escapeHtml(loc(x.verdict))}</div>`)).join('');
+    $('research-updated').textContent = r.updated || '—';
+}
+
 function renderLive() {
     const t = I18N[lang];
     const ok = data.account ? data.account.exchange_ok !== false : true;
@@ -371,6 +411,7 @@ function renderAll() {
     renderPositions();
     renderClosed();
     renderChangelog();
+    renderResearch();
     renderLive();
 }
 
@@ -378,13 +419,14 @@ function renderAll() {
 async function load() {
     // 25 recent trades for the list (each carries its open_context comment); the chart and the
     // stat cards use the compact full-history series instead of 1000 heavy rows.
-    const [account, stats, positions, history, series, changelog] = await Promise.all([
+    const [account, stats, positions, history, series, changelog, research] = await Promise.all([
         API.getBotAccount().catch(() => null),
         API.getBotStats().catch(() => null),
         API.getBotPositions().catch(() => []),
         API.getBotHistory(25).catch(() => []),
         API.getBotPnlSeries().catch(() => null),
-        API.getBotChangelog().catch(() => [])
+        API.getBotChangelog().catch(() => []),
+        API.getBotResearch().catch(() => null)
     ]);
     data = {
         account,
@@ -392,7 +434,8 @@ async function load() {
         positions: Array.isArray(positions) ? positions : [],
         history: Array.isArray(history) ? history : (history?.history || []),
         series: Array.isArray(series?.trades) ? series.trades : null,
-        changelog: Array.isArray(changelog) ? changelog : []
+        changelog: Array.isArray(changelog) ? changelog : [],
+        research: research && Array.isArray(research.strategies) ? research : null
     };
     renderAll();
 }

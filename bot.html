@@ -53,6 +53,25 @@
             <div class="chart-note" data-i18n="chartNote">Накопленный реализованный PnL закрытых сделок — без учёта ввода/вывода и переводов</div>
         </div>
 
+        <!-- Strategies and research -->
+        <div class="section section-bordered" id="research-section">
+            <div class="section-title"># <span data-i18n="researchTitle">СТРАТЕГИИ И ИССЛЕДОВАНИЯ</span></div>
+            <div class="sr-intro" data-i18n="researchIntro">Что бот делает сейчас и что мы проверяем. Результаты исследований не гарантируют доходность.</div>
+            <details class="sr-block" open>
+                <summary class="sr-sub" data-i18n="strategiesSub">ТЕКУЩИЕ СТРАТЕГИИ</summary>
+                <div class="sr-list" id="strategies-body"></div>
+            </details>
+            <details class="sr-block" open>
+                <summary class="sr-sub" data-i18n="researchSub">ТЕКУЩИЕ ИССЛЕДОВАНИЯ</summary>
+                <div class="sr-list" id="research-body"></div>
+            </details>
+            <details class="sr-block" id="closed-research">
+                <summary class="sr-sub" data-i18n="closedResearchSub">ЗАКРЫТЫЕ ИССЛЕДОВАНИЯ</summary>
+                <div class="sr-list" id="closed-research-body"></div>
+            </details>
+            <div class="chart-note"><span data-i18n="researchUpdated">Обновлено</span>: <span id="research-updated">—</span></div>
+        </div>
+
         <!-- Stats -->
         <div class="section section-bordered">
             <div class="section-title"># <span data-i18n="statsTitle">СТАТИСТИКА ПО ЗАКРЫТЫМ СДЕЛКАМ</span></div>

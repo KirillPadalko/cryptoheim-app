@@ -118,6 +118,30 @@ body {
 .log-date { font-size: 12px; color: oklch(0.5 0 0); }
 .log-desc { font-size: 13px; line-height: 1.55; color: oklch(0.85 0 0); }
 
+/* Strategies and research */
+.sr-intro { font-size: 12px; color: var(--bot-muted2); line-height: 1.5; margin-bottom: 14px; }
+.sr-sub { font-size: 11px; color: var(--bot-dim); letter-spacing: 0.08em; text-transform: uppercase; margin: 18px 0 8px; }
+.sr-list { display: flex; flex-direction: column; gap: 1px; background: var(--bot-line); border: 1px solid var(--bot-line); }
+.sr-card { background: var(--bot-panel); padding: 14px 16px; }
+.sr-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.sr-name { font-size: 14px; font-weight: 700; color: var(--bot-text); }
+.sr-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 1px 7px; border: 1px solid currentColor; text-transform: uppercase; }
+.sr-badge.live { color: var(--bot-green); }
+.sr-badge.pilot { color: var(--bot-cyan); }
+.sr-badge.collecting { color: var(--bot-cyan); }
+.sr-badge.waiting { color: var(--bot-muted2); }
+.sr-date { font-size: 11px; color: var(--bot-dim); }
+.sr-text { font-size: 13px; line-height: 1.55; color: oklch(0.85 0 0); margin-bottom: 6px; }
+.sr-row { font-size: 12px; line-height: 1.55; color: var(--bot-muted2); margin-top: 4px; }
+.sr-row b { color: var(--bot-text); font-weight: 600; }
+.sr-done { margin-top: 8px; padding: 8px 10px; border-left: 2px solid var(--bot-cyan); background: oklch(1 0 0 / 0.03); font-size: 12px; line-height: 1.55; color: oklch(0.85 0 0); }
+.sr-done b { color: var(--bot-cyan); font-weight: 700; }
+.sr-block > summary { cursor: pointer; list-style: none; user-select: none; }
+.sr-block > summary::-webkit-details-marker { display: none; }
+.sr-block > summary::before { content: '\25B8  '; color: var(--bot-cyan); }
+.sr-block[open] > summary::before { content: '\25BE  '; }
+.sr-verdict { font-size: 12px; line-height: 1.5; color: var(--bot-muted2); }
+
 /* Footer */
 .footer {
   padding: 14px 16px; border-top: 1px solid var(--bot-line);
