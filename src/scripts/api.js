@@ -174,6 +174,7 @@ export const API = {
     getBotBalanceHistory: (points = 400) => fetchApi(`/api/trading/balance-history?points=${points}`),
     getBotChangelog: () => fetchApi("/bot-changelog.json"),
     getBotResearch: () => fetchApi("/bot-research.json"),
+    getBotResearchProgress: () => fetchApi("/api/trading/research-progress", false),
     getBotPositions: () => fetchApi("/api/trading/positions"),
     getBotStats: () => fetchApi("/api/trading/stats"),
     getBotHistory: (limit = 10) => fetchApi(`/api/trading/history?limit=${limit}`),

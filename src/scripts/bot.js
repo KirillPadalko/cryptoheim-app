@@ -47,7 +47,7 @@ const I18N = {
 };
 
 let lang = localStorage.getItem('bot_lang') || 'ru';
-let data = { account: null, stats: null, positions: [], history: [], series: null, changelog: [], research: null };
+let data = { account: null, stats: null, positions: [], history: [], series: null, changelog: [], research: null, progress: null };
 
 const $ = (id) => document.getElementById(id);
 
@@ -366,6 +366,18 @@ function renderChangelog() {
 
 function loc(o) { return o ? (o[lang] || o.en || o.ru || '') : ''; }
 
+function progressBars(id) {
+    const list = data.progress && data.progress[id];
+    if (!Array.isArray(list) || !list.length) return '';
+    return '<div class="sr-progress">' + list.map((b) => {
+        const pct = b.target > 0 ? Math.max(0, Math.min(100, (b.done / b.target) * 100)) : 0;
+        const usd = b.fmt === 'usd' ? '$' : '';
+        const shown = Number.isInteger(b.done) ? b.done : Number(b.done).toFixed(1);
+        return `<div class="sr-bar"><div class="sr-bar-text"><b>${usd}${escapeHtml(String(shown))}</b> / ${usd}${escapeHtml(String(b.target))} <span>${escapeHtml(loc(b.unit))}</span></div>`
+            + `<div class="sr-bar-track"><div class="sr-bar-fill${pct >= 100 ? ' full' : ''}" style="width:${pct.toFixed(1)}%"></div></div></div>`;
+    }).join('') + '</div>';
+}
+
 function renderResearch() {
     const t = I18N[lang];
     const r = data.research;
@@ -391,6 +403,7 @@ function renderResearch() {
         <div class="sr-row"><b>${escapeHtml(t.srEvidence)}:</b> ${escapeHtml(loc(s.evidence))}</div>`)).join('');
     $('research-body').innerHTML = (r.research || []).map((x) => card(loc(x.name), x.status, `${t.srStarted} ${x.started || ''}`, `
         <div class="sr-text">${escapeHtml(loc(x.what))}</div>
+        ${progressBars(x.id)}
         <div class="sr-done"><b>${escapeHtml(t.srDone)}:</b> ${escapeHtml(loc(x.done_when))}<br><b>${escapeHtml(t.srEta)}:</b> ${escapeHtml(loc(x.eta))}</div>`)).join('');
     $('closed-research-body').innerHTML = (r.closed || []).map((x) => card(loc(x.name), '', '', `<div class="sr-verdict">${escapeHtml(loc(x.verdict))}</div>`)).join('');
     $('research-updated').textContent = r.updated || '—';
@@ -419,14 +432,15 @@ function renderAll() {
 async function load() {
     // 25 recent trades for the list (each carries its open_context comment); the chart and the
     // stat cards use the compact full-history series instead of 1000 heavy rows.
-    const [account, stats, positions, history, series, changelog, research] = await Promise.all([
+    const [account, stats, positions, history, series, changelog, research, progress] = await Promise.all([
         API.getBotAccount().catch(() => null),
         API.getBotStats().catch(() => null),
         API.getBotPositions().catch(() => []),
         API.getBotHistory(25).catch(() => []),
         API.getBotPnlSeries().catch(() => null),
         API.getBotChangelog().catch(() => []),
-        API.getBotResearch().catch(() => null)
+        API.getBotResearch().catch(() => null),
+        API.getBotResearchProgress().catch(() => null)
     ]);
     data = {
         account,
@@ -435,7 +449,8 @@ async function load() {
         history: Array.isArray(history) ? history : (history?.history || []),
         series: Array.isArray(series?.trades) ? series.trades : null,
         changelog: Array.isArray(changelog) ? changelog : [],
-        research: research && Array.isArray(research.strategies) ? research : null
+        research: research && Array.isArray(research.strategies) ? research : null,
+        progress: progress && progress.progress ? progress.progress : null
     };
     renderAll();
 }

@@ -134,6 +134,12 @@ body {
 .sr-text { font-size: 13px; line-height: 1.55; color: oklch(0.85 0 0); margin-bottom: 6px; }
 .sr-row { font-size: 12px; line-height: 1.55; color: var(--bot-muted2); margin-top: 4px; }
 .sr-row b { color: var(--bot-text); font-weight: 600; }
+.sr-progress { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.sr-bar-text { font-size: 12px; color: var(--bot-muted2); margin-bottom: 3px; }
+.sr-bar-text b { color: var(--bot-text); font-weight: 700; }
+.sr-bar-track { height: 4px; background: var(--bot-line); }
+.sr-bar-fill { height: 100%; background: var(--bot-cyan); }
+.sr-bar-fill.full { background: var(--bot-green); }
 .sr-done { margin-top: 8px; padding: 8px 10px; border-left: 2px solid var(--bot-cyan); background: oklch(1 0 0 / 0.03); font-size: 12px; line-height: 1.55; color: oklch(0.85 0 0); }
 .sr-done b { color: var(--bot-cyan); font-weight: 700; }
 .sr-block > summary { cursor: pointer; list-style: none; user-select: none; }
