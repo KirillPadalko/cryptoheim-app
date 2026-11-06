@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local one-off deploy/debug scripts — they contain the server root password
+deploy.js
+deploy-backend.js
+deploy-*.js
+deploy.tar.gz
+*.tar.gz
+auth.py
+*-auth.js
+check-prod.js
+test-ssh.js
+test-latency.js
+.claude/
